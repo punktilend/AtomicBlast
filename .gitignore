@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+genres.json
+playlists.json
+favorites.json
+playback-state.json

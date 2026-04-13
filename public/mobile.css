@@ -1,0 +1,249 @@
+/* AtomicBlast — iPhone / mobile overrides */
+
+/* ── Safe-area spacer ────────────────────────────────────────────────────
+   A real DOM element that occupies exactly the top safe area height.
+   This physically pushes the nav bar below the Dynamic Island / status bar
+   zone where iOS intercepts all touches. Works at any screen width so it
+   covers iPhone 14 Pro Max landscape (932px) which exceeds the 900px
+   media-query breakpoint.
+   env() evaluates to 0 on desktop → spacer collapses to nothing.         */
+
+#ios-safe-top {
+  height: env(safe-area-inset-top);
+  background: rgba(8,12,8,0.97); /* match topnav colour — looks seamless */
+  flex-shrink: 0;
+  pointer-events: none;          /* never steals swipe gestures           */
+}
+
+/* Topnav no longer needs top padding — the spacer handles it */
+.topnav {
+  /* sides: ear speaker / Dynamic Island in landscape */
+  padding-left:  max(env(safe-area-inset-left),  20px);
+  padding-right: max(env(safe-area-inset-right), 20px);
+}
+
+/* Sidebar: push content past the ear speaker when inline */
+.music-lib-panel {
+  padding-left: max(env(safe-area-inset-left), 0px);
+}
+
+/* Player bar: respect both side insets in landscape */
+#player-bar {
+  padding-left:  max(env(safe-area-inset-left),  20px);
+  padding-right: max(env(safe-area-inset-right), 20px);
+}
+
+/* Now-playing overlay: side insets */
+#np-screen {
+  padding-left:  max(env(safe-area-inset-left),  28px);
+  padding-right: max(env(safe-area-inset-right), 28px);
+}
+
+/* Status bar bottom inset */
+.status-bar {
+  padding-bottom: max(env(safe-area-inset-bottom), 4px);
+  min-height: calc(28px + env(safe-area-inset-bottom));
+}
+
+/* ── Prevent tap highlight / text selection on controls ───────────────── */
+button, .nav-item, .music-track-row, .music-tree-item,
+.lib-track-row, .album-tile, .artist-tile, .cloud-item,
+.queue-item, .ctx-item {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* =====================================================================
+   PORTRAIT PHONE  (narrow, standing up)
+   ===================================================================== */
+@media (max-width: 900px) and (orientation: portrait) {
+
+  /* ── Nav bar ────────────────────────────────────────────────────────── */
+  .topnav {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 4px;
+  }
+  .topnav-logo { margin-right: 10px; margin-bottom: 2px; }
+  .topnav-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    gap: 2px;
+  }
+  .topnav-tabs::-webkit-scrollbar { display: none; }
+  .nav-item { padding: 8px 10px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  .topnav-right { gap: 4px; flex-shrink: 0; }
+
+  /* Hide Settings label, keep icon only */
+  [data-view="settings"] span:last-child { display: none; }
+  [data-view="settings"] { padding: 8px 10px; }
+
+  /* Shrink search bar to fit */
+  .search-bar input { width: 120px; font-size: 12px; padding: 6px 10px; }
+
+  /* ── Sidebar: slide-in drawer ───────────────────────────────────────── */
+  .music-lib-panel {
+    position: fixed !important;
+    left: 0; top: 0; bottom: 0;
+    width: 260px !important;
+    min-width: 260px !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    z-index: 150;
+    padding-top: env(safe-area-inset-top); /* slide in under the spacer */
+  }
+  body.sidebar-open .music-lib-panel { transform: translateX(0); }
+  .music-layout { flex-direction: column; }
+  .music-content { width: 100% !important; min-width: 0; }
+
+  /* Show hamburger button */
+  .topnav-hamburger {
+    display: flex !important;
+    font-size: 24px !important;
+    padding: 8px 14px 8px 4px !important;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  .main-body { padding: 12px 16px 140px; }
+  .view-header { padding: 12px 16px 0; }
+  .artist-grid, .album-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+  .music-track-row, .lib-track-row { padding: 11px 10px; min-height: 52px; }
+  .music-track-header { display: none; }
+  .cloud-item { padding: 12px 14px; font-size: 14px; min-height: 48px; }
+  .music-album-header { padding: 16px 16px 12px; gap: 12px; }
+  .music-album-art { width: 80px; height: 80px; }
+  .music-album-meta h2 { font-size: 16px; }
+  .stacked-art { width: 100% !important; padding-top: 100% !important; }
+  .status-bar { display: none !important; }
+
+  /* ── Queue panel full-width ─────────────────────────────────────────── */
+  .queue-panel {
+    width: 100% !important; max-width: 100% !important;
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 200; border-radius: 0 !important;
+  }
+
+  /* ── Mini player bar ────────────────────────────────────────────────── */
+  #player-bar {
+    height: auto; min-height: 68px; bottom: 0;
+    padding: 10px 16px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    gap: 10px; cursor: pointer;
+  }
+  #player-bar .player-seek, #player-bar .player-vol,
+  #player-bar #p-shuffle, #player-bar #p-repeat,
+  #player-bar #p-queue-btn, #player-bar #p-fullscreen { display: none !important; }
+  #player-bar .player-art { width: 48px !important; height: 48px !important; border-radius: 6px; }
+  #player-bar .p-btn { font-size: 20px; padding: 8px 10px; }
+  #player-bar .p-btn.p-play { font-size: 26px; }
+  #player-bar .player-meta { max-width: none; flex: 1; }
+  #player-bar .player-meta .p-title  { font-size: 14px; }
+  #player-bar .player-meta .p-artist { font-size: 12px; }
+
+  /* ── Context menu ───────────────────────────────────────────────────── */
+  #ctx-menu { font-size: 15px; }
+  .ctx-item { padding: 13px 18px; min-height: 48px; }
+}
+
+/* =====================================================================
+   LANDSCAPE PHONE  (wider, on its side — ear speaker is on the left)
+   ===================================================================== */
+@media (max-width: 900px) and (orientation: landscape) {
+
+  /* ── Nav bar: push clear of ear speaker (safe-area-inset-left) ──────── */
+  .topnav {
+    height: auto;
+    align-items: flex-end;
+    padding-left:  max(env(safe-area-inset-left),  16px);
+    padding-right: max(env(safe-area-inset-right), 16px);
+    padding-bottom: 8px;
+    gap: 4px;
+  }
+  .topnav-logo { margin-right: 10px; margin-bottom: 2px; }
+  .nav-item { padding: 6px 10px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  [data-view="settings"] span:last-child { display: none; }
+  .search-bar input { width: 110px; font-size: 12px; padding: 5px 10px; }
+
+  /* ── Sidebar: always visible inline (no drawer needed in landscape) ─── */
+  .topnav-hamburger { display: none !important; }   /* no hamburger needed */
+  #sidebar-overlay  { display: none !important; }   /* no overlay needed   */
+
+  .music-lib-panel {
+    /* Reset all the fixed-drawer overrides */
+    position: relative !important;
+    left: auto !important; top: auto !important; bottom: auto !important;
+    transform: none !important;
+    transition: none !important;
+    z-index: auto !important;
+    padding-top: 0 !important;
+
+    /* Indent past ear speaker / safe area */
+    padding-left: max(env(safe-area-inset-left), 8px) !important;
+    width: 210px !important;
+    min-width: 210px !important;
+  }
+
+  /* Layout: sidebar on the left, content on the right — row again */
+  .music-layout { flex-direction: row !important; }
+  .music-content { width: auto !important; flex: 1; min-width: 0; }
+
+  /* Right-edge safe area for content / player bar */
+  .main-body {
+    padding: 8px max(env(safe-area-inset-right), 12px) 100px 12px;
+  }
+  .lib-grid   { padding-right: max(env(safe-area-inset-right), 24px); }
+  .lib-track-list { padding-right: max(env(safe-area-inset-right), 24px); }
+
+  /* ── Mini player bar: respect both side insets in landscape ─────────── */
+  #player-bar {
+    height: auto; min-height: 60px; bottom: 0;
+    padding: 8px max(env(safe-area-inset-right), 16px) 8px max(env(safe-area-inset-left), 16px);
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    gap: 10px; cursor: pointer;
+  }
+  #player-bar .player-seek, #player-bar .player-vol,
+  #player-bar #p-shuffle, #player-bar #p-repeat,
+  #player-bar #p-queue-btn, #player-bar #p-fullscreen { display: none !important; }
+  #player-bar .player-art { width: 44px !important; height: 44px !important; border-radius: 5px; }
+  #player-bar .p-btn { font-size: 20px; padding: 6px 8px; }
+  #player-bar .p-btn.p-play { font-size: 24px; }
+  #player-bar .player-meta { max-width: none; flex: 1; }
+  #player-bar .player-meta .p-title  { font-size: 13px; }
+  #player-bar .player-meta .p-artist { font-size: 11px; }
+
+  /* ── Compact rows in landscape ──────────────────────────────────────── */
+  .music-track-row, .lib-track-row { padding: 8px 10px; min-height: 44px; }
+  .music-track-header { display: none; }
+  .music-album-header { padding: 12px 16px 10px; gap: 10px; }
+  .music-album-art { width: 64px; height: 64px; }
+  .status-bar { display: none !important; }
+
+  /* ── Queue panel: reasonable width in landscape ─────────────────────── */
+  .queue-panel {
+    width: 100% !important; max-width: 100% !important;
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 200; border-radius: 0 !important;
+  }
+
+  /* ── Context menu ───────────────────────────────────────────────────── */
+  #ctx-menu { font-size: 14px; }
+  .ctx-item { padding: 11px 16px; min-height: 44px; }
+}
+
+/* =====================================================================
+   SMALL PORTRAIT PHONES (≤ 480px)
+   ===================================================================== */
+@media (max-width: 480px) and (orientation: portrait) {
+  .nav-item { padding: 7px 9px; font-size: 10.5px; }
+  .artist-grid, .album-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .main-body { padding: 10px 12px 140px; }
+}
