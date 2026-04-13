@@ -403,8 +403,10 @@
         <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
         <span class="np-vol-icon np-vol-hi">&#128266;</span>
       </div>
+      <button id="np-eq-btn"    class="np-extra-btn" title="Equalizer">EQ</button>
       <button id="np-norm-btn"  class="np-extra-btn" title="Volume normalization">≋</button>
       <button id="np-xfade-btn" class="np-extra-btn" title="Crossfade">⇌</button>
+      <button id="np-speed-btn" class="np-extra-btn" title="Playback speed">1×</button>
       <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
     </div>
     <div id="np-lyrics" style="width:100%;margin-top:12px;max-height:140px;overflow-y:auto;font-size:13px;line-height:1.7;color:#555;text-align:center;flex-shrink:0;scrollbar-width:none"></div>
@@ -1611,6 +1613,51 @@
     function hideVideoPlayer() { const v = el('music-video-el'); if (v) { v.pause(); v.src = '' } }
     function showPlayerBar()   { el('player-bar').style.display = ''; document.body.classList.add('player-bar-active') }
 
+    // ── Playback Speed ────────────────────────────────────
+    const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    let currentSpeedIdx = 2   // default 1×
+
+    function initSpeedControl() {
+      const btn = el('np-speed-btn')
+      btn.addEventListener('click', () => {
+        document.getElementById('speed-menu')?.remove()
+        const menu = document.createElement('div')
+        menu.id = 'speed-menu'
+        menu.style.cssText = [
+          'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
+          'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
+          'overflow:hidden','z-index:600','min-width:180px',
+          'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+        ].join(';')
+        menu.innerHTML =
+          '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">PLAYBACK SPEED</div>' +
+          SPEEDS.map((s, i) =>
+            `<div class="speed-opt" data-idx="${i}" style="padding:12px 20px;font-size:14px;color:${i === currentSpeedIdx ? '#4ade80' : '#ccc'};cursor:pointer;border-top:1px solid #1a2e1a${i === currentSpeedIdx ? ';font-weight:700' : ''}">${s === 1 ? '1× Normal' : s + '×'}</div>`
+          ).join('')
+        document.body.appendChild(menu)
+        menu.querySelectorAll('.speed-opt').forEach(opt => {
+          opt.addEventListener('click', () => {
+            menu.remove()
+            currentSpeedIdx = +opt.dataset.idx
+            const speed = SPEEDS[currentSpeedIdx]
+            const audio = el('music-audio'); if (audio) audio.playbackRate = speed
+            btn.textContent = speed === 1 ? '1×' : speed + '×'
+            btn.classList.toggle('np-active', speed !== 1)
+          })
+        })
+        setTimeout(() => {
+          document.addEventListener('click', function dismiss(e) {
+            if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
+          })
+        }, 0)
+      })
+      // Preserve speed across track changes
+      el('music-audio').addEventListener('play', () => {
+        const audio = el('music-audio')
+        if (audio && SPEEDS[currentSpeedIdx] !== 1) audio.playbackRate = SPEEDS[currentSpeedIdx]
+      })
+    }
+
     // ── Lyrics ────────────────────────────────────────────
     let lyricsFor = null   // "artist||title" — avoid duplicate fetches
 
@@ -2469,12 +2516,6 @@
         navigator.mediaSession.setActionHandler('seekto', details => {
           if (details.seekTime != null && isFinite(audio.duration)) audio.currentTime = details.seekTime
         })
-        navigator.mediaSession.setActionHandler('seekbackward', details => {
-          audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10))
-        })
-        navigator.mediaSession.setActionHandler('seekforward', details => {
-          audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + (details.seekOffset || 10))
-        })
       }
 
       // ── Now Playing screen (mobile full-screen player) ─────────────────
@@ -2756,6 +2797,41 @@
           if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
           else { const a = el('music-audio'); if (a?.src) a.paused ? a.play().catch(() => {}) : a.pause() }
           break
+        case 'ArrowLeft': {
+          e.preventDefault()
+          const a = el('music-audio'); if (a?.src) a.currentTime = Math.max(0, a.currentTime - 10)
+          break
+        }
+        case 'ArrowRight': {
+          e.preventDefault()
+          const a = el('music-audio'); if (a?.src) a.currentTime = Math.min(a.duration || 0, a.currentTime + 10)
+          break
+        }
+        case 'ArrowUp': {
+          e.preventDefault()
+          const a = el('music-audio'); if (a) { a.volume = Math.min(1, a.volume + 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
+          break
+        }
+        case 'ArrowDown': {
+          e.preventDefault()
+          const a = el('music-audio'); if (a) { a.volume = Math.max(0, a.volume - 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
+          break
+        }
+        case 'l': case 'L':
+          if (playQueue[queueIdx]) { toggleLike(playQueue[queueIdx]); e.preventDefault() }
+          break
+        case 's': case 'S':
+          el('p-shuffle')?.click(); e.preventDefault()
+          break
+        case 'r': case 'R':
+          el('p-repeat')?.click(); e.preventDefault()
+          break
+        case 'n': case 'N':
+          el('p-next')?.click(); e.preventDefault()
+          break
+        case 'p': case 'P':
+          el('p-prev')?.click(); e.preventDefault()
+          break
       }
     })
 
@@ -2985,6 +3061,121 @@
       el('p-sleep-btn')?.addEventListener('click',  showSleepMenu)
     }
 
+    // ── Equalizer ─────────────────────────────────────────
+    const EQ_BANDS = [
+      { label: '60',   freq: 60,   type: 'lowshelf'  },
+      { label: '250',  freq: 250,  type: 'peaking'   },
+      { label: '1k',   freq: 1000, type: 'peaking'   },
+      { label: '4k',   freq: 4000, type: 'peaking'   },
+      { label: '16k',  freq: 16000,type: 'highshelf' },
+    ]
+    let eqFilters  = []
+    let eqEnabled  = false
+    let eqCtx      = null, eqSrc = null
+
+    function buildEqChain(audio) {
+      if (eqCtx) return
+      eqCtx = new (window.AudioContext || window.webkitAudioContext)()
+      eqSrc = eqCtx.createMediaElementSource(audio)
+      eqFilters = EQ_BANDS.map(b => {
+        const f = eqCtx.createBiquadFilter()
+        f.type      = b.type
+        f.frequency.value = b.freq
+        f.gain.value      = 0
+        f.Q.value         = 1
+        return f
+      })
+      // chain: src → f0 → f1 → f2 → f3 → f4 → dest
+      let node = eqSrc
+      for (const f of eqFilters) { node.connect(f); node = f }
+      node.connect(eqCtx.destination)
+    }
+
+    function showEqPanel() {
+      document.getElementById('eq-panel')?.remove()
+      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
+      const panel = document.createElement('div')
+      panel.id = 'eq-panel'
+      panel.style.cssText = [
+        'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
+        'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
+        'padding:16px 20px','z-index:600','min-width:280px',
+        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+      ].join(';')
+
+      panel.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+        '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">EQUALIZER</span>' +
+        '<button id="eq-reset" style="background:none;border:none;color:#3a5e3a;font-size:11px;cursor:pointer">Reset</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:14px;align-items:flex-end;justify-content:center">' +
+        EQ_BANDS.map((b, i) => `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <span id="eq-val-${i}" style="font-size:10px;color:#4ade80;min-width:28px;text-align:center">${saved[i] >= 0 ? '+' : ''}${saved[i]}dB</span>
+            <input type="range" id="eq-slider-${i}" min="-12" max="12" step="1" value="${saved[i]}"
+              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100px;accent-color:#4ade80;cursor:pointer">
+            <span style="font-size:10px;color:#444">${b.label}</span>
+          </div>`).join('') +
+        '</div>'
+
+      document.body.appendChild(panel)
+      buildEqChain(el('music-audio'))
+      if (eqCtx.state === 'suspended') eqCtx.resume()
+
+      // Apply saved gains
+      saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
+
+      EQ_BANDS.forEach((_, i) => {
+        const slider = panel.querySelector(`#eq-slider-${i}`)
+        slider.addEventListener('input', () => {
+          const gain = +slider.value
+          panel.querySelector(`#eq-val-${i}`).textContent = (gain >= 0 ? '+' : '') + gain + 'dB'
+          if (eqFilters[i]) eqFilters[i].gain.value = gain
+          const gains = EQ_BANDS.map((_, j) => +panel.querySelector(`#eq-slider-${j}`).value)
+          localStorage.setItem('eqGains', JSON.stringify(gains))
+          const anyActive = gains.some(g => g !== 0)
+          eqEnabled = anyActive
+          el('np-eq-btn').classList.toggle('np-active', anyActive)
+        })
+      })
+
+      panel.querySelector('#eq-reset').addEventListener('click', () => {
+        EQ_BANDS.forEach((_, i) => {
+          const s = panel.querySelector(`#eq-slider-${i}`)
+          s.value = 0
+          panel.querySelector(`#eq-val-${i}`).textContent = '+0dB'
+          if (eqFilters[i]) eqFilters[i].gain.value = 0
+        })
+        localStorage.setItem('eqGains', JSON.stringify([0,0,0,0,0]))
+        eqEnabled = false; el('np-eq-btn').classList.remove('np-active')
+      })
+
+      setTimeout(() => {
+        document.addEventListener('click', function dismiss(e) {
+          if (!panel.contains(e.target) && e.target !== el('np-eq-btn')) {
+            panel.remove(); document.removeEventListener('click', dismiss)
+          }
+        })
+      }, 0)
+    }
+
+    function initEqualizer() {
+      const btn = el('np-eq-btn')
+      // Restore active state from saved gains
+      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
+      eqEnabled = saved.some(g => g !== 0)
+      btn.classList.toggle('np-active', eqEnabled)
+      btn.addEventListener('click', showEqPanel)
+      // Apply saved EQ once audio starts (AudioContext needs user gesture first)
+      el('music-audio').addEventListener('play', () => {
+        if (!eqEnabled) return
+        buildEqChain(el('music-audio'))
+        if (eqCtx.state === 'suspended') eqCtx.resume()
+        const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
+        saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
+      }, { once: true })
+    }
+
     // ── Volume Normalization ──────────────────────────────
     let normEnabled = false
     let audioCtx = null, normGain = null, normComp = null, audioSrc = null
@@ -3134,8 +3325,10 @@
     initSidebar()
     initConnectivityWatch()
     initSleepTimer()
+    initEqualizer()
     initNormalization()
     initCrossfade()
+    initSpeedControl()
     init()
     setTimeout(restorePlaybackState, 2000) // restore after library loads
 

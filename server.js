@@ -295,11 +295,15 @@ function parseMusicPath(parts) {
     return { artistName: artist, albumName: album, filename: parts[3] };
   }
   if (parts.length === 4) {
-    const { artist: a1 } = parseArtistAlbumFolder(folder1);
+    const { artist: a1, album: al1 } = parseArtistAlbumFolder(folder1);
     const { album: al2 } = parseArtistAlbumFolder(parts[2]);
     if (isBareYear(folder1)) {
       const { artist: a2, album: alb2 } = parseArtistAlbumFolder(parts[2]);
       return { artistName: a2, albumName: alb2, filename: parts[3] };
+    }
+    // If the sub-folder is a disc/cd/bonus segment, use the artist folder as the album name
+    if (SKIP_SEGMENTS.test(parts[2])) {
+      return { artistName: a1, albumName: al1 || a1, filename: parts[3] };
     }
     return { artistName: a1, albumName: al2, filename: parts[3] };
   }
@@ -419,6 +423,11 @@ async function scanB2Music() {
       const folderPath = tracks[0] ? tracks[0].path.substring(0, tracks[0].path.lastIndexOf('/')) : '';
       const cuePath    = cueMap.get(folderPath) || null;
       albums.push({ name: albumName, coverPath, tracks, cuePath });
+    }
+    // Propagate cover art: albums without art (e.g. bare Disc 1/2 folders) borrow from siblings
+    const fallbackCover = albums.find(a => a.coverPath)?.coverPath || null;
+    if (fallbackCover) {
+      for (const album of albums) { if (!album.coverPath) album.coverPath = fallbackCover; }
     }
     artists.push({ name: artistName, albums });
   }
