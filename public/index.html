@@ -158,7 +158,7 @@
     .player-bar-active #main-content { padding-bottom:72px; }
 
     /* ===== NOW PLAYING SCREEN ===== */
-    #np-screen { display:none; position:fixed; inset:0; background:#080c08; z-index:300; flex-direction:column; align-items:center; padding:0 28px; overflow:hidden; padding-top:max(env(safe-area-inset-top),20px); padding-bottom:max(env(safe-area-inset-bottom),24px); }
+    #np-screen { display:none; position:fixed; inset:0; background:#080c08; z-index:300; flex-direction:column; align-items:center; padding:0 28px; overflow:hidden; padding-top:max(env(safe-area-inset-top),20px); padding-bottom:max(env(safe-area-inset-bottom),24px); transition:background 1.2s ease; }
     body.np-open #np-screen { display:flex; }
     .np-topbar { width:100%; display:flex; align-items:center; justify-content:space-between; padding:4px 0 12px; flex-shrink:0; }
     .np-topbar-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:#555; text-transform:uppercase; }
@@ -407,6 +407,7 @@
       <button id="np-xfade-btn" class="np-extra-btn" title="Crossfade">⇌</button>
       <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
     </div>
+    <div id="np-lyrics" style="width:100%;margin-top:12px;max-height:140px;overflow-y:auto;font-size:13px;line-height:1.7;color:#555;text-align:center;flex-shrink:0;scrollbar-width:none"></div>
   </div>
 
   <!-- New Playlist modal -->
@@ -457,6 +458,19 @@
     let playQueue = [], queueIdx = -1
     let pShuffle = false, repeatMode = 'none'
     let shuffleHistory = []
+
+    // ── Recently Played ───────────────────────────────────
+    const RECENT_MAX = 50
+    function getRecentlyPlayed() {
+      try { return JSON.parse(localStorage.getItem('recentlyPlayed') || '[]') } catch { return [] }
+    }
+    function pushRecentlyPlayed(track) {
+      if (!track?.path) return
+      let recent = getRecentlyPlayed().filter(t => t.path !== track.path)
+      recent.unshift({ path: track.path, title: track.title, artist: track.artist, album: track.album, coverPath: track.coverPath, ts: Date.now() })
+      if (recent.length > RECENT_MAX) recent = recent.slice(0, RECENT_MAX)
+      localStorage.setItem('recentlyPlayed', JSON.stringify(recent))
+    }
     let currentHls = null
     let musicVideoPlaying = false
     let cloudSources = []
@@ -629,6 +643,38 @@
       if (!pl.tracks.some(t => (t.path || t.title) === (track.path || track.title))) pl.tracks.push(track)
       savePlaylists(); setStatus('Added to ' + pl.name)
     }
+    function showRecentlyPlayed() {
+      const inner = el('music-content-inner'); if (!inner) return
+      const recent = getRecentlyPlayed()
+      if (!recent.length) {
+        inner.innerHTML = '<div style="padding:32px;color:#444;font-size:13px">No recently played tracks yet.</div>'
+        return
+      }
+      let html = '<div style="padding:16px 12px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a">RECENTLY PLAYED</div>'
+      html += '<div class="track-list">'
+      recent.forEach((t, i) => {
+        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || 'Unknown')
+        const artist = esc(t.artist || t.album || '')
+        const cover  = t.coverPath ? `<img src="${esc(t.coverPath)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.outerHTML='<div style=width:36px;height:36px;background:#1a2e1a;border-radius:4px;flex-shrink:0>♪</div>'">` : '<div style="width:36px;height:36px;background:#1a2e1a;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#2a3e2a">♪</div>'
+        html += `<div class="track-row" data-recent-idx="${i}" style="display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;border-radius:4px">
+          ${cover}
+          <div style="min-width:0;flex:1">
+            <div style="color:#ccc;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+            <div style="color:#444;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
+          </div>
+        </div>`
+      })
+      html += '</div>'
+      inner.innerHTML = html
+      inner.querySelectorAll('[data-recent-idx]').forEach(row => {
+        row.addEventListener('click', () => {
+          const t = recent[+row.dataset.recentIdx]
+          if (!t) return
+          setQueue([t], 0)
+        })
+      })
+    }
+
     async function showPlaylist(plId) {
       let tracks, name, color
       if (plId === 'liked') {
@@ -855,6 +901,7 @@
       const artCount = b2Lib ? b2Lib.artists.length : ''
 
       let html = '<div class="music-tree-section">Library</div>'
+      html += '<div class="music-tree-item" data-tree="recently-played">🕐 Recently Played</div>'
       html += '<div class="music-tree-item" data-tree="b2-artists">🎤 Artists' + (artCount !== '' ? ' <span style="color:#2a3e2a">(' + artCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-albums">💿 Albums' + (albCount !== '' ? ' <span style="color:#2a3e2a">(' + albCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-genres">🎸 Genres</div>'
@@ -884,6 +931,8 @@
             await ensureB2Lib(); showB2Genres(); renderMusicTree(musicLibrary)
           } else if (t === 'b2-all') {
             await ensureB2Lib(); showB2AllTracks(); renderMusicTree(musicLibrary)
+          } else if (t === 'recently-played') {
+            showRecentlyPlayed()
           } else if (t === 'playlist') {
             showPlaylist(item.dataset.plId)
           }
@@ -1518,7 +1567,14 @@
             }, { once: true })
           }
         } else {
-          audio.src = src
+          // Use gapless preload buffer if available for this src
+          if (gaplessBuffer?.src === src && gaplessBuffer.audio.readyState >= 2) {
+            const buf = gaplessBuffer.audio
+            gaplessBuffer = null
+            audio.src = buf.src   // same src, browser reuses cached data
+          } else {
+            audio.src = src
+          }
           audio.play().catch(() => {})
         }
       }
@@ -1555,7 +1611,55 @@
     function hideVideoPlayer() { const v = el('music-video-el'); if (v) { v.pause(); v.src = '' } }
     function showPlayerBar()   { el('player-bar').style.display = ''; document.body.classList.add('player-bar-active') }
 
+    // ── Lyrics ────────────────────────────────────────────
+    let lyricsFor = null   // "artist||title" — avoid duplicate fetches
+
+    async function fetchLyrics(artist, title) {
+      const key = (artist || '') + '||' + (title || '')
+      if (!artist || !title || key === lyricsFor) return
+      lyricsFor = key
+      const lyricsEl = el('np-lyrics'); if (!lyricsEl) return
+      lyricsEl.textContent = ''
+      try {
+        const a = encodeURIComponent(artist.trim())
+        const t = encodeURIComponent(title.trim())
+        const res = await fetch(`https://api.lyrics.ovh/v1/${a}/${t}`)
+        if (lyricsFor !== key) return   // track changed while fetching
+        if (!res.ok) { lyricsEl.style.color = ''; return }
+        const data = await res.json()
+        if (data.lyrics) {
+          lyricsEl.style.color = '#555'
+          lyricsEl.innerHTML = data.lyrics.replace(/\n/g, '<br>')
+        }
+      } catch { /* silently fail — lyrics are a nice-to-have */ }
+    }
+
+    function extractDominantColor(imgSrc, callback) {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 24   // tiny sample for speed
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, 24, 24)
+          const data = ctx.getImageData(0, 0, 24, 24).data
+          let r = 0, g = 0, b = 0, count = 0
+          for (let i = 0; i < data.length; i += 16) {
+            r += data[i]; g += data[i+1]; b += data[i+2]; count++
+          }
+          r = Math.round(r / count * 0.35)   // darken so text stays readable
+          g = Math.round(g / count * 0.35)
+          b = Math.round(b / count * 0.35)
+          callback(`rgb(${r},${g},${b})`)
+        } catch { callback(null) }
+      }
+      img.onerror = () => callback(null)
+      img.src = imgSrc
+    }
+
     function updatePlayerBar(track) {
+      pushRecentlyPlayed(track)
       const title  = track.title  || track.path.split(/[\\/]/).pop()
       const artist = track.artist || (track.album ? track.album : 'Unknown')
       el('p-title').textContent  = title
@@ -1568,10 +1672,21 @@
       const npArtist = el('np-artist'); if (npArtist) npArtist.textContent = artist
       const npArtWrap = el('np-art-wrap')
       if (npArtWrap) {
-        if (track.coverPath) npArtWrap.innerHTML = '<img src="' + track.coverPath + '" onerror="this.innerHTML=\'<span class=np-art-placeholder>♪</span>\'">'
-        else npArtWrap.innerHTML = '<span class="np-art-placeholder">' + (track.isVideo ? '🎬' : '♪') + '</span>'
+        if (track.coverPath) {
+          npArtWrap.innerHTML = '<img src="' + track.coverPath + '" onerror="this.innerHTML=\'<span class=np-art-placeholder>♪</span>\'">'
+          extractDominantColor(track.coverPath, color => {
+            const np = el('np-screen')
+            if (np) np.style.background = color || '#080c08'
+          })
+        } else {
+          npArtWrap.innerHTML = '<span class="np-art-placeholder">' + (track.isVideo ? '🎬' : '♪') + '</span>'
+          const np = el('np-screen'); if (np) np.style.background = '#080c08'
+        }
       }
       const npLike = el('np-like-btn'); if (npLike) { npLike.textContent = isLiked(track) ? '♥' : '♡'; npLike.classList.toggle('liked', isLiked(track)) }
+      // Clear old lyrics and fetch new ones
+      const lyricsEl = el('np-lyrics'); if (lyricsEl) lyricsEl.innerHTML = ''
+      fetchLyrics(track.artist, track.title)
       // ── Media Session metadata (lock screen / Control Center) ────────────
       if ('mediaSession' in navigator) {
         const artwork = track.coverPath
@@ -1595,13 +1710,29 @@
       }
     }
 
+    function smartShuffleNext() {
+      // Weight unplayed tracks higher; avoid last 10 played in this session
+      const recentPaths = new Set(getRecentlyPlayed().slice(0, 10).map(t => t.path))
+      shuffleHistory.push(queueIdx)
+      const sessionPlayed = new Set(shuffleHistory)
+      // Candidates: not in session history if possible
+      let pool = playQueue.map((_, i) => i).filter(i => !sessionPlayed.has(i))
+      if (!pool.length) { shuffleHistory = []; pool = playQueue.map((_, i) => i).filter(i => i !== queueIdx) }
+      if (!pool.length) return queueIdx
+      // Within pool, weight unrecently-played tracks 4x
+      const weighted = pool.flatMap(i => {
+        const path = playQueue[i]?.path || playQueue[i]?.filePath || ''
+        return recentPaths.has(path) ? [i] : [i, i, i, i]
+      })
+      return weighted[Math.floor(Math.random() * weighted.length)]
+    }
+
     function onTrackEnded() {
       cueAdvancing = false
       if (repeatMode === 'one') { playTrack(playQueue[queueIdx], queueIdx); return }
       let next
       if (pShuffle) {
-        shuffleHistory.push(queueIdx)
-        next = Math.floor(Math.random() * playQueue.length)
+        next = smartShuffleNext()
       } else {
         next = queueIdx + 1
         if (next >= playQueue.length) { if (repeatMode === 'all') next = 0; else return }
@@ -1641,6 +1772,41 @@
       }
       b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
       showB2Artists(lib, lib.dlUrl, lib.dlToken)
+      renderJumpBackIn()
+    }
+
+    function renderJumpBackIn() {
+      const inner = el('music-content-inner'); if (!inner) return
+      const recent = getRecentlyPlayed().slice(0, 6)
+      if (!recent.length) return
+      const section = document.createElement('div')
+      section.id = 'jump-back-in'
+      section.style.cssText = 'padding:0 12px 4px'
+      let html = '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a;padding:16px 0 10px">JUMP BACK IN</div>'
+      html += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none">'
+      recent.forEach((t, i) => {
+        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || '')
+        const artist = esc(t.artist || t.album || '')
+        const cover  = t.coverPath
+          ? `<img src="${esc(t.coverPath)}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;display:block" onerror="this.outerHTML='<div style=width:80px;height:80px;background:#1a2e1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#2a3e2a;font-size:24px>♪</div>'">`
+          : '<div style="width:80px;height:80px;background:#1a2e1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#2a3e2a;font-size:24px">♪</div>'
+        html += `<div data-jbi="${i}" style="flex-shrink:0;width:80px;cursor:pointer">
+          ${cover}
+          <div style="font-size:11px;color:#ccc;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
+          <div style="font-size:10px;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
+        </div>`
+      })
+      html += '</div>'
+      section.innerHTML = html
+      // Insert before the main artist grid
+      const firstChild = inner.firstElementChild
+      inner.insertBefore(section, firstChild)
+      section.querySelectorAll('[data-jbi]').forEach(card => {
+        card.addEventListener('click', () => {
+          const t = recent[+card.dataset.jbi]
+          if (t) setQueue([t], 0)
+        })
+      })
     }
 
     function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
@@ -2210,6 +2376,8 @@
           updateSeekBar(audio.currentTime - startSec, durSec)
         } else {
           updateSeekBar(audio.currentTime, audio.duration)
+          // Gapless: start preloading next track when 20s remain
+          if (isFinite(audio.duration) && audio.duration - audio.currentTime < 20) preloadNextTrack()
         }
       })
       audio.addEventListener('ended', () => { if (!cueAdvancing) onTrackEnded() })
@@ -2864,6 +3032,23 @@
 
       // Re-apply after each new track starts (src swap resets the element)
       audio.addEventListener('play', () => { if (normEnabled) applyNorm(true) })
+    }
+
+    // ── Gapless Playback ──────────────────────────────────
+    let gaplessBuffer = null   // { src, audio }
+
+    function preloadNextTrack() {
+      if (xfadeEnabled) return   // crossfade handles its own preload
+      const nextIdx = pShuffle ? null : queueIdx + 1
+      if (nextIdx === null || nextIdx >= playQueue.length) return
+      const next = playQueue[nextIdx]; if (!next || next.path?.startsWith('http')) return
+      const src = 'file:///' + next.path.replace(/\\/g, '/')
+      if (gaplessBuffer?.src === src) return   // already buffered
+      if (gaplessBuffer) { gaplessBuffer.audio.src = ''; gaplessBuffer = null }
+      const a = new Audio()
+      a.preload = 'auto'
+      a.src = src
+      gaplessBuffer = { src, audio: a }
     }
 
     // ── Crossfade ─────────────────────────────────────────
