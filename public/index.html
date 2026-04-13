@@ -403,6 +403,7 @@
         <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
         <span class="np-vol-icon np-vol-hi">&#128266;</span>
       </div>
+      <button id="np-norm-btn" class="np-extra-btn" title="Volume normalization">≋</button>
       <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
     </div>
   </div>
@@ -2815,6 +2816,55 @@
       el('p-sleep-btn')?.addEventListener('click',  showSleepMenu)
     }
 
+    // ── Volume Normalization ──────────────────────────────
+    let normEnabled = false
+    let audioCtx = null, normGain = null, normComp = null, audioSrc = null
+
+    function initNormalization() {
+      const audio = el('music-audio')
+      const btn   = el('np-norm-btn')
+
+      function buildChain() {
+        if (audioCtx) return
+        audioCtx  = new (window.AudioContext || window.webkitAudioContext)()
+        audioSrc  = audioCtx.createMediaElementSource(audio)
+        normComp  = audioCtx.createDynamicsCompressor()
+        normComp.threshold.value = -24
+        normComp.knee.value      = 10
+        normComp.ratio.value     = 4
+        normComp.attack.value    = 0.003
+        normComp.release.value   = 0.25
+        normGain  = audioCtx.createGain()
+        normGain.gain.value = 1.4   // slight boost so normalized tracks feel full
+        // always connect source → destination; compressor inserted when enabled
+        audioSrc.connect(audioCtx.destination)
+      }
+
+      function applyNorm(on) {
+        buildChain()
+        // resume suspended context (browser autoplay policy)
+        if (audioCtx.state === 'suspended') audioCtx.resume()
+        audioSrc.disconnect()
+        if (on) {
+          audioSrc.connect(normComp)
+          normComp.connect(normGain)
+          normGain.connect(audioCtx.destination)
+        } else {
+          audioSrc.connect(audioCtx.destination)
+        }
+      }
+
+      btn.addEventListener('click', () => {
+        normEnabled = !normEnabled
+        applyNorm(normEnabled)
+        btn.classList.toggle('np-active', normEnabled)
+        btn.title = normEnabled ? 'Volume normalization ON' : 'Volume normalization'
+      })
+
+      // Re-apply after each new track starts (src swap resets the element)
+      audio.addEventListener('play', () => { if (normEnabled) applyNorm(true) })
+    }
+
     function formatTime(s) {
       const m = Math.floor(s / 60)
       return m + ':' + String(Math.floor(s % 60)).padStart(2, '0')
@@ -2826,6 +2876,7 @@
     initSidebar()
     initConnectivityWatch()
     initSleepTimer()
+    initNormalization()
     init()
     setTimeout(restorePlaybackState, 2000) // restore after library loads
 
