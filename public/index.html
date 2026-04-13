@@ -403,7 +403,8 @@
         <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
         <span class="np-vol-icon np-vol-hi">&#128266;</span>
       </div>
-      <button id="np-norm-btn" class="np-extra-btn" title="Volume normalization">≋</button>
+      <button id="np-norm-btn"  class="np-extra-btn" title="Volume normalization">≋</button>
+      <button id="np-xfade-btn" class="np-extra-btn" title="Crossfade">⇌</button>
       <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
     </div>
   </div>
@@ -2865,6 +2866,78 @@
       audio.addEventListener('play', () => { if (normEnabled) applyNorm(true) })
     }
 
+    // ── Crossfade ─────────────────────────────────────────
+    let xfadeEnabled  = false
+    let xfadeSecs     = 5          // crossfade duration in seconds
+    let xfading       = false      // guard — only one crossfade at a time
+    let ghostAudio    = null       // the fading-out clone
+
+    function initCrossfade() {
+      const btn = el('np-xfade-btn')
+      btn.addEventListener('click', () => {
+        xfadeEnabled = !xfadeEnabled
+        btn.classList.toggle('np-active', xfadeEnabled)
+        btn.title = xfadeEnabled ? `Crossfade ON (${xfadeSecs}s — tap to disable)` : 'Crossfade'
+      })
+
+      // Hook into timeupdate on the main audio element
+      el('music-audio').addEventListener('timeupdate', handleCrossfadeTick)
+    }
+
+    function handleCrossfadeTick() {
+      if (!xfadeEnabled || xfading || repeatMode === 'one') return
+      const audio = el('music-audio')
+      if (!audio || !isFinite(audio.duration) || audio.paused) return
+      const remaining = audio.duration - audio.currentTime
+      if (remaining > xfadeSecs || remaining <= 0) return
+
+      // Figure out the next track index
+      let nextIdx
+      if (pShuffle) {
+        nextIdx = Math.floor(Math.random() * playQueue.length)
+      } else {
+        nextIdx = queueIdx + 1
+        if (nextIdx >= playQueue.length) {
+          if (repeatMode === 'all') nextIdx = 0
+          else return   // nothing after last track
+        }
+      }
+      const nextTrack = playQueue[nextIdx]
+      if (!nextTrack) return
+
+      xfading = true
+
+      // Clone current audio → ghost for fade-out
+      ghostAudio = new Audio(audio.src)
+      ghostAudio.currentTime = audio.currentTime
+      ghostAudio.volume      = audio.volume
+      ghostAudio.play().catch(() => {})
+
+      // Silence & swap the main element to next track immediately
+      const targetVol = audio.volume
+      audio.volume = 0
+      queueIdx = nextIdx
+      playTrack(nextTrack, nextIdx)
+
+      // Fade ghost out, main in over xfadeSecs
+      const steps    = 40
+      const interval = (xfadeSecs * 1000) / steps
+      let   step     = 0
+      const fade = setInterval(() => {
+        step++
+        const t = step / steps
+        audio.volume      = Math.min(targetVol, t * targetVol)
+        ghostAudio.volume = Math.max(0, (1 - t) * targetVol)
+        if (step >= steps) {
+          clearInterval(fade)
+          ghostAudio.pause()
+          ghostAudio.src = ''
+          ghostAudio     = null
+          xfading        = false
+        }
+      }, interval)
+    }
+
     function formatTime(s) {
       const m = Math.floor(s / 60)
       return m + ':' + String(Math.floor(s % 60)).padStart(2, '0')
@@ -2877,6 +2950,7 @@
     initConnectivityWatch()
     initSleepTimer()
     initNormalization()
+    initCrossfade()
     init()
     setTimeout(restorePlaybackState, 2000) // restore after library loads
 
