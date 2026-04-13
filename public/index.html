@@ -365,6 +365,7 @@
     </div>
     <button class="p-btn" id="p-fullscreen" title="Fullscreen" style="display:none">⛶</button>
     <button class="p-btn" id="p-queue-btn" title="Up Next">⋮≡<span id="p-queue-badge"></span></button>
+    <button class="p-btn" id="p-sleep-btn" title="Sleep timer" style="display:none;font-size:11px;color:#4ade80">🌙<span id="p-sleep-badge"></span></button>
   </div>
 
   <!-- Now Playing full-screen overlay (mobile) -->
@@ -396,6 +397,7 @@
     </div>
     <div class="np-extra-row">
       <button id="np-shuffle-btn" class="np-extra-btn" title="Shuffle">⇄</button>
+      <button id="np-sleep-btn" class="np-extra-btn" title="Sleep timer">🌙</button>
       <div class="np-vol-row">
         <span class="np-vol-icon np-vol-lo">&#128265;</span>
         <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
@@ -2711,6 +2713,108 @@
       } catch (_) {}
     }
 
+    // ── Sleep timer ────────────────────────────────────────────────────────
+    let sleepTimerId   = null
+    let sleepTickId    = null
+    let sleepEndsAt    = 0
+
+    function setSleepTimer(minutes) {
+      clearSleepTimer()
+      if (!minutes) return
+
+      sleepEndsAt = Date.now() + minutes * 60 * 1000
+      sleepTimerId = setTimeout(() => {
+        const audio = el('music-audio')
+        if (audio) audio.pause()
+        clearSleepTimer()
+        setStatus('Sleep timer — playback stopped')
+      }, minutes * 60 * 1000)
+
+      // Countdown tick every 30s — updates the badge on the player bar
+      sleepTickId = setInterval(updateSleepBadge, 30000)
+      updateSleepBadge()
+    }
+
+    function clearSleepTimer() {
+      clearTimeout(sleepTimerId);  sleepTimerId = null
+      clearInterval(sleepTickId);  sleepTickId  = null
+      sleepEndsAt = 0
+      el('p-sleep-btn').style.display = 'none'
+      el('np-sleep-btn')?.classList.remove('np-active')
+      el('np-sleep-btn').title = 'Sleep timer'
+    }
+
+    function updateSleepBadge() {
+      if (!sleepEndsAt) return
+      const minLeft = Math.max(0, Math.round((sleepEndsAt - Date.now()) / 60000))
+      el('p-sleep-badge').textContent = ' ' + minLeft + 'm'
+      el('p-sleep-btn').style.display = ''
+      el('np-sleep-btn').classList.add('np-active')
+      el('np-sleep-btn').title = 'Sleep: ' + minLeft + 'm left (tap to cancel)'
+    }
+
+    function showSleepMenu() {
+      // Remove any existing menu
+      document.getElementById('sleep-menu')?.remove()
+
+      const active = !!sleepTimerId
+      const options = active
+        ? [{ label: 'Cancel sleep timer', mins: 0 }]
+        : [
+            { label: '15 minutes',  mins: 15 },
+            { label: '30 minutes',  mins: 30 },
+            { label: '45 minutes',  mins: 45 },
+            { label: '1 hour',      mins: 60 },
+            { label: 'End of track', mins: -1 },
+          ]
+
+      const menu = document.createElement('div')
+      menu.id = 'sleep-menu'
+      menu.style.cssText = [
+        'position:fixed', 'bottom:160px', 'left:50%', 'transform:translateX(-50%)',
+        'background:#0d1a0d', 'border:1px solid #2a4a2a', 'border-radius:14px',
+        'overflow:hidden', 'z-index:600', 'min-width:220px',
+        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
+      ].join(';')
+
+      menu.innerHTML =
+        '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">SLEEP TIMER</div>' +
+        options.map(o =>
+          '<div class="sleep-opt" data-mins="' + o.mins + '" style="padding:13px 20px;font-size:14px;color:#ccc;cursor:pointer;border-top:1px solid #1a2e1a">' +
+          (o.mins === 0 ? '<span style="color:#f87171">' + o.label + '</span>' : o.label) +
+          '</div>'
+        ).join('')
+
+      document.body.appendChild(menu)
+
+      menu.querySelectorAll('.sleep-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+          menu.remove()
+          const mins = +opt.dataset.mins
+          if (mins === -1) {
+            // End of track — set timer for remaining duration
+            const audio = el('music-audio')
+            const rem = audio ? Math.ceil(audio.duration - audio.currentTime) : 60
+            setSleepTimer(rem / 60)
+          } else {
+            setSleepTimer(mins)
+          }
+        })
+      })
+
+      // Tap outside to dismiss
+      setTimeout(() => {
+        document.addEventListener('click', function dismiss(e) {
+          if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
+        })
+      }, 0)
+    }
+
+    function initSleepTimer() {
+      el('np-sleep-btn')?.addEventListener('click', showSleepMenu)
+      el('p-sleep-btn')?.addEventListener('click',  showSleepMenu)
+    }
+
     function formatTime(s) {
       const m = Math.floor(s / 60)
       return m + ':' + String(Math.floor(s % 60)).padStart(2, '0')
@@ -2721,6 +2825,7 @@
     initGestures()
     initSidebar()
     initConnectivityWatch()
+    initSleepTimer()
     init()
     setTimeout(restorePlaybackState, 2000) // restore after library loads
 
