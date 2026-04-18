@@ -107,13 +107,73 @@ function saveGenresCache(data) {
   try { fs.writeFileSync(GENRES_FILE, JSON.stringify(data, null, 2), 'utf8'); } catch {}
 }
 
-function httpsGetText(url) {
+function httpsGetText(url, headers = {}) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, res => {
+    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0', ...headers } }, res => {
       let d = ''; res.on('data', c => { d += c; }); res.on('end', () => resolve(d));
     }).on('error', reject);
   });
 }
+
+function httpsGetJSON(url, headers = {}) {
+  return httpsGetText(url, headers).then(t => JSON.parse(t));
+}
+
+function httpsPostForm(url, formBody, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const data = formBody;
+    const u = new URL(url);
+    const req = https.request({
+      hostname: u.hostname, path: u.pathname + u.search, method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(data),
+        'User-Agent': 'AtomicBlast/1.0',
+        ...headers,
+      },
+    }, res => {
+      let d = '';
+      res.on('data', c => { d += c; });
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(new Error(d.slice(0, 300))); } });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+// ── Spotify client credentials auth ──────────────────────────────────────────
+const SPOTIFY_CLIENT_ID     = process.env.SPOTIFY_CLIENT_ID     || '';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
+const LASTFM_API_KEY        = process.env.LASTFM_API_KEY        || '';
+
+let _spotifyToken    = null;
+let _spotifyTokenExp = 0;
+
+async function getSpotifyToken() {
+  if (_spotifyToken && Date.now() < _spotifyTokenExp - 30000) return _spotifyToken;
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) throw new Error('Spotify credentials not configured (set SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)');
+  const creds = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64');
+  const res = await httpsPostForm('https://accounts.spotify.com/api/token', 'grant_type=client_credentials', { Authorization: `Basic ${creds}` });
+  if (!res.access_token) throw new Error('Spotify token error: ' + JSON.stringify(res));
+  _spotifyToken    = res.access_token;
+  _spotifyTokenExp = Date.now() + res.expires_in * 1000;
+  return _spotifyToken;
+}
+
+async function spotifyGet(path) {
+  const token = await getSpotifyToken();
+  return httpsGetJSON('https://api.spotify.com/v1' + path, { Authorization: `Bearer ${token}` });
+}
+
+async function spotifySearch(type, query) {
+  return spotifyGet(`/search?q=${encodeURIComponent(query)}&type=${type}&limit=3`);
+}
+
+// In-memory artist/album meta caches (TTL: 6h)
+const _artistMetaCache = new Map(); // name → { data, exp }
+const _albumMetaCache  = new Map(); // `artist\0album` → { data, exp }
+const META_CACHE_TTL   = 6 * 60 * 60 * 1000;
 
 async function fetchItunesGenre(artistName) {
   try {
@@ -527,5 +587,418 @@ function fetchStream(url, headers, cb) {
     cb(null, response);
   }).on('error', cb);
 }
+
+// ── Spotify status ────────────────────────────────────────────────────────────
+app.get('/api/spotify/status', (req, res) => {
+  res.json({
+    configured: !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET),
+    lastfm:     !!LASTFM_API_KEY,
+  });
+});
+
+// ── Artist metadata (Spotify + optional Last.fm bio) ─────────────────────────
+// Returns: { image, genres, followers, popularity, similar, spotifyUrl,
+//            bio, tags, formed, country, lastfmUrl }
+app.get('/api/artist-meta', async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'name required' });
+
+  const cacheKey = name.toLowerCase();
+  const cached = _artistMetaCache.get(cacheKey);
+  if (cached && Date.now() < cached.exp) return res.json(cached.data);
+
+  const result = {};
+
+  // ── Spotify ──────────────────────────────────────────────────────────────
+  try {
+    const sr = await spotifySearch('artist', name);
+    const artist = sr?.artists?.items?.[0];
+    if (artist) {
+      // Pick best image (largest)
+      const images = (artist.images || []).sort((a, b) => (b.width || 0) - (a.width || 0));
+      result.image      = images[0]?.url || null;
+      result.genres     = artist.genres || [];
+      result.followers  = artist.followers?.total ?? null;
+      result.popularity = artist.popularity ?? null;
+      result.spotifyId  = artist.id;
+      result.spotifyUrl = artist.external_urls?.spotify || null;
+      result.listeners  = result.followers != null
+        ? result.followers.toLocaleString() + ' followers'
+        : null;
+
+      // Related artists
+      if (artist.id) {
+        try {
+          const relRes = await spotifyGet(`/artists/${artist.id}/related-artists`);
+          result.similar = (relRes?.artists || []).slice(0, 8).map(a => a.name);
+        } catch { result.similar = []; }
+      }
+    }
+  } catch (e) {
+    if (e.message.includes('not configured')) {
+      return res.status(503).json({ error: e.message });
+    }
+    console.error('[api/artist-meta] Spotify error:', e.message);
+  }
+
+  // ── Last.fm (bio, tags, formed, country) ──────────────────────────────────
+  if (LASTFM_API_KEY) {
+    try {
+      const lfUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(name)}&api_key=${LASTFM_API_KEY}&format=json&autocorrect=1`;
+      const lf = await httpsGetJSON(lfUrl);
+      const a = lf?.artist;
+      if (a) {
+        // Bio — strip Last.fm boilerplate link
+        const bioContent = a.bio?.content || '';
+        const bioClean = bioContent.replace(/<a href="https?:\/\/www\.last\.fm[^"]*">[^<]*<\/a>/gi, '').replace(/<[^>]+>/g, '').trim();
+        if (bioClean.length > 20) result.bio = bioClean;
+
+        // Tags
+        const lfTags = (a.tags?.tag || []).map(t => t.name).filter(Boolean);
+        if (lfTags.length) result.tags = lfTags;
+
+        // Stats
+        result.lastfmListeners = a.stats?.listeners ? parseInt(a.stats.listeners, 10).toLocaleString() + ' Last.fm listeners' : null;
+        result.lastfmUrl = a.url || null;
+
+        // Use Last.fm similar if Spotify didn't give any
+        if (!result.similar?.length) {
+          result.similar = (a.similar?.artist || []).slice(0, 8).map(s => s.name);
+        }
+
+        // Merge tags into genres if Spotify didn't supply genres
+        if (!result.genres?.length && lfTags.length) result.genres = lfTags.slice(0, 5);
+      }
+    } catch (e) {
+      console.error('[api/artist-meta] Last.fm error:', e.message);
+    }
+  }
+
+  // Use Last.fm listener count as display string if Spotify followers not available
+  if (!result.listeners && result.lastfmListeners) result.listeners = result.lastfmListeners;
+  // Expose genres as tags array if not separately set
+  if (!result.tags?.length && result.genres?.length) result.tags = result.genres;
+
+  _artistMetaCache.set(cacheKey, { data: result, exp: Date.now() + META_CACHE_TTL });
+  res.json(result);
+});
+
+// ── Album metadata (Spotify) ──────────────────────────────────────────────────
+// Returns: { name, releaseDate, releaseYear, label, totalTracks, spotifyUrl,
+//            image, upc, popularity }
+app.get('/api/album-meta', async (req, res) => {
+  const { artist, album } = req.query;
+  if (!artist || !album) return res.status(400).json({ error: 'artist and album required' });
+
+  const cacheKey = artist.toLowerCase() + '\x00' + album.toLowerCase();
+  const cached = _albumMetaCache.get(cacheKey);
+  if (cached && Date.now() < cached.exp) return res.json(cached.data);
+
+  try {
+    const query = `album:${album} artist:${artist}`;
+    const sr = await spotifySearch('album', query);
+    const alb = sr?.albums?.items?.[0];
+    if (!alb) return res.json({});
+
+    // Fetch full album for label + popularity
+    let full = null;
+    try { full = await spotifyGet(`/albums/${alb.id}`); } catch {}
+
+    const images = ((full || alb).images || []).sort((a, b) => (b.width || 0) - (a.width || 0));
+    const result = {
+      name:        (full || alb).name,
+      releaseDate: (full || alb).release_date || null,
+      releaseYear: ((full || alb).release_date || '').slice(0, 4) || null,
+      label:       full?.label || null,
+      totalTracks: (full || alb).total_tracks || null,
+      popularity:  full?.popularity ?? null,
+      spotifyUrl:  (full || alb).external_urls?.spotify || null,
+      image:       images[0]?.url || null,
+      upc:         full?.external_ids?.upc || null,
+    };
+
+    _albumMetaCache.set(cacheKey, { data: result, exp: Date.now() + META_CACHE_TTL });
+    res.json(result);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/album-meta]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Track audio features (Spotify) ───────────────────────────────────────────
+// Returns: { bpm, key, mode, energy, danceability, valence, acousticness,
+//            instrumentalness, liveness, loudness, speechiness, duration_ms,
+//            spotifyUrl, previewUrl }
+const KEY_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+
+app.get('/api/track-features', async (req, res) => {
+  const { artist, title } = req.query;
+  if (!artist || !title) return res.status(400).json({ error: 'artist and title required' });
+
+  try {
+    const query = `track:${title} artist:${artist}`;
+    const sr = await spotifySearch('track', query);
+    const track = sr?.tracks?.items?.[0];
+    if (!track) return res.json({});
+
+    // Fetch audio features for the track
+    let features = null;
+    try { features = await spotifyGet(`/audio-features/${track.id}`); } catch {}
+
+    const result = {
+      spotifyUrl:        track.external_urls?.spotify || null,
+      previewUrl:        track.preview_url || null,
+      popularity:        track.popularity  ?? null,
+      explicit:          track.explicit    ?? null,
+      duration_ms:       track.duration_ms ?? null,
+    };
+
+    if (features) {
+      result.bpm             = features.tempo            != null ? Math.round(features.tempo) : null;
+      result.key             = features.key != null && features.key >= 0 ? KEY_NAMES[features.key % 12] : null;
+      result.mode            = features.mode != null ? (features.mode === 1 ? 'Major' : 'Minor') : null;
+      result.energy          = features.energy          != null ? Math.round(features.energy          * 100) : null;
+      result.danceability    = features.danceability    != null ? Math.round(features.danceability    * 100) : null;
+      result.valence         = features.valence         != null ? Math.round(features.valence         * 100) : null;
+      result.acousticness    = features.acousticness    != null ? Math.round(features.acousticness    * 100) : null;
+      result.instrumentalness= features.instrumentalness!= null ? Math.round(features.instrumentalness* 100) : null;
+      result.liveness        = features.liveness        != null ? Math.round(features.liveness        * 100) : null;
+      result.loudness        = features.loudness        != null ? +features.loudness.toFixed(1) : null;
+      result.speechiness     = features.speechiness     != null ? Math.round(features.speechiness     * 100) : null;
+    }
+
+    res.json(result);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/track-features]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Clear artist/album meta caches
+app.post('/api/artist-meta/refresh', (req, res) => {
+  _artistMetaCache.clear();
+  _albumMetaCache.clear();
+  res.json({ ok: true });
+});
+
+// ── Artist top tracks (Spotify) ───────────────────────────────────────────────
+// Returns: [ { title, durationMs, popularity, explicit, previewUrl, spotifyUrl,
+//              trackNumber, albumName, albumImage, isrc } ]
+// Query: ?name=<artist name>  OR  ?spotifyId=<spotify artist id>
+//        &market=US  (optional, defaults to US)
+const _topTracksCache = new Map(); // spotifyId → { data, exp }
+
+app.get('/api/artist-top-tracks', async (req, res) => {
+  const { name, spotifyId, market = 'US' } = req.query;
+  if (!name && !spotifyId) return res.status(400).json({ error: 'name or spotifyId required' });
+
+  try {
+    let artistId = spotifyId;
+
+    if (!artistId) {
+      // Resolve name → id (check artist meta cache first)
+      const cacheKey = name.toLowerCase();
+      const cached = _artistMetaCache.get(cacheKey);
+      if (cached?.data?.spotifyId) {
+        artistId = cached.data.spotifyId;
+      } else {
+        const sr = await spotifySearch('artist', name);
+        const artist = sr?.artists?.items?.[0];
+        if (!artist) return res.json([]);
+        artistId = artist.id;
+      }
+    }
+
+    const cacheKey = artistId + ':' + market;
+    const cached = _topTracksCache.get(cacheKey);
+    if (cached && Date.now() < cached.exp) return res.json(cached.data);
+
+    const result = await spotifyGet(`/artists/${artistId}/top-tracks?market=${encodeURIComponent(market)}`);
+    const tracks = (result?.tracks || []).map(t => ({
+      title:       t.name,
+      durationMs:  t.duration_ms ?? null,
+      popularity:  t.popularity  ?? null,
+      explicit:    t.explicit    ?? null,
+      previewUrl:  t.preview_url || null,
+      spotifyUrl:  t.external_urls?.spotify || null,
+      trackNumber: t.track_number ?? null,
+      discNumber:  t.disc_number  ?? null,
+      albumName:   t.album?.name  || null,
+      albumImage:  (t.album?.images || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || null,
+      isrc:        t.external_ids?.isrc || null,
+    }));
+
+    _topTracksCache.set(cacheKey, { data: tracks, exp: Date.now() + META_CACHE_TTL });
+    res.json(tracks);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/artist-top-tracks]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Spotify recommendations ───────────────────────────────────────────────────
+// Seed params (up to 5 combined): seed_artists, seed_tracks, seed_genres (CSV)
+// Optional tuning: target_energy, target_tempo, target_valence, target_danceability (0-1 or BPM)
+// Returns: [ { title, artist, albumName, albumImage, durationMs, popularity, explicit,
+//              previewUrl, spotifyUrl, isrc } ]
+app.get('/api/recommendations', async (req, res) => {
+  const {
+    seed_artists = '', seed_tracks = '', seed_genres = '',
+    target_energy, target_tempo, target_valence, target_danceability,
+    limit = '20', market = 'US',
+  } = req.query;
+
+  if (!seed_artists && !seed_tracks && !seed_genres) {
+    return res.status(400).json({ error: 'At least one of seed_artists, seed_tracks, or seed_genres required' });
+  }
+
+  const params = new URLSearchParams({ limit: Math.min(parseInt(limit, 10) || 20, 100).toString(), market });
+  if (seed_artists) params.set('seed_artists', seed_artists);
+  if (seed_tracks)  params.set('seed_tracks',  seed_tracks);
+  if (seed_genres)  params.set('seed_genres',  seed_genres);
+  if (target_energy     != null) params.set('target_energy',      target_energy);
+  if (target_tempo      != null) params.set('target_tempo',       target_tempo);
+  if (target_valence    != null) params.set('target_valence',     target_valence);
+  if (target_danceability != null) params.set('target_danceability', target_danceability);
+
+  try {
+    const result = await spotifyGet(`/recommendations?${params.toString()}`);
+    const tracks = (result?.tracks || []).map(t => ({
+      title:      t.name,
+      artist:     (t.artists || []).map(a => a.name).join(', '),
+      artistId:   t.artists?.[0]?.id || null,
+      albumName:  t.album?.name || null,
+      albumImage: (t.album?.images || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || null,
+      durationMs: t.duration_ms ?? null,
+      popularity: t.popularity  ?? null,
+      explicit:   t.explicit    ?? null,
+      previewUrl: t.preview_url || null,
+      spotifyUrl: t.external_urls?.spotify || null,
+      spotifyId:  t.id,
+      isrc:       t.external_ids?.isrc || null,
+    }));
+    res.json(tracks);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/recommendations]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── New releases (Spotify) ────────────────────────────────────────────────────
+// Returns: [ { name, artists, releaseDate, image, spotifyUrl, totalTracks, albumType } ]
+// Query: ?limit=20&country=US
+const _newReleasesCache = { data: null, exp: 0 };
+const NEW_RELEASES_TTL = 3 * 60 * 60 * 1000; // 3 hours
+
+app.get('/api/new-releases', async (req, res) => {
+  const { limit = '20', country = 'US' } = req.query;
+
+  if (_newReleasesCache.data && Date.now() < _newReleasesCache.exp) {
+    return res.json(_newReleasesCache.data);
+  }
+
+  try {
+    const result = await spotifyGet(`/browse/new-releases?limit=${Math.min(parseInt(limit, 10) || 20, 50)}&country=${encodeURIComponent(country)}`);
+    const albums = (result?.albums?.items || []).map(a => ({
+      name:        a.name,
+      spotifyId:   a.id,
+      artists:     (a.artists || []).map(x => x.name).join(', '),
+      artistIds:   (a.artists || []).map(x => x.id),
+      releaseDate: a.release_date || null,
+      image:       (a.images || []).sort((x, y) => (y.width || 0) - (x.width || 0))[0]?.url || null,
+      spotifyUrl:  a.external_urls?.spotify || null,
+      totalTracks: a.total_tracks ?? null,
+      albumType:   a.album_type  || null,
+    }));
+
+    _newReleasesCache.data = albums;
+    _newReleasesCache.exp  = Date.now() + NEW_RELEASES_TTL;
+    res.json(albums);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/new-releases]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Generic Spotify search proxy ──────────────────────────────────────────────
+// Mirrors the Spotify /search endpoint but strips auth details from client.
+// Query: ?q=<query>&type=track,artist,album&limit=10&market=US&offset=0
+// Returns raw Spotify search result shaped per type:
+//   artists: [ { name, id, genres, popularity, followers, image, spotifyUrl } ]
+//   albums:  [ { name, id, artists, releaseDate, image, spotifyUrl, totalTracks, albumType } ]
+//   tracks:  [ { title, id, artist, artistId, albumName, albumImage, durationMs,
+//                popularity, explicit, previewUrl, spotifyUrl, isrc } ]
+app.get('/api/spotify/search', async (req, res) => {
+  const { q, type = 'track,artist,album', limit = '10', market, offset = '0' } = req.query;
+  if (!q) return res.status(400).json({ error: 'q required' });
+
+  const params = new URLSearchParams({
+    q,
+    type,
+    limit:  Math.min(parseInt(limit,  10) || 10, 50).toString(),
+    offset: Math.max(parseInt(offset, 10) || 0, 0).toString(),
+  });
+  if (market) params.set('market', market);
+
+  try {
+    const raw = await spotifyGet(`/search?${params.toString()}`);
+
+    const out = {};
+
+    if (raw.artists) {
+      out.artists = (raw.artists.items || []).map(a => ({
+        name:       a.name,
+        spotifyId:  a.id,
+        genres:     a.genres || [],
+        popularity: a.popularity ?? null,
+        followers:  a.followers?.total ?? null,
+        image:      (a.images || []).sort((x, y) => (y.width || 0) - (x.width || 0))[0]?.url || null,
+        spotifyUrl: a.external_urls?.spotify || null,
+      }));
+    }
+
+    if (raw.albums) {
+      out.albums = (raw.albums.items || []).map(a => ({
+        name:        a.name,
+        spotifyId:   a.id,
+        artists:     (a.artists || []).map(x => x.name).join(', '),
+        artistIds:   (a.artists || []).map(x => x.id),
+        releaseDate: a.release_date || null,
+        image:       (a.images || []).sort((x, y) => (y.width || 0) - (x.width || 0))[0]?.url || null,
+        spotifyUrl:  a.external_urls?.spotify || null,
+        totalTracks: a.total_tracks ?? null,
+        albumType:   a.album_type  || null,
+      }));
+    }
+
+    if (raw.tracks) {
+      out.tracks = (raw.tracks.items || []).map(t => ({
+        title:      t.name,
+        spotifyId:  t.id,
+        artist:     (t.artists || []).map(a => a.name).join(', '),
+        artistId:   t.artists?.[0]?.id || null,
+        albumName:  t.album?.name || null,
+        albumImage: (t.album?.images || []).sort((x, y) => (y.width || 0) - (x.width || 0))[0]?.url || null,
+        durationMs: t.duration_ms ?? null,
+        popularity: t.popularity  ?? null,
+        explicit:   t.explicit    ?? null,
+        previewUrl: t.preview_url || null,
+        spotifyUrl: t.external_urls?.spotify || null,
+        isrc:       t.external_ids?.isrc    || null,
+      }));
+    }
+
+    res.json(out);
+  } catch (e) {
+    if (e.message.includes('not configured')) return res.status(503).json({ error: e.message });
+    console.error('[api/spotify/search]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.listen(PORT, () => console.log(`AtomicBlast proxy running on port ${PORT}`));
