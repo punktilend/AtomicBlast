@@ -278,6 +278,62 @@ async function b2GetBucketId(auth, bucketName) {
   return bucket.bucketId;
 }
 
+// ── CUE sheet parser ──────────────────────────────────────────────────────────
+function parseCueSheet(text) {
+  const src = text.replace(/^\uFEFF/, ''); // strip BOM
+  let albumTitle = '', albumPerformer = '';
+  let fileCount = 0;
+  const chapters = [];
+  let curTrackNo = -1, curTitle = null, curPerformer = null, curStartMs = -1;
+
+  for (const rawLine of src.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (/^FILE /i.test(line))                       { fileCount++; }
+    else if (/^TRACK /i.test(line)) {
+      if (curTrackNo >= 0 && curStartMs >= 0)
+        chapters.push({ trackNo: curTrackNo, title: curTitle || `Track ${curTrackNo}`, performer: curPerformer || null, startMs: curStartMs });
+      curTrackNo  = parseInt(line.replace(/^TRACK\s+/i, '').split(/\s+/)[0], 10) || -1;
+      curTitle = null; curPerformer = null; curStartMs = -1;
+    }
+    else if (/^TITLE /i.test(line)) {
+      const t = line.replace(/^TITLE\s+/i, '').replace(/^"|"$/g, '');
+      if (curTrackNo < 0) albumTitle = t; else curTitle = t;
+    }
+    else if (/^PERFORMER /i.test(line)) {
+      const p = line.replace(/^PERFORMER\s+/i, '').replace(/^"|"$/g, '');
+      if (curTrackNo < 0) albumPerformer = p; else curPerformer = p;
+    }
+    else if (/^INDEX 01 /i.test(line)) {
+      const parts = line.replace(/^INDEX 01\s+/i, '').trim().split(':');
+      const mm = parseInt(parts[0] || '0', 10);
+      const ss = parseInt(parts[1] || '0', 10);
+      const ff = parseInt(parts[2] || '0', 10);
+      curStartMs = mm * 60000 + ss * 1000 + Math.round(ff * 1000 / 75);
+    }
+  }
+  if (curTrackNo >= 0 && curStartMs >= 0)
+    chapters.push({ trackNo: curTrackNo, title: curTitle || `Track ${curTrackNo}`, performer: curPerformer || null, startMs: curStartMs });
+
+  // Attach endMs = next chapter's startMs (last track gets null = play to end)
+  for (let i = 0; i < chapters.length; i++)
+    chapters[i].endMs = chapters[i + 1]?.startMs ?? null;
+
+  if (chapters.length === 0) return null;
+  return { albumTitle, albumPerformer, chapters, isSingleFile: fileCount <= 1 };
+}
+
+// ── Download a small B2 text file (CUE sheets, NFO, etc.) ─────────────────────
+function fetchB2TextRaw(filePath, dlUrl, dlToken) {
+  return new Promise((resolve) => {
+    const encoded = filePath.split('/').map(encodeURIComponent).join('/');
+    const url = `${dlUrl}/file/${B2_BUCKET}/${encoded}?Authorization=${dlToken}`;
+    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (res) => {
+      if (res.statusCode !== 200) { res.resume(); resolve(null); return; }
+      let d = ''; res.on('data', c => { d += c; }); res.on('end', () => resolve(d));
+    }).on('error', () => resolve(null));
+  });
+}
+
 // ── B2 library scanner (ported from Electron main.js) ────────────────────────
 const AUDIO_EXTS = new Set(['.mp3','.flac','.m4a','.wav','.aac','.ogg','.opus','.wma','.ape','.aiff','.alac','.webm']);
 const VIDEO_EXTS = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv']);
@@ -442,13 +498,30 @@ async function scanB2Music() {
     }
   }
 
+  // ── Download and parse all CUE files (in parallel, 8 at a time) ─────────────
+  const cueDataMap = new Map(); // folderPath → ParsedCue
+  const cueEntries = [...cueMap.entries()]; // [folderPath, cuePath]
+  const CUE_BATCH  = 8;
+  for (let i = 0; i < cueEntries.length; i += CUE_BATCH) {
+    const batch = cueEntries.slice(i, i + CUE_BATCH);
+    await Promise.all(batch.map(async ([folderPath, cuePath]) => {
+      const text = await fetchB2TextRaw(cuePath, dlUrl, dlToken);
+      if (!text) return;
+      const parsed = parseCueSheet(text);
+      if (parsed) cueDataMap.set(folderPath, parsed);
+    }));
+  }
+  console.log(`[scan-b2-music] parsed ${cueDataMap.size}/${cueEntries.length} CUE sheets`);
+
   const artistMap   = new Map();
   const artistNames = new Map();
 
   for (const f of audioEntries) {
     const { artistName, albumName, filename } = f._parsed;
-    const ext = path.extname(filename).toLowerCase();
+    const ext      = path.extname(filename).toLowerCase();
     const baseName = path.basename(filename, ext);
+
+    // Filename-based fallback track number / title
     let trackNo = 0, title = baseName;
     const trackMatch = baseName.match(/^(\d+)\s*[-–.]\s+(.+)$/);
     if (trackMatch) { trackNo = parseInt(trackMatch[1], 10); title = trackMatch[2]; }
@@ -458,7 +531,9 @@ async function scanB2Music() {
     if (!artistMap.has(artistKey)) artistMap.set(artistKey, new Map());
     const albumMap = artistMap.get(artistKey);
     if (!albumMap.has(albumName)) albumMap.set(albumName, []);
-    albumMap.get(albumName).push({ title, path: f.fileName, fileId: f.fileId, size: f.contentLength, ext, trackNo });
+    albumMap.get(albumName).push({
+      title, path: f.fileName, fileId: f.fileId, size: f.contentLength, ext, trackNo,
+    });
   }
 
   // Pick canonical artist name (most files)
@@ -475,14 +550,54 @@ async function scanB2Music() {
   for (const [artistKey, albumMap] of [...artistMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const artistName = artistNames.get(artistKey) || artistKey;
     const albums = [];
-    for (const [albumName, tracks] of [...albumMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-      tracks.sort((a, b) => (a.trackNo || 999) - (b.trackNo || 999) || a.path.localeCompare(b.path));
+    for (const [albumName, rawTracks] of [...albumMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      rawTracks.sort((a, b) => (a.trackNo || 999) - (b.trackNo || 999) || a.path.localeCompare(b.path));
       const coverKey  = artistName + '\x00' + albumName;
       const coverKey2 = artistKey  + '\x00' + albumName;
       const coverPath = coverMap.get(coverKey) || coverMap.get(coverKey2) || null;
-      const folderPath = tracks[0] ? tracks[0].path.substring(0, tracks[0].path.lastIndexOf('/')) : '';
+      const folderPath = rawTracks[0] ? rawTracks[0].path.substring(0, rawTracks[0].path.lastIndexOf('/')) : '';
       const cuePath    = cueMap.get(folderPath) || null;
-      albums.push({ name: albumName, coverPath, tracks, cuePath });
+      const cueData    = cueDataMap.get(folderPath) || null;
+
+      let tracks = rawTracks;
+      let resolvedAlbumName = albumName;
+
+      if (cueData) {
+        // Use CUE album title if it looks real (non-empty, doesn't duplicate the folder name)
+        if (cueData.albumTitle && cueData.albumTitle.trim()) resolvedAlbumName = cueData.albumTitle.trim();
+
+        if (cueData.isSingleFile && rawTracks.length === 1) {
+          // ── Single-file FLAC + CUE: expand into virtual chapter tracks ──────
+          const audioFile = rawTracks[0];
+          tracks = cueData.chapters.map(ch => ({
+            title:       ch.title,
+            performer:   ch.performer || cueData.albumPerformer || null,
+            path:        audioFile.path,
+            fileId:      audioFile.fileId,
+            size:        audioFile.size,
+            ext:         audioFile.ext,
+            trackNo:     ch.trackNo,
+            cueStartMs:  ch.startMs,
+            cueEndMs:    ch.endMs,
+            isCueChapter: true,
+          }));
+        } else {
+          // ── Multi-file + CUE: use CUE metadata to name/annotate tracks ──────
+          // Build a map of trackNo → CUE chapter
+          const cueByNo = new Map(cueData.chapters.map(ch => [ch.trackNo, ch]));
+          tracks = rawTracks.map(t => {
+            const ch = cueByNo.get(t.trackNo);
+            if (!ch) return t;
+            return {
+              ...t,
+              title:      ch.title || t.title,
+              performer:  ch.performer || cueData.albumPerformer || null,
+            };
+          });
+        }
+      }
+
+      albums.push({ name: resolvedAlbumName, coverPath, tracks, cuePath });
     }
     // Propagate cover art: albums without art (e.g. bare Disc 1/2 folders) borrow from siblings
     const fallbackCover = albums.find(a => a.coverPath)?.coverPath || null;
