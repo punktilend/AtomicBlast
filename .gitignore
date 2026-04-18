@@ -5,3 +5,14 @@ genres.json
 playlists.json
 favorites.json
 playback-state.json
+
+# Android build artifacts
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+local.properties
+.idea/
+*.iml
+.DS_Store
