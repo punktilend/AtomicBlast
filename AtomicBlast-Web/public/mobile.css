@@ -21,6 +21,17 @@
   padding-left:  max(env(safe-area-inset-left),  20px);
   padding-right: max(env(safe-area-inset-right), 20px);
 }
+.topnav-tabs {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.topnav-right {
+  min-width: 0;
+  flex-shrink: 1;
+}
+.search-bar {
+  min-width: 0;
+}
 
 /* Sidebar: push content past the ear speaker when inline */
 .music-lib-panel {
@@ -57,7 +68,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
 /* =====================================================================
    PORTRAIT PHONE  (narrow, standing up)
    ===================================================================== */
-@media (max-width: 900px) and (orientation: portrait) {
+@media (max-width: 1024px) and (orientation: portrait) {
 
   /* ── Nav bar ────────────────────────────────────────────────────────── */
   .topnav {
@@ -72,17 +83,20 @@ button, .nav-item, .music-track-row, .music-tree-item,
     flex-wrap: nowrap;
     scrollbar-width: none;
     gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .topnav-tabs::-webkit-scrollbar { display: none; }
   .nav-item { padding: 8px 10px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
-  .topnav-right { gap: 4px; flex-shrink: 0; }
+  .topnav-right { gap: 4px; flex: 0 1 auto; min-width: 0; margin-left: 0; }
 
   /* Hide Settings label, keep icon only */
   [data-view="settings"] span:last-child { display: none; }
   [data-view="settings"] { padding: 8px 10px; }
 
   /* Shrink search bar to fit */
-  .search-bar input { width: 120px; font-size: 12px; padding: 6px 10px; }
+  .search-bar { flex: 1 1 auto; min-width: 0; }
+  .search-bar input { width: 100%; max-width: 120px; font-size: 12px; padding: 6px 10px; }
 
   /* ── Sidebar: slide-in drawer ───────────────────────────────────────── */
   .music-lib-panel {
@@ -124,7 +138,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
   .status-bar { display: none !important; }
 
   /* ── Queue panel full-width ─────────────────────────────────────────── */
-  .queue-panel {
+  #queue-panel {
     width: 100% !important; max-width: 100% !important;
     position: fixed !important;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -156,7 +170,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
 /* =====================================================================
    LANDSCAPE PHONE  (wider, on its side — ear speaker is on the left)
    ===================================================================== */
-@media (max-width: 900px) and (orientation: landscape) {
+@media (max-width: 1024px) and (orientation: landscape) {
 
   /* ── Nav bar: push clear of ear speaker (safe-area-inset-left) ──────── */
   .topnav {
@@ -168,9 +182,12 @@ button, .nav-item, .music-track-row, .music-tree-item,
     gap: 4px;
   }
   .topnav-logo { margin-right: 10px; margin-bottom: 2px; }
+  .topnav-tabs { flex: 1 1 auto; min-width: 0; }
+  .topnav-right { flex: 0 1 auto; min-width: 0; margin-left: 0; }
   .nav-item { padding: 6px 10px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
   [data-view="settings"] span:last-child { display: none; }
-  .search-bar input { width: 110px; font-size: 12px; padding: 5px 10px; }
+  .search-bar { flex: 1 1 auto; min-width: 0; }
+  .search-bar input { width: 100%; max-width: 110px; font-size: 12px; padding: 5px 10px; }
 
   /* ── Sidebar: always visible inline (no drawer needed in landscape) ─── */
   .topnav-hamburger { display: none !important; }   /* no hamburger needed */
@@ -227,7 +244,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
   .status-bar { display: none !important; }
 
   /* ── Queue panel: reasonable width in landscape ─────────────────────── */
-  .queue-panel {
+  #queue-panel {
     width: 100% !important; max-width: 100% !important;
     position: fixed !important;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -246,4 +263,5 @@ button, .nav-item, .music-track-row, .music-tree-item,
   .nav-item { padding: 7px 9px; font-size: 10.5px; }
   .artist-grid, .album-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
   .main-body { padding: 10px 12px 140px; }
+  .search-bar input { max-width: 96px; }
 }

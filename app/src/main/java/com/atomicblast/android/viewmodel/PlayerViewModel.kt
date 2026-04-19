@@ -2,6 +2,7 @@ package com.atomicblast.android.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.AudioAttributes
@@ -12,11 +13,13 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import com.atomicblast.android.data.AlbumMeta
+import com.atomicblast.android.data.AtomicImportRepository
 import com.atomicblast.android.data.ArtistMeta
 import com.atomicblast.android.data.B2Config
 import com.atomicblast.android.data.B2Repository
 import com.atomicblast.android.data.Favorite
 import com.atomicblast.android.data.FavoritesRepository
+import com.atomicblast.android.data.ImportedPlaylistPreview
 import com.atomicblast.android.data.MetadataRepository
 import com.atomicblast.android.data.NowPlaying
 import com.atomicblast.android.data.PlayerState
@@ -35,6 +38,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val b2 = B2Repository(B2Config(), httpClient)
     private val favRepo = FavoritesRepository(client = httpClient)
     val metaRepo = MetadataRepository(httpClient)
+    private val atomicImportRepository = AtomicImportRepository(application.contentResolver, b2)
     private val _artistMeta = MutableStateFlow<Map<String, ArtistMeta>>(emptyMap())
     val artistMeta: StateFlow<Map<String, ArtistMeta>> = _artistMeta.asStateFlow()
     private val _albumMeta = MutableStateFlow<Map<String, AlbumMeta>>(emptyMap())
@@ -71,6 +75,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+    private val _isImporting = MutableStateFlow(false)
+    val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
+    private val _importError = MutableStateFlow<String?>(null)
+    val importError: StateFlow<String?> = _importError.asStateFlow()
+    private val _importPreview = MutableStateFlow<ImportedPlaylistPreview?>(null)
+    val importPreview: StateFlow<ImportedPlaylistPreview?> = _importPreview.asStateFlow()
 
     private val _shuffleMode = MutableStateFlow(false)
     val shuffleMode: StateFlow<Boolean> = _shuffleMode.asStateFlow()
@@ -207,6 +217,45 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearError() { _error.value = null }
 
+    fun importAtomicPlaylist(uri: Uri) {
+        viewModelScope.launch {
+            _isImporting.value = true
+            _importError.value = null
+
+            if (!_isConnected.value) {
+                b2.authorize()
+                    .onSuccess { _isConnected.value = true }
+                    .onFailure { error ->
+                        _importError.value = "Atomic import failed: could not connect to B2 (${error.message})"
+                        _isImporting.value = false
+                        return@launch
+                    }
+            }
+
+            atomicImportRepository.importPlaylist(uri)
+                .onSuccess { preview ->
+                    _importPreview.value = preview
+                }
+                .onFailure { error ->
+                    _importError.value = "Atomic import failed: ${error.message}"
+                }
+
+            _isImporting.value = false
+        }
+    }
+
+    fun playImportedPreview(): Boolean {
+        val preview = _importPreview.value ?: return false
+        if (preview.matchedTracks.isEmpty()) return false
+        playTrack(preview.matchedTracks.first(), preview.matchedTracks, 0)
+        return true
+    }
+
+    fun clearImportPreview() {
+        _importPreview.value = null
+        _importError.value = null
+    }
+
     fun loadArtistMeta(name: String) {
         if (_artistMeta.value.containsKey(name)) return
         viewModelScope.launch {
@@ -236,4 +285,3 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared()
     }
 }
-

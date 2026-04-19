@@ -148,7 +148,10 @@ fun AtomicBlastApp() {
                             CloudScreen(vm = vm, navController = navController, startPrefix = prefix)
                         }
                         composable(Screen.Settings.route) {
-                            SettingsScreen(vm = vm)
+                            SettingsScreen(
+                                vm = vm,
+                                onOpenNowPlaying = { navController.navigate("nowplaying") }
+                            )
                         }
                         composable("nowplaying") {
                             NowPlayingScreen(vm = vm, onBack = {
@@ -163,4 +166,3 @@ fun AtomicBlastApp() {
         }
     }
 }
-

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AtomicBlast</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <img class="header-logo" src="icons/icon.svg" alt="AtomicBlast">
+    <span class="header-title">AtomicBlast</span>
+    <div class="header-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Connecting…</span>
+    </div>
+  </div>
+
+  <!-- ── Now Playing ── -->
+  <div class="now-playing">
+    <div class="np-art" id="np-art">♪</div>
+    <div class="np-info">
+      <div class="np-title"  id="np-title">Nothing playing</div>
+      <div class="np-artist" id="np-artist"></div>
+      <span class="np-format" id="np-format"></span>
+    </div>
+  </div>
+
+  <!-- ── Seek ── -->
+  <div class="seek-row">
+    <span class="seek-time" id="np-cur">0:00</span>
+    <div class="seek-bar" id="seek-bar">
+      <div class="seek-fill" id="seek-fill"></div>
+    </div>
+    <span class="seek-time" id="np-dur">0:00</span>
+  </div>
+
+  <!-- ── Controls ── -->
+  <div class="controls">
+    <button class="ctrl-btn"       id="btn-prev"    title="Previous"   disabled>⏮</button>
+    <button class="ctrl-btn c-play" id="btn-play"   title="Play/Pause" disabled>▶</button>
+    <button class="ctrl-btn"       id="btn-stop"    title="Stop"       disabled>⏹</button>
+    <button class="ctrl-btn"       id="btn-next"    title="Next"       disabled>⏭</button>
+    <button class="ctrl-btn"       id="btn-shuffle" title="Shuffle">⇄</button>
+  </div>
+
+  <!-- ── Quality ── -->
+  <div class="quality-row">
+    <span class="quality-label">QUALITY</span>
+    <button class="quality-btn active" data-q="flac">FLAC</button>
+    <button class="quality-btn"        data-q="high">HI · 320k</button>
+    <button class="quality-btn"        data-q="medium">MED · 192k</button>
+    <button class="quality-btn"        data-q="low">LOW · 128k</button>
+  </div>
+
+  <!-- ── Favorites ── -->
+  <div class="section-toggle" id="fav-toggle">
+    <span>♥ Favorites</span>
+    <span class="toggle-chevron">▼</span>
+  </div>
+  <div class="browse-body" id="fav-body">
+    <div class="browse-list" id="fav-list">
+      <div class="browse-msg">Loading favorites…</div>
+    </div>
+  </div>
+
+  <!-- ── Browse ── -->
+  <div class="section-toggle" id="browse-toggle">
+    <span>Browse Library</span>
+    <span class="toggle-chevron">▼</span>
+  </div>
+
+  <div class="browse-body" id="browse-body">
+    <div class="browse-topbar">
+      <div class="browse-crumbs" id="browse-crumbs">
+        <span class="crumb active" data-idx="0">Artists</span>
+      </div>
+      <button class="shuffle-all-btn" id="shuffle-all-btn">⇄ Shuffle All</button>
+    </div>
+    <div id="browse-meta"></div>
+    <div class="browse-search-wrap">
+      <input type="text" id="browse-search" placeholder="Filter…" autocomplete="off">
+    </div>
+    <div class="browse-list" id="browse-list">
+      <div class="browse-msg">Click to browse your B2 music library.</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

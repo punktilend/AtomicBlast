@@ -1,0 +1,10 @@
+node_modules/
+
+# User config
+config.json
+
+# Emulator binaries (too large for git — keep locally)
+emulators/
+
+# Large design source files
+assets/cartridges/psds/

@@ -1,5 +1,8 @@
 package com.atomicblast.android.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +25,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -39,12 +43,21 @@ import com.atomicblast.android.ui.theme.LocalAtomicBlastColors
 import com.atomicblast.android.viewmodel.PlayerViewModel
 
 @Composable
-fun SettingsScreen(vm: PlayerViewModel) {
+fun SettingsScreen(vm: PlayerViewModel, onOpenNowPlaying: () -> Unit) {
     val colors = LocalAtomicBlastColors.current
     val isConnected by vm.isConnected.collectAsState()
     val error by vm.error.collectAsState()
     val isDark by vm.isDarkTheme.collectAsState()
     val streamQuality by vm.streamQuality.collectAsState()
+    val isImporting by vm.isImporting.collectAsState()
+    val importError by vm.importError.collectAsState()
+    val importPreview by vm.importPreview.collectAsState()
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            vm.importAtomicPlaylist(uri)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -117,6 +130,86 @@ fun SettingsScreen(vm: PlayerViewModel) {
                         Text(quality.label, color = if (quality == streamQuality) colors.green else colors.textDim, fontSize = 18.sp)
                         if (quality == streamQuality) {
                             Text("✓", color = colors.green, fontSize = 18.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Atomic Playlist Import", color = colors.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                Text(
+                    "Open one of the Atomic Export playlist JSON files and match it against your Backblaze music library.",
+                    color = colors.textMuted,
+                    fontSize = 16.sp
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) },
+                        enabled = !isImporting,
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.greenDim, contentColor = colors.green),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(if (isImporting) "Importing…" else "Pick Playlist JSON", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (importPreview != null) {
+                        OutlinedButton(
+                            onClick = { vm.clearImportPreview() },
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("Clear", fontSize = 16.sp)
+                        }
+                    }
+                }
+
+                if (importError != null) {
+                    Text(importError!!, color = Color(0xFFFF6B6B), fontSize = 16.sp)
+                }
+
+                if (importPreview != null) {
+                    SettingRow("File", importPreview!!.sourceFileName, colors)
+                    SettingRow("Playlist", importPreview!!.playlistName, colors)
+                    SettingRow("Tracks", importPreview!!.totalTracks.toString(), colors)
+                    SettingRow("Matched", importPreview!!.matchedTracks.size.toString(), colors)
+                    SettingRow("Unmatched", importPreview!!.unmatchedTracks.size.toString(), colors)
+
+                    if (importPreview!!.matchedTracks.isNotEmpty()) {
+                        Button(
+                            onClick = {
+                                if (vm.playImportedPreview()) {
+                                    onOpenNowPlaying()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.greenDim, contentColor = colors.green),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text("Play Matched Playlist", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    if (importPreview!!.unmatchedTracks.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Unmatched Tracks", color = colors.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                            importPreview!!.unmatchedTracks.take(8).forEach { track ->
+                                val artistText = track.artists.joinToString(", ").ifBlank { "Unknown Artist" }
+                                val albumText = track.album?.takeIf { it.isNotBlank() } ?: "Unknown Album"
+                                Text(
+                                    "• ${track.title} — $artistText ($albumText)",
+                                    color = colors.textDim,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            if (importPreview!!.unmatchedTracks.size > 8) {
+                                Text(
+                                    "+${importPreview!!.unmatchedTracks.size - 8} more",
+                                    color = colors.textMuted,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 }

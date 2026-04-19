@@ -1,0 +1,41 @@
+{
+  "manifest_version": 2,
+  "name": "AtomicBlast",
+  "version": "2.0.0",
+  "description": "AtomicBlast — browse and stream your Backblaze B2 music library directly in Firefox.",
+  "permissions": [
+    "https://api.backblazeb2.com/*",
+    "https://*.backblazeb2.com/*",
+    "http://23.95.216.131:3000/*",
+    "https://ws.audioscrobbler.com/*",
+    "https://en.wikipedia.org/*",
+    "https://api.deezer.com/*",
+    "https://musicbrainz.org/*",
+    "https://coverartarchive.org/*",
+    "storage"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "AtomicBlast",
+    "default_icon": {
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "48": "icons/icon48.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "atomicblast@pulse.local",
+      "strict_min_version": "58.0",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "optional": []
+      }
+    }
+  }
+}

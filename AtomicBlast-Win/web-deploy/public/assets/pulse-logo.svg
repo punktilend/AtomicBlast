@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0f1a0f"/>
+      <stop offset="100%" stop-color="#080f08"/>
+    </radialGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#86efac"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" rx="32" fill="url(#bgGrad)"/>
+
+  <!-- Subtle grid lines -->
+  <g opacity="0.05" stroke="#4ade80" stroke-width="1">
+    <line x1="0" y1="100" x2="400" y2="100"/>
+    <line x1="0" y1="200" x2="400" y2="200"/>
+    <line x1="0" y1="300" x2="400" y2="300"/>
+    <line x1="100" y1="0" x2="100" y2="400"/>
+    <line x1="200" y1="0" x2="200" y2="400"/>
+    <line x1="300" y1="0" x2="300" y2="400"/>
+  </g>
+
+  <!-- Outer glow rings -->
+  <circle cx="200" cy="170" r="88" fill="none" stroke="#4ade80" stroke-width="1.5" opacity="0.15"/>
+  <circle cx="200" cy="170" r="100" fill="none" stroke="#4ade80" stroke-width="0.5" opacity="0.08"/>
+
+  <!-- Hex shield -->
+  <polygon points="200,80 272,124 272,216 200,260 128,216 128,124"
+           fill="#0a180a" stroke="url(#iconGrad)" stroke-width="2.5" filter="url(#softGlow)"/>
+
+  <!-- Sound wave / pulse bars (music EQ style) -->
+  <g fill="url(#iconGrad)" opacity="0.95">
+    <!-- Bar 1 (short) -->
+    <rect x="148" y="185" width="12" height="30" rx="4"/>
+    <!-- Bar 2 (tall) -->
+    <rect x="166" y="150" width="12" height="65" rx="4"/>
+    <!-- Bar 3 (medium-tall) -->
+    <rect x="184" y="162" width="12" height="53" rx="4"/>
+    <!-- Bar 4 (tallest) -->
+    <rect x="202" y="140" width="12" height="75" rx="4"/>
+    <!-- Bar 5 (medium) -->
+    <rect x="220" y="158" width="12" height="57" rx="4"/>
+    <!-- Bar 6 (short) -->
+    <rect x="238" y="178" width="12" height="37" rx="4"/>
+  </g>
+
+  <!-- Hex corner accent dots -->
+  <circle cx="200" cy="84"  r="3" fill="#4ade80" filter="url(#glow)" opacity="0.9"/>
+  <circle cx="270" cy="126" r="3" fill="#4ade80" filter="url(#glow)" opacity="0.7"/>
+  <circle cx="270" cy="214" r="3" fill="#4ade80" filter="url(#glow)" opacity="0.7"/>
+  <circle cx="200" cy="256" r="3" fill="#4ade80" filter="url(#glow)" opacity="0.9"/>
+  <circle cx="130" cy="214" r="3" fill="#4ade80" filter="url(#glow)" opacity="0.7"/>
+  <circle cx="130" cy="126" r="3" fill="#4ade80" filter="url(#glow)" opacity="0.7"/>
+
+  <!-- Divider -->
+  <line x1="60" y1="290" x2="340" y2="290" stroke="#1a2e1a" stroke-width="1"/>
+
+  <!-- Wordmark -->
+  <text x="200" y="320" font-family="'Courier New', Courier, monospace" font-size="28" font-weight="700"
+        letter-spacing="6" fill="url(#accentGrad)" text-anchor="middle">PULSE</text>
+
+  <!-- Tagline -->
+  <text x="200" y="345" font-family="'Courier New', Courier, monospace" font-size="10"
+        letter-spacing="4" fill="#2d5c2d" text-anchor="middle">YOUR MUSIC. EVERYWHERE.</text>
+
+  <!-- Side dots -->
+  <circle cx="60"  cy="320" r="2" fill="#4ade80" opacity="0.5"/>
+  <circle cx="340" cy="320" r="2" fill="#4ade80" opacity="0.5"/>
+</svg>

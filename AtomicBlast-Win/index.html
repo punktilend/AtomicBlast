@@ -3,15 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>AtomicBlast</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="AtomicBlast">
-  <meta name="theme-color" content="#080c08">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/assets/icon-192.png">
-  <link rel="stylesheet" href="/mobile.css">
-  <script src="/ipc-shim.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
@@ -51,17 +42,6 @@
     #gp-indicator { display: none; font-size: 11px; color: #00e5ff; margin-left: 12px; letter-spacing: .03em; }
     .back-btn { background: #0f1a0f; border: 1px solid #1a2e1a; border-radius: 8px; color: #999; padding: 6px 14px; cursor: pointer; font-size: 13px; }
     .back-btn:hover { border-color: #4ade80; color: #4ade80; }
-
-    /* ===== HAMBURGER & SIDEBAR DRAWER ===== */
-    .topnav-hamburger { display:none; background:none; border:none; color:#666; font-size:22px; cursor:pointer; padding:4px 10px 4px 4px; flex-shrink:0; line-height:1; }
-    .topnav-hamburger:hover { color:#ccc; }
-    #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:140; }
-    body.sidebar-open #sidebar-overlay { display:block; }
-
-    /* ===== MOBILE SWIPE-BACK INDICATOR ===== */
-    #mobile-back-btn { display:none; background:none; border:none; color:#4ade80; font-size:13px; font-weight:700; cursor:pointer; padding:10px 16px 4px; align-items:center; gap:5px; letter-spacing:.03em; }
-    #mobile-back-btn:active { opacity:0.6; }
-    @media (max-width: 900px) { #mobile-back-btn.visible { display:flex; } }
 
     /* ===== MUSIC PLAYER ===== */
     .music-layout { display:flex; height:100%; overflow:hidden; }
@@ -156,39 +136,6 @@
     .player-vol .vol-icon { color:#3a4e3a; font-size:13px; cursor:pointer; user-select:none; }
     .player-vol input[type=range] { width:70px; accent-color:#4ade80; cursor:pointer; }
     .player-bar-active #main-content { padding-bottom:72px; }
-
-    /* ===== NOW PLAYING SCREEN ===== */
-    #np-screen { display:none; position:fixed; inset:0; background:#080c08; z-index:300; flex-direction:column; align-items:center; padding:0 28px; overflow:hidden; padding-top:max(env(safe-area-inset-top),20px); padding-bottom:max(env(safe-area-inset-bottom),24px); transition:background 1.2s ease; }
-    body.np-open #np-screen { display:flex; }
-    .np-topbar { width:100%; display:flex; align-items:center; justify-content:space-between; padding:4px 0 12px; flex-shrink:0; }
-    .np-topbar-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:#555; text-transform:uppercase; }
-    .np-icon-btn { background:none; border:none; color:#555; font-size:24px; cursor:pointer; padding:6px 4px; line-height:1; min-width:40px; min-height:40px; display:flex; align-items:center; justify-content:center; }
-    .np-icon-btn:hover { color:#ccc; }
-    .np-art-wrap { width:100%; max-width:min(340px,calc(100vw - 56px)); aspect-ratio:1/1; margin:8px auto 20px; border-radius:12px; background:#0f1a0f; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 16px 48px rgba(0,0,0,.8); flex-shrink:0; }
-    .np-art-wrap img { width:100%; height:100%; object-fit:cover; }
-    .np-art-placeholder { font-size:72px; color:#2a3e2a; }
-    .np-info { width:100%; display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-shrink:0; }
-    .np-info-left { flex:1; min-width:0; }
-    .np-title { color:#fff; font-size:20px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .np-artist { color:#666; font-size:14px; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .np-like-btn { background:none; border:none; color:#777; font-size:26px; cursor:pointer; padding:4px; flex-shrink:0; line-height:1; transition:color .15s; }
-    .np-like-btn.liked { color:#f472b6; }
-    .np-seek-wrap { width:100%; flex-shrink:0; margin-bottom:4px; }
-    .np-seek-bar { width:100%; height:4px; background:#1a2e1a; border-radius:2px; cursor:pointer; position:relative; transition:height .1s; }
-    .np-seek-bar:hover { height:6px; }
-    .np-seek-fill { height:100%; background:#4ade80; border-radius:2px; pointer-events:none; width:0%; }
-    .np-times { display:flex; justify-content:space-between; margin-top:7px; }
-    .np-time { font-size:11px; color:#3a4e3a; font-variant-numeric:tabular-nums; }
-    .np-controls { display:flex; align-items:center; justify-content:center; gap:28px; margin:20px 0; flex-shrink:0; }
-    .np-ctrl-btn { background:none; border:none; color:#ccc; font-size:30px; cursor:pointer; padding:10px; line-height:1; min-width:52px; min-height:52px; display:flex; align-items:center; justify-content:center; }
-    .np-ctrl-play { background:none; border:none; color:#4ade80; font-size:52px; cursor:pointer; padding:6px; line-height:1; min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; }
-    .np-ctrl-play:hover { color:#6ee7a0; }
-    .np-extra-row { width:100%; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; padding:0 4px; }
-    .np-extra-btn { background:none; border:none; color:#555; font-size:20px; cursor:pointer; padding:10px 8px; line-height:1; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
-    .np-extra-btn.np-active { color:#4ade80; }
-    .np-vol-row { flex:1; display:flex; align-items:center; gap:8px; padding:0 8px; }
-    .np-vol-icon { font-size:14px; color:#444; }
-    .np-vol-slider { flex:1; accent-color:#4ade80; cursor:pointer; height:4px; }
 
     /* ===== QUEUE PANEL ===== */
     #queue-panel { position:fixed; bottom:100px; left:0; right:0; max-height:340px; background:rgba(5,10,8,0.97); border-top:1px solid rgba(74,222,128,0.1); backdrop-filter:blur(12px); display:flex; flex-direction:column; z-index:49; transform:translateY(100%); transition:transform .25s ease; overflow:hidden; }
@@ -305,11 +252,8 @@
   </style>
 </head>
 <body>
-  <!-- Safe-area spacer: physically pushes nav below the iOS status bar / Dynamic Island zone -->
-  <div id="ios-safe-top"></div>
   <!-- TOP NAV BAR -->
   <nav class="topnav">
-    <button class="topnav-hamburger" id="topnav-hamburger" title="Library">&#9776;</button>
     <div class="topnav-logo">
       <img src="assets/pulse-logo.svg" alt="AtomicBlast">
     </div>
@@ -322,12 +266,8 @@
     </div>
   </nav>
 
-  <!-- Sidebar overlay (mobile) -->
-  <div id="sidebar-overlay"></div>
-
   <!-- MAIN CONTENT -->
   <div class="main">
-    <button id="mobile-back-btn" onclick="goBack()">&#8592; Back</button>
     <div class="view-header" id="view-header" style="display:none">
       <h2 id="view-title">Settings</h2>
       <span class="subtitle" id="view-subtitle"></span>
@@ -365,51 +305,6 @@
     </div>
     <button class="p-btn" id="p-fullscreen" title="Fullscreen" style="display:none">⛶</button>
     <button class="p-btn" id="p-queue-btn" title="Up Next">⋮≡<span id="p-queue-badge"></span></button>
-    <button class="p-btn" id="p-sleep-btn" title="Sleep timer" style="display:none;font-size:11px;color:#4ade80">🌙<span id="p-sleep-badge"></span></button>
-  </div>
-
-  <!-- Now Playing full-screen overlay (mobile) -->
-  <div id="np-screen">
-    <div class="np-topbar">
-      <button id="np-down" class="np-icon-btn" title="Close">&#8964;</button>
-      <span class="np-topbar-label">Now Playing</span>
-      <button id="np-queue-open2" class="np-icon-btn" title="Queue">&#8942;&#8801;</button>
-    </div>
-    <div id="np-art-wrap" class="np-art-wrap"><span class="np-art-placeholder">&#9834;</span></div>
-    <div class="np-info">
-      <div class="np-info-left">
-        <div id="np-title" class="np-title">&#8212;</div>
-        <div id="np-artist" class="np-artist">&#8212;</div>
-      </div>
-      <button id="np-like-btn" class="np-like-btn">&#9825;</button>
-    </div>
-    <div class="np-seek-wrap">
-      <div id="np-seek-bar" class="np-seek-bar"><div id="np-seek-fill" class="np-seek-fill"></div></div>
-      <div class="np-times">
-        <span id="np-cur" class="np-time">0:00</span>
-        <span id="np-dur" class="np-time">0:00</span>
-      </div>
-    </div>
-    <div class="np-controls">
-      <button id="np-prev-btn" class="np-ctrl-btn">&#9198;</button>
-      <button id="np-play-btn" class="np-ctrl-play">&#9654;</button>
-      <button id="np-next-btn" class="np-ctrl-btn">&#9197;</button>
-    </div>
-    <div class="np-extra-row">
-      <button id="np-shuffle-btn" class="np-extra-btn" title="Shuffle">⇄</button>
-      <button id="np-sleep-btn" class="np-extra-btn" title="Sleep timer">🌙</button>
-      <div class="np-vol-row">
-        <span class="np-vol-icon np-vol-lo">&#128265;</span>
-        <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
-        <span class="np-vol-icon np-vol-hi">&#128266;</span>
-      </div>
-      <button id="np-eq-btn"    class="np-extra-btn" title="Equalizer">EQ</button>
-      <button id="np-norm-btn"  class="np-extra-btn" title="Volume normalization">≋</button>
-      <button id="np-xfade-btn" class="np-extra-btn" title="Crossfade">⇌</button>
-      <button id="np-speed-btn" class="np-extra-btn" title="Playback speed">1×</button>
-      <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
-    </div>
-    <div id="np-lyrics" style="width:100%;margin-top:12px;max-height:140px;overflow-y:auto;font-size:13px;line-height:1.7;color:#555;text-align:center;flex-shrink:0;scrollbar-width:none"></div>
   </div>
 
   <!-- New Playlist modal -->
@@ -450,7 +345,7 @@
   <div class="status-bar"><span><span class="status-dot"></span></span><span id="status-text">Loading...</span><span id="gp-indicator"></span></div>
 
   <script>
-    // ipcRenderer provided by /ipc-shim.js (web mode)
+    const { ipcRenderer } = require('electron')
 
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'http://23.95.216.131:3000'
@@ -459,25 +354,10 @@
     let musicLibrary = null
     let playQueue = [], queueIdx = -1
     let pShuffle = false, repeatMode = 'none'
-    let shuffleHistory = []
-
-    // ── Recently Played ───────────────────────────────────
-    const RECENT_MAX = 50
-    function getRecentlyPlayed() {
-      try { return JSON.parse(localStorage.getItem('recentlyPlayed') || '[]') } catch { return [] }
-    }
-    function pushRecentlyPlayed(track) {
-      if (!track?.path) return
-      let recent = getRecentlyPlayed().filter(t => t.path !== track.path)
-      recent.unshift({ path: track.path, title: track.title, artist: track.artist, album: track.album, coverPath: track.coverPath, ts: Date.now() })
-      if (recent.length > RECENT_MAX) recent = recent.slice(0, RECENT_MAX)
-      localStorage.setItem('recentlyPlayed', JSON.stringify(recent))
-    }
     let currentHls = null
     let musicVideoPlaying = false
     let cloudSources = []
     let b2Lib = null, b2DlUrl = null, b2DlToken = null
-    let navHistory = [] // stack of {fn, label} for swipe-back navigation
     const VIDEO_EXTS_CLIENT = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv'])
     let playlists = { liked: [], playlists: [] }
     let ctxTrack = null
@@ -607,7 +487,20 @@
 
     // ── Artist radio ───────────────────────────────────────────────────────
     function doArtistRadio(artistName) {
-      if (!musicLibrary || !artistName) return
+      if (!artistName) return
+      // Try B2 library first
+      if (b2Lib) {
+        const artist = b2Lib.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase())
+        if (artist) {
+          const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+          const tracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, b2DlUrl, b2DlToken, bucket)))
+          for (let i = tracks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [tracks[i], tracks[j]] = [tracks[j], tracks[i]] }
+          setQueue(tracks, 0)
+          setStatus('Artist Radio: ' + artistName + ' · ' + tracks.length + ' tracks')
+          return
+        }
+      }
+      if (!musicLibrary) return
       const artist = musicLibrary.artists.find(a => a.name === artistName)
       if (!artist) return
       const tracks = [...artist.albums.flatMap(a => a.tracks)]
@@ -616,7 +509,7 @@
         [tracks[i], tracks[j]] = [tracks[j], tracks[i]]
       }
       setQueue(tracks, 0)
-      setStatus('📻 Artist Radio: ' + artistName + ' · ' + tracks.length + ' tracks')
+      setStatus('Artist Radio: ' + artistName + ' · ' + tracks.length + ' tracks')
     }
 
     // ── Playlist management ────────────────────────────────────────────────
@@ -645,38 +538,6 @@
       if (!pl.tracks.some(t => (t.path || t.title) === (track.path || track.title))) pl.tracks.push(track)
       savePlaylists(); setStatus('Added to ' + pl.name)
     }
-    function showRecentlyPlayed() {
-      const inner = el('music-content-inner'); if (!inner) return
-      const recent = getRecentlyPlayed()
-      if (!recent.length) {
-        inner.innerHTML = '<div style="padding:32px;color:#444;font-size:13px">No recently played tracks yet.</div>'
-        return
-      }
-      let html = '<div style="padding:16px 12px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a">RECENTLY PLAYED</div>'
-      html += '<div class="track-list">'
-      recent.forEach((t, i) => {
-        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || 'Unknown')
-        const artist = esc(t.artist || t.album || '')
-        const cover  = t.coverPath ? `<img src="${esc(t.coverPath)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.outerHTML='<div style=width:36px;height:36px;background:#1a2e1a;border-radius:4px;flex-shrink:0>♪</div>'">` : '<div style="width:36px;height:36px;background:#1a2e1a;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#2a3e2a">♪</div>'
-        html += `<div class="track-row" data-recent-idx="${i}" style="display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;border-radius:4px">
-          ${cover}
-          <div style="min-width:0;flex:1">
-            <div style="color:#ccc;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
-            <div style="color:#444;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
-          </div>
-        </div>`
-      })
-      html += '</div>'
-      inner.innerHTML = html
-      inner.querySelectorAll('[data-recent-idx]').forEach(row => {
-        row.addEventListener('click', () => {
-          const t = recent[+row.dataset.recentIdx]
-          if (!t) return
-          setQueue([t], 0)
-        })
-      })
-    }
-
     async function showPlaylist(plId) {
       let tracks, name, color
       if (plId === 'liked') {
@@ -827,14 +688,28 @@
         if (ctxTrack) { doArtistRadio(ctxTrack.albumArtist || ctxTrack.artist); hideCtxMenu() }
       })
       el('ctx-go-album')?.addEventListener('click', () => {
-        if (!ctxTrack || !musicLibrary) return; hideCtxMenu()
+        if (!ctxTrack) return; hideCtxMenu()
+        // B2 track: id is original B2 file path
+        if (b2Lib && ctxTrack.id) {
+          for (const a of b2Lib.artists) {
+            const al = a.albums.find(al => al.tracks.some(t => t.path === ctxTrack.id))
+            if (al) { showB2Album(a, al, b2Lib, b2DlUrl, b2DlToken); return }
+          }
+        }
+        if (!musicLibrary) return
         const artist = musicLibrary.artists.find(a => a.albums.some(al => al.tracks.some(t => t.path === ctxTrack.path)))
         const album  = artist?.albums.find(al => al.tracks.some(t => t.path === ctxTrack.path))
         if (album) showAlbum(album)
       })
       el('ctx-go-artist')?.addEventListener('click', () => {
-        if (!ctxTrack || !musicLibrary) return; hideCtxMenu()
-        const artist = musicLibrary.artists.find(a => a.name === (ctxTrack.albumArtist || ctxTrack.artist))
+        if (!ctxTrack) return; hideCtxMenu()
+        const artistName = ctxTrack.albumArtist || ctxTrack.artist
+        if (b2Lib && artistName) {
+          const artist = b2Lib.artists.find(a => a.name === artistName)
+          if (artist) { showB2Artist(artist, b2Lib, b2DlUrl, b2DlToken); return }
+        }
+        if (!musicLibrary) return
+        const artist = musicLibrary.artists.find(a => a.name === artistName)
         if (artist) showArtistTracks(artist)
       })
     }
@@ -885,6 +760,10 @@
           '<div class="music-lib-panel">' +
             '<div class="music-lib-search"><input id="music-search" placeholder="Search library…" autocomplete="off"></div>' +
             '<div class="music-tree" id="music-tree"></div>' +
+            '<div class="music-stream-section">' +
+              '<input id="stream-url" placeholder="Stream URL or YouTube…" autocomplete="off">' +
+              '<button id="stream-play-btn">Play Stream</button>' +
+            '</div>' +
           '</div>' +
           '<div class="music-content" id="music-content-inner"></div>' +
         '</div>'
@@ -893,6 +772,8 @@
       showB2Library()
 
       el('music-search').addEventListener('input', e => filterMusicTree(e.target.value.toLowerCase()))
+      el('stream-play-btn')?.addEventListener('click', playStreamUrl)
+      el('stream-url')?.addEventListener('keydown', e => { if (e.key === 'Enter') playStreamUrl() })
       el('p-fullscreen').style.display = musicVideoPlaying ? '' : 'none'
     }
 
@@ -903,10 +784,8 @@
       const artCount = b2Lib ? b2Lib.artists.length : ''
 
       let html = '<div class="music-tree-section">Library</div>'
-      html += '<div class="music-tree-item" data-tree="recently-played">🕐 Recently Played</div>'
       html += '<div class="music-tree-item" data-tree="b2-artists">🎤 Artists' + (artCount !== '' ? ' <span style="color:#2a3e2a">(' + artCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-albums">💿 Albums' + (albCount !== '' ? ' <span style="color:#2a3e2a">(' + albCount + ')</span>' : '') + '</div>'
-      html += '<div class="music-tree-item" data-tree="b2-genres">🎸 Genres</div>'
       html += '<div class="music-tree-item" data-tree="b2-all">♪ All Tracks' + (b2Count !== '' ? ' <span style="color:#2a3e2a">(' + b2Count + ')</span>' : '') + '</div>'
 
       html += '<div class="music-tree-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Playlists <span id="tree-new-pl" style="cursor:pointer;color:#4ade80;font-size:15px;line-height:1;padding:2px 4px" title="New Playlist">+</span></div>'
@@ -922,19 +801,13 @@
         item.addEventListener('click', async () => {
           tree.querySelectorAll('.music-tree-item').forEach(i => i.classList.remove('active'))
           item.classList.add('active')
-          document.body.classList.remove('sidebar-open') // close drawer on mobile
-          navHistory = []; updateMobileBackBtn()
           const t = item.dataset.tree
           if (t === 'b2-artists') {
             await ensureB2Lib(); showB2Artists(b2Lib, b2DlUrl, b2DlToken); renderMusicTree(musicLibrary)
           } else if (t === 'b2-albums') {
             await ensureB2Lib(); showB2AllAlbums(); renderMusicTree(musicLibrary)
-          } else if (t === 'b2-genres') {
-            await ensureB2Lib(); showB2Genres(); renderMusicTree(musicLibrary)
           } else if (t === 'b2-all') {
             await ensureB2Lib(); showB2AllTracks(); renderMusicTree(musicLibrary)
-          } else if (t === 'recently-played') {
-            showRecentlyPlayed()
           } else if (t === 'playlist') {
             showPlaylist(item.dataset.plId)
           }
@@ -953,71 +826,9 @@
       } catch (e) { setStatus('B2 error: ' + e.message); return false }
     }
 
-    // ── Navigation history (swipe back) ───────────────────────────────────
-    function pushNav(label, fn) { navHistory.push({ label, fn }); updateMobileBackBtn() }
-    function updateMobileBackBtn() {
-      const btn = el('mobile-back-btn'); if (!btn) return
-      if (navHistory.length > 0) {
-        btn.classList.add('visible')
-        const top = navHistory[navHistory.length - 1]
-        btn.textContent = '← ' + (top.label || 'Back')
-      } else {
-        btn.classList.remove('visible')
-      }
-    }
-    function goBack() {
-      if (navHistory.length === 0) return false
-      const { fn } = navHistory.pop()
-      updateMobileBackBtn()
-      fn()
-      return true
-    }
-
-    function initGestures() {
-      let txStart = 0, tyStart = 0
-      const content = el('main-content')
-      if (!content) return
-      content.addEventListener('touchstart', e => {
-        txStart = e.touches[0].clientX
-        tyStart = e.touches[0].clientY
-      }, { passive: true })
-      content.addEventListener('touchend', e => {
-        const dx = e.changedTouches[0].clientX - txStart
-        const dy = e.changedTouches[0].clientY - tyStart
-        // Right swipe from near left edge → go back
-        if (dx > 55 && Math.abs(dy) < 100 && txStart < 50) goBack()
-      }, { passive: true })
-    }
-
-    function initSidebar() {
-      el('topnav-hamburger')?.addEventListener('click', () => {
-        if (currentView !== 'media') {
-          // Not in music view — navigate back to it
-          document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-          document.querySelector('.nav-item[data-view="media"]')?.classList.add('active')
-          currentView = 'media'
-          renderView()
-          return
-        }
-        document.body.classList.toggle('sidebar-open')
-      })
-      el('sidebar-overlay')?.addEventListener('click', () => {
-        document.body.classList.remove('sidebar-open')
-      })
-      // When rotating to landscape the drawer CSS is gone — clean up the class
-      window.addEventListener('orientationchange', () => {
-        setTimeout(() => {
-          if (window.innerWidth > window.innerHeight) { // now landscape
-            document.body.classList.remove('sidebar-open')
-          }
-        }, 50) // slight delay lets the browser finish the rotation
-      })
-    }
-
     function showB2AllAlbums() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
       const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-      navHistory = []; updateMobileBackBtn()
       let html = '<div class="lib-breadcrumb"><span class="crumb active">All Albums</span></div>'
       html += '<div class="lib-grid">'
       for (const artist of b2Lib.artists) {
@@ -1039,10 +850,7 @@
         card.addEventListener('click', () => {
           const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
           const album  = artist?.albums.find(a => a.name === card.dataset.b2Album)
-          if (album) {
-            pushNav('All Albums', () => showB2AllAlbums())
-            showB2Album(artist, album, b2Lib, b2DlUrl, b2DlToken)
-          }
+          if (album) showB2Album(artist, album, b2Lib, b2DlUrl, b2DlToken)
         })
         const artEl = card.querySelector('.lib-card-art')
         if (artEl?.querySelector('.lib-card-initial')) {
@@ -1055,7 +863,6 @@
     function showB2AllTracks() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
       const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-      navHistory = []; updateMobileBackBtn()
       const allTracks = b2Lib.artists.flatMap(artist =>
         artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
       )
@@ -1083,142 +890,6 @@
       })
       inner.querySelectorAll('.lib-track-row[data-b2-ti]').forEach(row => {
         row.addEventListener('click', () => { setQueue(allTracks, parseInt(row.dataset.b2Ti)) })
-      })
-    }
-
-    // ── Genre browser ──────────────────────────────────────────────────────
-    async function showB2Genres() {
-      const inner = el('music-content-inner'); if (!inner) return
-      navHistory = []; updateMobileBackBtn()
-      inner.innerHTML = '<div class="lib-loading"><div class="spinner"></div><span>Loading genres…</span></div>'
-      let genreData
-      try {
-        genreData = await ipcRenderer.invoke('get-genres')
-      } catch (e) {
-        inner.innerHTML = '<div class="music-empty"><span class="me-icon">🎸</span><span class="me-text">Could not load genres:<br>' + esc(e.message) + '</span></div>'
-        return
-      }
-      const { genreMap } = genreData
-      const sorted = Object.entries(genreMap).sort((a, b) => b[1].length - a[1].length)
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-
-      let html = '<div class="lib-breadcrumb"><span class="crumb active">Genres</span></div>'
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 24px 12px;flex-wrap:wrap;gap:8px">'
-      html += '<div style="color:#555;font-size:12px">' + sorted.length + ' genres</div>'
-      html += '<button class="lib-play-btn" id="genres-shuffle-all" style="margin-top:0;padding:6px 16px">⇄ Shuffle All</button>'
-      html += '</div>'
-      html += '<div class="lib-grid">'
-
-      for (const [genre, artistNames] of sorted) {
-        // Pick cover art from first artist in genre that has a cover
-        let coverHtml = ''
-        for (const aName of artistNames) {
-          const a = b2Lib.artists.find(x => x.name === aName)
-          const cover = a?.albums.find(al => al.coverPath)?.coverPath
-          if (cover) {
-            const url = b2CoverUrl(cover, b2DlUrl, b2DlToken, bucket)
-            coverHtml = '<img src="' + url + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">🎸</span>\'">'
-            break
-          }
-        }
-        if (!coverHtml) coverHtml = '<span class="lib-card-initial">🎸</span>'
-        const trackCount = artistNames.reduce((s, n) => {
-          const a = b2Lib.artists.find(x => x.name === n)
-          return s + (a ? a.albums.reduce((ss, al) => ss + al.tracks.length, 0) : 0)
-        }, 0)
-        html += '<div class="lib-card" data-genre="' + esc(genre) + '">' +
-          '<div class="lib-card-art">' + coverHtml + '</div>' +
-          '<div class="lib-card-info"><div class="lib-card-name">' + esc(genre) + '</div>' +
-          '<div class="lib-card-sub">' + artistNames.length + ' artist' + (artistNames.length !== 1 ? 's' : '') + ' · ' + trackCount + ' tracks</div>' +
-          '</div></div>'
-      }
-      html += '</div>'
-      inner.innerHTML = html
-
-      inner.querySelector('#genres-shuffle-all')?.addEventListener('click', () => {
-        const allTracks = b2Lib.artists.flatMap(artist =>
-          artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
-        )
-        const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-
-      inner.querySelectorAll('[data-genre]').forEach(card => {
-        card.addEventListener('click', () => {
-          const genre = card.dataset.genre
-          const artistNames = genreMap[genre] || []
-          pushNav('Genres', () => showB2Genres())
-          showB2Genre(genre, artistNames, genreMap)
-        })
-      })
-    }
-
-    function showB2Genre(genre, artistNames, genreMap) {
-      const inner = el('music-content-inner'); if (!inner) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-
-      const artists = artistNames.map(n => b2Lib.artists.find(a => a.name === n)).filter(Boolean)
-      const totalTracks = artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
-
-      let html = '<div class="lib-breadcrumb">' +
-        '<span class="crumb" id="genre-crumb-root">Genres</span>' +
-        '<span class="sep">›</span>' +
-        '<span class="crumb active">' + esc(genre) + '</span></div>'
-
-      html += '<div class="lib-header" style="padding:16px 24px 12px">' +
-        '<div class="lib-header-art" style="font-size:40px;display:flex;align-items:center;justify-content:center">🎸</div>' +
-        '<div class="lib-header-info">' +
-          '<h2>' + esc(genre) + '</h2>' +
-          '<div class="lib-sub">' + artists.length + ' artist' + (artists.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div>' +
-          '<button class="lib-play-btn" id="genre-play-btn" style="margin-top:10px">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="genre-shuffle-btn" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
-        '</div></div>'
-
-      html += '<div class="lib-section-header">Artists</div><div class="lib-grid">'
-      for (const artist of artists) {
-        const initial = (artist.name || '?').charAt(0).toUpperCase()
-        const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
-        const coverUrl = b2CoverUrl(firstCover, b2DlUrl, b2DlToken, bucket)
-        const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
-        const tCount = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
-        html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
-          '<div class="lib-card-art">' + artHtml + '</div>' +
-          '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
-          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + tCount + ' tracks</div></div>' +
-          '</div>'
-      }
-      html += '</div>'
-      inner.innerHTML = html
-
-      inner.querySelector('#genre-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Genres() })
-
-      const genreTracks = () => artists.flatMap(artist =>
-        artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
-      )
-      inner.querySelector('#genre-play-btn')?.addEventListener('click', () => setQueue(genreTracks(), 0))
-      inner.querySelector('#genre-shuffle-btn')?.addEventListener('click', () => {
-        const shuffled = genreTracks()
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-
-      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
-        card.addEventListener('click', () => {
-          const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (artist) {
-            pushNav(genre, () => showB2Genre(genre, artistNames, genreMap))
-            showB2Artist(artist, b2Lib, b2DlUrl, b2DlToken)
-          }
-        })
-        const artEl = card.querySelector('.lib-card-art')
-        if (artEl?.querySelector('.lib-card-initial')) {
-          const name = card.dataset.b2Artist
-          const ini = name.charAt(0).toUpperCase()
-          fetchItunesArt(name, '').then(url => { if (url) applyItunesArt(artEl, url, ini) })
-        }
       })
     }
 
@@ -1529,7 +1200,7 @@
     }
 
     // ── Queue & Playback ───────────────────────────────────────────────────
-    function setQueue(tracks, startIdx) { playQueue = [...tracks]; queueIdx = startIdx; shuffleHistory = []; playTrack(playQueue[queueIdx], queueIdx) }
+    function setQueue(tracks, startIdx) { playQueue = [...tracks]; queueIdx = startIdx; playTrack(playQueue[queueIdx], queueIdx) }
 
     function playTrack(track, idx) {
       if (!track) return
@@ -1569,14 +1240,7 @@
             }, { once: true })
           }
         } else {
-          // Use gapless preload buffer if available for this src
-          if (gaplessBuffer?.src === src && gaplessBuffer.audio.readyState >= 2) {
-            const buf = gaplessBuffer.audio
-            gaplessBuffer = null
-            audio.src = buf.src   // same src, browser reuses cached data
-          } else {
-            audio.src = src
-          }
+          audio.src = src
           audio.play().catch(() => {})
         }
       }
@@ -1613,177 +1277,26 @@
     function hideVideoPlayer() { const v = el('music-video-el'); if (v) { v.pause(); v.src = '' } }
     function showPlayerBar()   { el('player-bar').style.display = ''; document.body.classList.add('player-bar-active') }
 
-    // ── Playback Speed ────────────────────────────────────
-    const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-    let currentSpeedIdx = 2   // default 1×
-
-    function initSpeedControl() {
-      const btn = el('np-speed-btn')
-      btn.addEventListener('click', () => {
-        document.getElementById('speed-menu')?.remove()
-        const menu = document.createElement('div')
-        menu.id = 'speed-menu'
-        menu.style.cssText = [
-          'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
-          'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
-          'overflow:hidden','z-index:600','min-width:180px',
-          'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-        ].join(';')
-        menu.innerHTML =
-          '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">PLAYBACK SPEED</div>' +
-          SPEEDS.map((s, i) =>
-            `<div class="speed-opt" data-idx="${i}" style="padding:12px 20px;font-size:14px;color:${i === currentSpeedIdx ? '#4ade80' : '#ccc'};cursor:pointer;border-top:1px solid #1a2e1a${i === currentSpeedIdx ? ';font-weight:700' : ''}">${s === 1 ? '1× Normal' : s + '×'}</div>`
-          ).join('')
-        document.body.appendChild(menu)
-        menu.querySelectorAll('.speed-opt').forEach(opt => {
-          opt.addEventListener('click', () => {
-            menu.remove()
-            currentSpeedIdx = +opt.dataset.idx
-            const speed = SPEEDS[currentSpeedIdx]
-            const audio = el('music-audio'); if (audio) audio.playbackRate = speed
-            btn.textContent = speed === 1 ? '1×' : speed + '×'
-            btn.classList.toggle('np-active', speed !== 1)
-          })
-        })
-        setTimeout(() => {
-          document.addEventListener('click', function dismiss(e) {
-            if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
-          })
-        }, 0)
-      })
-      // Preserve speed across track changes
-      el('music-audio').addEventListener('play', () => {
-        const audio = el('music-audio')
-        if (audio && SPEEDS[currentSpeedIdx] !== 1) audio.playbackRate = SPEEDS[currentSpeedIdx]
-      })
-    }
-
-    // ── Lyrics ────────────────────────────────────────────
-    let lyricsFor = null   // "artist||title" — avoid duplicate fetches
-
-    async function fetchLyrics(artist, title) {
-      const key = (artist || '') + '||' + (title || '')
-      if (!artist || !title || key === lyricsFor) return
-      lyricsFor = key
-      const lyricsEl = el('np-lyrics'); if (!lyricsEl) return
-      lyricsEl.textContent = ''
-      try {
-        const a = encodeURIComponent(artist.trim())
-        const t = encodeURIComponent(title.trim())
-        const res = await fetch(`https://api.lyrics.ovh/v1/${a}/${t}`)
-        if (lyricsFor !== key) return   // track changed while fetching
-        if (!res.ok) { lyricsEl.style.color = ''; return }
-        const data = await res.json()
-        if (data.lyrics) {
-          lyricsEl.style.color = '#555'
-          lyricsEl.innerHTML = data.lyrics.replace(/\n/g, '<br>')
-        }
-      } catch { /* silently fail — lyrics are a nice-to-have */ }
-    }
-
-    function extractDominantColor(imgSrc, callback) {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = canvas.height = 24   // tiny sample for speed
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0, 24, 24)
-          const data = ctx.getImageData(0, 0, 24, 24).data
-          let r = 0, g = 0, b = 0, count = 0
-          for (let i = 0; i < data.length; i += 16) {
-            r += data[i]; g += data[i+1]; b += data[i+2]; count++
-          }
-          r = Math.round(r / count * 0.35)   // darken so text stays readable
-          g = Math.round(g / count * 0.35)
-          b = Math.round(b / count * 0.35)
-          callback(`rgb(${r},${g},${b})`)
-        } catch { callback(null) }
-      }
-      img.onerror = () => callback(null)
-      img.src = imgSrc
-    }
-
     function updatePlayerBar(track) {
-      pushRecentlyPlayed(track)
-      const title  = track.title  || track.path.split(/[\\/]/).pop()
-      const artist = track.artist || (track.album ? track.album : 'Unknown')
-      el('p-title').textContent  = title
-      el('p-artist').textContent = artist
+      el('p-title').textContent  = track.title  || track.path.split(/[\\/]/).pop()
+      el('p-artist').textContent = track.artist || (track.album ? track.album : 'Unknown')
       const art = el('player-art')
       if (track.coverPath) art.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.textContent=\'♪\'">'
       else art.innerHTML = track.isVideo ? '🎬' : '♪'
-      // Sync Now Playing screen
-      const npTitle = el('np-title'); if (npTitle) npTitle.textContent = title
-      const npArtist = el('np-artist'); if (npArtist) npArtist.textContent = artist
-      const npArtWrap = el('np-art-wrap')
-      if (npArtWrap) {
-        if (track.coverPath) {
-          npArtWrap.innerHTML = '<img src="' + track.coverPath + '" onerror="this.innerHTML=\'<span class=np-art-placeholder>♪</span>\'">'
-          extractDominantColor(track.coverPath, color => {
-            const np = el('np-screen')
-            if (np) np.style.background = color || '#080c08'
-          })
-        } else {
-          npArtWrap.innerHTML = '<span class="np-art-placeholder">' + (track.isVideo ? '🎬' : '♪') + '</span>'
-          const np = el('np-screen'); if (np) np.style.background = '#080c08'
-        }
-      }
-      const npLike = el('np-like-btn'); if (npLike) { npLike.textContent = isLiked(track) ? '♥' : '♡'; npLike.classList.toggle('liked', isLiked(track)) }
-      // Clear old lyrics and fetch new ones
-      const lyricsEl = el('np-lyrics'); if (lyricsEl) lyricsEl.innerHTML = ''
-      fetchLyrics(track.artist, track.title)
-      // ── Media Session metadata (lock screen / Control Center) ────────────
-      if ('mediaSession' in navigator) {
-        const artwork = track.coverPath
-          ? [{ src: track.coverPath, sizes: '600x600', type: track.coverPath.endsWith('.png') ? 'image/png' : 'image/jpeg' }]
-          : []
-        navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album: track.album || '', artwork })
-      }
     }
 
     function updateSeekBar(cur, dur) {
-      const pct = (dur > 0 ? (cur / dur * 100) : 0) + '%'
       el('p-cur').textContent = fmtTime(cur)
       el('p-dur').textContent = fmtTime(dur)
-      el('seek-fill').style.width = pct
-      const npFill = el('np-seek-fill'); if (npFill) npFill.style.width = pct
-      const npCur = el('np-cur'); if (npCur) npCur.textContent = fmtTime(cur)
-      const npDur = el('np-dur'); if (npDur) npDur.textContent = fmtTime(dur)
-      // Keep lock screen scrubber in sync
-      if ('mediaSession' in navigator && isFinite(dur) && dur > 0) {
-        try { navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: Math.min(cur, dur) }) } catch (_) {}
-      }
-    }
-
-    function smartShuffleNext() {
-      // Weight unplayed tracks higher; avoid last 10 played in this session
-      const recentPaths = new Set(getRecentlyPlayed().slice(0, 10).map(t => t.path))
-      shuffleHistory.push(queueIdx)
-      const sessionPlayed = new Set(shuffleHistory)
-      // Candidates: not in session history if possible
-      let pool = playQueue.map((_, i) => i).filter(i => !sessionPlayed.has(i))
-      if (!pool.length) { shuffleHistory = []; pool = playQueue.map((_, i) => i).filter(i => i !== queueIdx) }
-      if (!pool.length) return queueIdx
-      // Within pool, weight unrecently-played tracks 4x
-      const weighted = pool.flatMap(i => {
-        const path = playQueue[i]?.path || playQueue[i]?.filePath || ''
-        return recentPaths.has(path) ? [i] : [i, i, i, i]
-      })
-      return weighted[Math.floor(Math.random() * weighted.length)]
+      el('seek-fill').style.width = (dur > 0 ? (cur / dur * 100) : 0) + '%'
     }
 
     function onTrackEnded() {
       cueAdvancing = false
       if (repeatMode === 'one') { playTrack(playQueue[queueIdx], queueIdx); return }
-      let next
-      if (pShuffle) {
-        next = smartShuffleNext()
-      } else {
-        next = queueIdx + 1
-        if (next >= playQueue.length) { if (repeatMode === 'all') next = 0; else return }
-      }
+      let next = queueIdx + 1
+      if (pShuffle) next = Math.floor(Math.random() * playQueue.length)
+      if (next >= playQueue.length) { if (repeatMode === 'all') next = 0; else return }
       queueIdx = next; playTrack(playQueue[queueIdx], queueIdx)
     }
 
@@ -1819,41 +1332,6 @@
       }
       b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
       showB2Artists(lib, lib.dlUrl, lib.dlToken)
-      renderJumpBackIn()
-    }
-
-    function renderJumpBackIn() {
-      const inner = el('music-content-inner'); if (!inner) return
-      const recent = getRecentlyPlayed().slice(0, 6)
-      if (!recent.length) return
-      const section = document.createElement('div')
-      section.id = 'jump-back-in'
-      section.style.cssText = 'padding:0 12px 4px'
-      let html = '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a;padding:16px 0 10px">JUMP BACK IN</div>'
-      html += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none">'
-      recent.forEach((t, i) => {
-        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || '')
-        const artist = esc(t.artist || t.album || '')
-        const cover  = t.coverPath
-          ? `<img src="${esc(t.coverPath)}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;display:block" onerror="this.outerHTML='<div style=width:80px;height:80px;background:#1a2e1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#2a3e2a;font-size:24px>♪</div>'">`
-          : '<div style="width:80px;height:80px;background:#1a2e1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#2a3e2a;font-size:24px">♪</div>'
-        html += `<div data-jbi="${i}" style="flex-shrink:0;width:80px;cursor:pointer">
-          ${cover}
-          <div style="font-size:11px;color:#ccc;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
-          <div style="font-size:10px;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
-        </div>`
-      })
-      html += '</div>'
-      section.innerHTML = html
-      // Insert before the main artist grid
-      const firstChild = inner.firstElementChild
-      inner.insertBefore(section, firstChild)
-      section.querySelectorAll('[data-jbi]').forEach(card => {
-        card.addEventListener('click', () => {
-          const t = recent[+card.dataset.jbi]
-          if (t) setQueue([t], 0)
-        })
-      })
     }
 
     function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
@@ -1865,14 +1343,8 @@
     function showB2Artists(lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
       const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
-      navHistory = []; updateMobileBackBtn()
 
-      const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
       let html = '<div class="lib-breadcrumb"><span class="crumb active">Music</span></div>'
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 24px 12px;flex-wrap:wrap;gap:8px">'
-      html += '<div style="color:#555;font-size:12px">' + lib.artists.length + ' artists · ' + totalTracks + ' tracks</div>'
-      html += '<button class="lib-play-btn" id="b2-shuffle-all-btn" style="margin-top:0;padding:6px 16px">⇄ Shuffle All</button>'
-      html += '</div>'
       html += '<div class="lib-grid">'
       for (const artist of lib.artists) {
         const initial = (artist.name || '?').charAt(0).toUpperCase()
@@ -1891,23 +1363,10 @@
       html += '</div>'
       inner.innerHTML = html
 
-      // Shuffle All button
-      inner.querySelector('#b2-shuffle-all-btn')?.addEventListener('click', () => {
-        const allTracks = lib.artists.flatMap(artist =>
-          artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, dlUrl, dlToken, bucket)))
-        )
-        const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-
       inner.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (artist) {
-            pushNav('Music', () => showB2Artists(lib, dlUrl, dlToken))
-            showB2Artist(artist, lib, dlUrl, dlToken)
-          }
+          if (artist) showB2Artist(artist, lib, dlUrl, dlToken)
         })
         const artEl = card.querySelector('.lib-card-art')
         if (artEl?.querySelector('.lib-card-initial')) {
@@ -1959,8 +1418,7 @@
           '<h2>' + esc(artist.name) + '</h2>' +
           '<div class="lib-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div>' +
           '<div id="b2-artist-stats" class="lib-meta-stats"></div>' +
-          '<button class="lib-play-btn" id="b2-artist-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-artist-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-artist-play">▶ Play All</button>' +
         '</div></div>' +
         '<div id="b2-artist-bio" class="lib-artist-bio"></div>' +
         '<div id="b2-artist-tags" class="lib-tags"></div>' +
@@ -2015,15 +1473,14 @@
       html += '</div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
       inner.querySelector('#b2-artist-play')?.addEventListener('click', () => {
         const allTracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, dlUrl, dlToken, bucket)))
-        setQueue(allTracks, 0)
-      })
-      inner.querySelector('#b2-artist-shuffle')?.addEventListener('click', () => {
-        const allTracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, dlUrl, dlToken, bucket)))
         const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        }
         setQueue(shuffled, 0)
       })
       // Art + metadata: try iTunes first, then multi-source aggregator
@@ -2088,7 +1545,6 @@
         const gKey = card.dataset.groupKey
         const gAlbums = groupMap.get(gKey) || []
         card.addEventListener('click', () => {
-          pushNav(artist.name, () => showB2Artist(artist, lib, dlUrl, dlToken))
           if (gAlbums.length === 1) {
             showB2Album(artist, gAlbums[0], lib, dlUrl, dlToken)
           } else {
@@ -2135,18 +1591,14 @@
         '<div class="lib-header-info">' +
           '<h2>' + esc(groupTitle) + '</h2>' +
           '<div class="lib-sub">' + esc(artist.name) + ' · ' + albums.length + ' versions · ' + totalTracks + ' tracks</div>' +
-          '<button class="lib-play-btn" id="b2-group-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-group-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-group-play">▶ Play All</button>' +
         '</div></div>'
 
       html += '<div id="b2-group-sections"></div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
-      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => {
-        navHistory = [{ label: 'Music', fn: () => showB2Artists(lib, dlUrl, dlToken) }]; updateMobileBackBtn()
-        showB2Artist(artist, lib, dlUrl, dlToken)
-      })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
+      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => showB2Artist(artist, lib, dlUrl, dlToken))
 
       // Sort versions: most tracks first, then alphabetically
       const sorted = [...albums].sort((a, b) => b.tracks.length - a.tracks.length || a.name.localeCompare(b.name))
@@ -2215,7 +1667,7 @@
           sHtml += '<div class="lib-track-row" data-gti="' + (offset + i) + '">' +
             '<span class="lib-track-num">' + num + '</span>' +
             '<span class="lib-track-title">' + esc(t.title) + '</span>' +
-            '<span class="lib-track-dur">' + (isCue ? durStr : '0:00') + '</span>' +
+            '<span class="lib-track-dur">' + (isCue ? durStr : '—') + '</span>' +
             '<span style="color:#2a3e2a;font-size:10px;text-transform:uppercase;text-align:right">' + (t.ext || '').replace('.', '') + '</span>' +
             '</div>'
         })
@@ -2224,13 +1676,8 @@
         sectionsEl.appendChild(section)
       }
 
-      // Wire up play/shuffle buttons and track rows after all sections rendered
+      // Wire up play buttons and track rows after all sections rendered
       inner.querySelector('#b2-group-play')?.addEventListener('click', () => setQueue(allQueued, 0))
-      inner.querySelector('#b2-group-shuffle')?.addEventListener('click', () => {
-        const shuffled = [...allQueued]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
       inner.querySelectorAll('[data-ver-play]').forEach(btn => {
         const off = parseInt(btn.dataset.verPlay)
         btn.addEventListener('click', e => { e.stopPropagation(); setQueue(allQueued, off) })
@@ -2282,8 +1729,7 @@
         '<div class="lib-header-info">' +
           '<h2>' + esc(album.name) + '</h2>' +
           '<div class="lib-sub" id="b2-album-sub">' + esc(artist.name) + '</div>' +
-          '<button class="lib-play-btn" id="b2-album-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-album-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-album-play">▶ Play All</button>' +
         '</div></div>' +
         '<div id="b2-album-wiki" class="lib-album-wiki"></div>'
 
@@ -2292,11 +1738,8 @@
       html += '</div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
-      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => {
-        navHistory = [{ label: 'Music', fn: () => showB2Artists(lib, dlUrl, dlToken) }]; updateMobileBackBtn()
-        showB2Artist(artist, lib, dlUrl, dlToken)
-      })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
+      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => showB2Artist(artist, lib, dlUrl, dlToken))
 
       // Cover art + wiki from aggregator
       ;(async () => {
@@ -2374,7 +1817,7 @@
         trackHtml += '<div class="lib-track-row" data-b2-ti="' + i + '">' +
           '<span class="lib-track-num">' + num + '</span>' +
           '<span class="lib-track-title">' + esc(t.title) + '</span>' +
-          '<span class="lib-track-dur">' + (isCue ? durStr : '0:00') + '</span>' +
+          '<span class="lib-track-dur">' + (isCue ? durStr : '—') + '</span>' +
           '<span style="color:#2a3e2a;font-size:10px;text-transform:uppercase;text-align:right">' + (t.ext || '').replace('.','') + '</span>' +
           '</div>'
       })
@@ -2386,11 +1829,6 @@
 
       listEl.innerHTML = trackHtml
       inner.querySelector('#b2-album-play')?.addEventListener('click', () => setQueue(queuedTracks, 0))
-      inner.querySelector('#b2-album-shuffle')?.addEventListener('click', () => {
-        const shuffled = [...queuedTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
 
       inner.querySelectorAll('.lib-track-row').forEach(row => {
         const i = parseInt(row.dataset.b2Ti)
@@ -2423,21 +1861,11 @@
           updateSeekBar(audio.currentTime - startSec, durSec)
         } else {
           updateSeekBar(audio.currentTime, audio.duration)
-          // Gapless: start preloading next track when 20s remain
-          if (isFinite(audio.duration) && audio.duration - audio.currentTime < 20) preloadNextTrack()
         }
       })
       audio.addEventListener('ended', () => { if (!cueAdvancing) onTrackEnded() })
-      audio.addEventListener('play',  () => {
-        el('p-play').textContent = '⏸'; const np = el('np-play-btn'); if (np) np.textContent = '⏸'
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'
-        ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle })
-      })
-      audio.addEventListener('pause', () => {
-        el('p-play').textContent = '▶'; const np = el('np-play-btn'); if (np) np.textContent = '▶'
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'
-        ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle })
-      })
+      audio.addEventListener('play',  () => { el('p-play').textContent = '⏸'; ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle }) })
+      audio.addEventListener('pause', () => { el('p-play').textContent = '▶'; ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle }) })
 
       el('p-play').addEventListener('click', () => {
         if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
@@ -2453,24 +1881,14 @@
             if (chOffset > 3) { med.currentTime = cur.cueStartMs / 1000; return }
           } else if (med.currentTime > 3) { med.currentTime = 0; return }
         }
-        if (pShuffle && shuffleHistory.length > 0) {
-          queueIdx = shuffleHistory.pop()
-        } else {
-          queueIdx = Math.max(0, queueIdx - 1)
-        }
-        playTrack(playQueue[queueIdx], queueIdx)
+        queueIdx = Math.max(0, queueIdx - 1); playTrack(playQueue[queueIdx], queueIdx)
       })
       el('p-next').addEventListener('click', () => {
         if (!playQueue.length) return
-        if (pShuffle) {
-          shuffleHistory.push(queueIdx)
-          queueIdx = Math.floor(Math.random() * playQueue.length)
-        } else {
-          queueIdx = Math.min(playQueue.length - 1, queueIdx + 1)
-        }
+        queueIdx = pShuffle ? Math.floor(Math.random() * playQueue.length) : Math.min(playQueue.length - 1, queueIdx + 1)
         playTrack(playQueue[queueIdx], queueIdx)
       })
-      el('p-shuffle').addEventListener('click', () => { pShuffle = !pShuffle; if (!pShuffle) shuffleHistory = []; el('p-shuffle').classList.toggle('p-active', pShuffle) })
+      el('p-shuffle').addEventListener('click', () => { pShuffle = !pShuffle; el('p-shuffle').classList.toggle('p-active', pShuffle) })
       el('p-repeat').addEventListener('click', () => {
         repeatMode = repeatMode === 'none' ? 'all' : repeatMode === 'all' ? 'one' : 'none'
         el('p-repeat').textContent = repeatMode === 'one' ? '↺¹' : '↺'
@@ -2505,88 +1923,6 @@
       el('p-like')?.addEventListener('click', () => { if (playQueue[queueIdx]) toggleLike(playQueue[queueIdx]) })
       el('p-queue-btn')?.addEventListener('click', () => { document.body.classList.toggle('queue-open'); updateQueuePanel() })
       el('queue-close')?.addEventListener('click', () => { document.body.classList.remove('queue-open') })
-
-      // ── Media Session action handlers (lock screen / AirPods / CarPlay) ─
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play',          () => audio.play().catch(() => {}))
-        navigator.mediaSession.setActionHandler('pause',         () => audio.pause())
-        navigator.mediaSession.setActionHandler('stop',          () => { audio.pause(); audio.currentTime = 0 })
-        navigator.mediaSession.setActionHandler('previoustrack', () => el('p-prev')?.click())
-        navigator.mediaSession.setActionHandler('nexttrack',     () => el('p-next')?.click())
-        navigator.mediaSession.setActionHandler('seekto', details => {
-          if (details.seekTime != null && isFinite(audio.duration)) audio.currentTime = details.seekTime
-        })
-      }
-
-      // ── Now Playing screen (mobile full-screen player) ─────────────────
-      function openNpScreen() {
-        // sync volume slider
-        const npVol = el('np-vol-slider'); if (npVol) npVol.value = el('p-vol').value
-        // sync play state
-        const npPlay = el('np-play-btn'); if (npPlay) npPlay.textContent = audio.paused ? '▶' : '⏸'
-        // sync shuffle/repeat state
-        el('np-shuffle-btn')?.classList.toggle('np-active', pShuffle)
-        el('np-shuffle-btn').textContent = '⇄'
-        el('np-repeat-btn')?.classList.toggle('np-active', repeatMode !== 'none')
-        el('np-repeat-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
-        document.body.classList.add('np-open')
-      }
-      function closeNpScreen() { document.body.classList.remove('np-open') }
-
-      // Tap mini bar (anywhere except buttons) to open NP screen
-      el('player-bar')?.addEventListener('click', e => {
-        if (e.target.closest('.p-btn') || e.target.closest('#p-like')) return
-        if (window.innerWidth <= 900 && playQueue.length) openNpScreen()
-      })
-
-      // NP screen controls
-      el('np-down')?.addEventListener('click', closeNpScreen)
-      el('np-queue-open2')?.addEventListener('click', () => { closeNpScreen(); document.body.classList.toggle('queue-open'); updateQueuePanel() })
-
-      el('np-play-btn')?.addEventListener('click', () => {
-        if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
-        else audio.paused ? audio.play().catch(() => {}) : audio.pause()
-      })
-      el('np-prev-btn')?.addEventListener('click', () => el('p-prev')?.click())
-      el('np-next-btn')?.addEventListener('click', () => el('p-next')?.click())
-
-      el('np-shuffle-btn')?.addEventListener('click', () => {
-        el('p-shuffle')?.click()
-        el('np-shuffle-btn').classList.toggle('np-active', pShuffle)
-      })
-      el('np-repeat-btn')?.addEventListener('click', () => {
-        el('p-repeat')?.click()
-        el('np-repeat-btn').classList.toggle('np-active', repeatMode !== 'none')
-        el('np-repeat-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
-      })
-      el('np-like-btn')?.addEventListener('click', () => {
-        if (playQueue[queueIdx]) {
-          toggleLike(playQueue[queueIdx])
-          const liked = isLiked(playQueue[queueIdx])
-          el('np-like-btn').textContent = liked ? '♥' : '♡'
-          el('np-like-btn').classList.toggle('liked', liked)
-        }
-      })
-      el('np-vol-slider')?.addEventListener('input', e => {
-        const v = parseInt(e.target.value) / 100; audio.volume = v
-        el('p-vol').value = e.target.value
-        el('vol-icon').textContent = v === 0 ? '🔇' : v < 0.4 ? '🔉' : '🔊'
-      })
-      el('np-seek-bar')?.addEventListener('click', e => {
-        const r = el('np-seek-bar').getBoundingClientRect()
-        const pct = (e.clientX - r.left) / r.width
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med && isFinite(med.duration)) {
-          if (cur?.cueStartMs != null) {
-            const startSec = cur.cueStartMs / 1000
-            const endSec   = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
-            med.currentTime = startSec + pct * (endSec - startSec)
-          } else {
-            med.currentTime = pct * med.duration
-          }
-        }
-      })
     }
 
     // =====================================================
@@ -2629,7 +1965,9 @@
 
       el('rescan-music-btn').addEventListener('click', async () => {
         setStatus('Rescanning library...')
+        b2Lib = null; b2DlUrl = null; b2DlToken = null
         musicLibrary = await ipcRenderer.invoke('rescan-music')
+        if (currentView === 'media') showB2Library()
         setStatus('Library updated — ' + (musicLibrary.allTracks?.length || 0) + ' tracks')
       })
     }
@@ -2786,7 +2124,12 @@
         case 'F11': e.preventDefault(); ipcRenderer.invoke('toggle-fullscreen'); break
         case 'F5':
           e.preventDefault()
-          ipcRenderer.invoke('rescan-music').then(lib => { musicLibrary = lib; setStatus('Library rescanned — ' + (lib.allTracks?.length || 0) + ' tracks') })
+          b2Lib = null; b2DlUrl = null; b2DlToken = null
+          ipcRenderer.invoke('rescan-music').then(lib => {
+            musicLibrary = lib
+            if (currentView === 'media') showB2Library()
+            setStatus('Library rescanned — ' + (lib.allTracks?.length || 0) + ' tracks')
+          })
           break
         case 'f':
           if (!e.ctrlKey) break
@@ -2796,41 +2139,6 @@
           e.preventDefault()
           if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
           else { const a = el('music-audio'); if (a?.src) a.paused ? a.play().catch(() => {}) : a.pause() }
-          break
-        case 'ArrowLeft': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a?.src) a.currentTime = Math.max(0, a.currentTime - 10)
-          break
-        }
-        case 'ArrowRight': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a?.src) a.currentTime = Math.min(a.duration || 0, a.currentTime + 10)
-          break
-        }
-        case 'ArrowUp': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a) { a.volume = Math.min(1, a.volume + 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
-          break
-        }
-        case 'ArrowDown': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a) { a.volume = Math.max(0, a.volume - 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
-          break
-        }
-        case 'l': case 'L':
-          if (playQueue[queueIdx]) { toggleLike(playQueue[queueIdx]); e.preventDefault() }
-          break
-        case 's': case 'S':
-          el('p-shuffle')?.click(); e.preventDefault()
-          break
-        case 'r': case 'R':
-          el('p-repeat')?.click(); e.preventDefault()
-          break
-        case 'n': case 'N':
-          el('p-next')?.click(); e.preventDefault()
-          break
-        case 'p': case 'P':
-          el('p-prev')?.click(); e.preventDefault()
           break
       }
     })
@@ -2858,479 +2166,93 @@
       setStatus('Ready')
     }
 
-    // ── Pause-on-disconnect / cross-device resume ──────────────────────────
-    let _heartbeatFails = 0
-
-    async function savePlaybackState() {
-      const audio = el('music-audio')
-      const cur = playQueue[queueIdx]
-      if (!audio || !cur) return
-      try {
-        await fetch('/api/playback-state', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trackPath:  cur.filePath || cur.path || '',
-            title:      cur.title  || '',
-            artist:     cur.artist || '',
-            album:      cur.album  || '',
-            position:   audio.currentTime,
-            duration:   audio.duration || 0,
-            queuePaths: playQueue.map(t => t.filePath || t.path || ''),
-            queueIndex: queueIdx,
-            isPlaying:  !audio.paused,
-            savedAt:    Date.now(),
-          }),
-        })
-      } catch (_) {}
-    }
-
-    function initConnectivityWatch() {
-      const audio = el('music-audio')
-      if (!audio) return
-
-      // Save position on every pause (covers manual pause + auto-pause below)
-      audio.addEventListener('pause', savePlaybackState)
-
-      // Save every 15s while playing so position is always fresh
-      setInterval(() => {
-        if (!audio.paused) savePlaybackState()
-      }, 15000)
-
-      // Heartbeat: ping /health every 5s while audio is playing
-      setInterval(async () => {
-        if (audio.paused) { _heartbeatFails = 0; return }
-        try {
-          const r = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(3000) })
-          _heartbeatFails = r.ok ? 0 : _heartbeatFails + 1
-        } catch (_) { _heartbeatFails++ }
-        if (_heartbeatFails >= 2) {
-          audio.pause() // triggers savePlaybackState via the listener above
-          setStatus('Server unreachable — playback paused')
-          _heartbeatFails = 0
-        }
-      }, 5000)
-
-      // Immediate pause on OS-level network drop (no latency)
-      window.addEventListener('offline', () => {
-        if (!audio.paused) {
-          audio.pause()
-          setStatus('Disconnected — playback paused')
-        }
-      })
-    }
-
-    // Spotify-style: silently restore last state into the player bar (paused).
-    // No prompt — the player just shows up ready. Press play to resume.
-    async function restorePlaybackState() {
-      try {
-        const r = await fetch('/api/playback-state')
-        if (!r.ok) return
-        const state = await r.json()
-        if (!state.trackPath || !state.queuePaths?.length) return
-
-        // Don't overwrite something the user is already listening to
-        if (!el('music-audio')?.paused) return
-
-        await ensureB2Lib()
-        const allTracks = b2Lib
-          ? b2Lib.artists.flatMap(a => a.albums.flatMap(al => al.tracks))
-          : []
-
-        const queue = state.queuePaths
-          .map(p => allTracks.find(t => (t.filePath || t.path || '') === p))
-          .filter(Boolean)
-        if (!queue.length) return
-
-        playQueue = queue
-        queueIdx  = Math.min(state.queueIndex || 0, queue.length - 1)
-        const track = playQueue[queueIdx]
-        const audio = el('music-audio')
-        const resumePos = state.position || 0
-
-        // Register BEFORE playTrack sets audio.src so we never miss the event
-        audio.addEventListener('canplay', () => {
-          audio.pause()
-          audio.currentTime = resumePos
-        }, { once: true })
-
-        // Load the track — playTrack will call play(), our listener immediately pauses it
-        playTrack(track, queueIdx)
-      } catch (_) {}
-    }
-
-    // ── Sleep timer ────────────────────────────────────────────────────────
-    let sleepTimerId   = null
-    let sleepTickId    = null
-    let sleepEndsAt    = 0
-
-    function setSleepTimer(minutes) {
-      clearSleepTimer()
-      if (!minutes) return
-
-      sleepEndsAt = Date.now() + minutes * 60 * 1000
-      sleepTimerId = setTimeout(() => {
-        const audio = el('music-audio')
-        if (audio) audio.pause()
-        clearSleepTimer()
-        setStatus('Sleep timer — playback stopped')
-      }, minutes * 60 * 1000)
-
-      // Countdown tick every 30s — updates the badge on the player bar
-      sleepTickId = setInterval(updateSleepBadge, 30000)
-      updateSleepBadge()
-    }
-
-    function clearSleepTimer() {
-      clearTimeout(sleepTimerId);  sleepTimerId = null
-      clearInterval(sleepTickId);  sleepTickId  = null
-      sleepEndsAt = 0
-      el('p-sleep-btn').style.display = 'none'
-      el('np-sleep-btn')?.classList.remove('np-active')
-      el('np-sleep-btn').title = 'Sleep timer'
-    }
-
-    function updateSleepBadge() {
-      if (!sleepEndsAt) return
-      const minLeft = Math.max(0, Math.round((sleepEndsAt - Date.now()) / 60000))
-      el('p-sleep-badge').textContent = ' ' + minLeft + 'm'
-      el('p-sleep-btn').style.display = ''
-      el('np-sleep-btn').classList.add('np-active')
-      el('np-sleep-btn').title = 'Sleep: ' + minLeft + 'm left (tap to cancel)'
-    }
-
-    function showSleepMenu() {
-      // Remove any existing menu
-      document.getElementById('sleep-menu')?.remove()
-
-      const active = !!sleepTimerId
-      const options = active
-        ? [{ label: 'Cancel sleep timer', mins: 0 }]
-        : [
-            { label: '15 minutes',  mins: 15 },
-            { label: '30 minutes',  mins: 30 },
-            { label: '45 minutes',  mins: 45 },
-            { label: '1 hour',      mins: 60 },
-            { label: 'End of track', mins: -1 },
-          ]
-
-      const menu = document.createElement('div')
-      menu.id = 'sleep-menu'
-      menu.style.cssText = [
-        'position:fixed', 'bottom:160px', 'left:50%', 'transform:translateX(-50%)',
-        'background:#0d1a0d', 'border:1px solid #2a4a2a', 'border-radius:14px',
-        'overflow:hidden', 'z-index:600', 'min-width:220px',
-        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-      ].join(';')
-
-      menu.innerHTML =
-        '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">SLEEP TIMER</div>' +
-        options.map(o =>
-          '<div class="sleep-opt" data-mins="' + o.mins + '" style="padding:13px 20px;font-size:14px;color:#ccc;cursor:pointer;border-top:1px solid #1a2e1a">' +
-          (o.mins === 0 ? '<span style="color:#f87171">' + o.label + '</span>' : o.label) +
-          '</div>'
-        ).join('')
-
-      document.body.appendChild(menu)
-
-      menu.querySelectorAll('.sleep-opt').forEach(opt => {
-        opt.addEventListener('click', () => {
-          menu.remove()
-          const mins = +opt.dataset.mins
-          if (mins === -1) {
-            // End of track — set timer for remaining duration
-            const audio = el('music-audio')
-            const rem = audio ? Math.ceil(audio.duration - audio.currentTime) : 60
-            setSleepTimer(rem / 60)
-          } else {
-            setSleepTimer(mins)
-          }
-        })
-      })
-
-      // Tap outside to dismiss
-      setTimeout(() => {
-        document.addEventListener('click', function dismiss(e) {
-          if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
-        })
-      }, 0)
-    }
-
-    function initSleepTimer() {
-      el('np-sleep-btn')?.addEventListener('click', showSleepMenu)
-      el('p-sleep-btn')?.addEventListener('click',  showSleepMenu)
-    }
-
-    // ── Equalizer ─────────────────────────────────────────
-    const EQ_BANDS = [
-      { label: '60',   freq: 60,   type: 'lowshelf'  },
-      { label: '250',  freq: 250,  type: 'peaking'   },
-      { label: '1k',   freq: 1000, type: 'peaking'   },
-      { label: '4k',   freq: 4000, type: 'peaking'   },
-      { label: '16k',  freq: 16000,type: 'highshelf' },
-    ]
-    let eqFilters  = []
-    let eqEnabled  = false
-    let eqCtx      = null, eqSrc = null
-
-    function buildEqChain(audio) {
-      if (eqCtx) return
-      eqCtx = new (window.AudioContext || window.webkitAudioContext)()
-      eqSrc = eqCtx.createMediaElementSource(audio)
-      eqFilters = EQ_BANDS.map(b => {
-        const f = eqCtx.createBiquadFilter()
-        f.type      = b.type
-        f.frequency.value = b.freq
-        f.gain.value      = 0
-        f.Q.value         = 1
-        return f
-      })
-      // chain: src → f0 → f1 → f2 → f3 → f4 → dest
-      let node = eqSrc
-      for (const f of eqFilters) { node.connect(f); node = f }
-      node.connect(eqCtx.destination)
-    }
-
-    function showEqPanel() {
-      document.getElementById('eq-panel')?.remove()
-      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-      const panel = document.createElement('div')
-      panel.id = 'eq-panel'
-      panel.style.cssText = [
-        'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
-        'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
-        'padding:16px 20px','z-index:600','min-width:280px',
-        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-      ].join(';')
-
-      panel.innerHTML =
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
-        '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">EQUALIZER</span>' +
-        '<button id="eq-reset" style="background:none;border:none;color:#3a5e3a;font-size:11px;cursor:pointer">Reset</button>' +
-        '</div>' +
-        '<div style="display:flex;gap:14px;align-items:flex-end;justify-content:center">' +
-        EQ_BANDS.map((b, i) => `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span id="eq-val-${i}" style="font-size:10px;color:#4ade80;min-width:28px;text-align:center">${saved[i] >= 0 ? '+' : ''}${saved[i]}dB</span>
-            <input type="range" id="eq-slider-${i}" min="-12" max="12" step="1" value="${saved[i]}"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100px;accent-color:#4ade80;cursor:pointer">
-            <span style="font-size:10px;color:#444">${b.label}</span>
-          </div>`).join('') +
-        '</div>'
-
-      document.body.appendChild(panel)
-      buildEqChain(el('music-audio'))
-      if (eqCtx.state === 'suspended') eqCtx.resume()
-
-      // Apply saved gains
-      saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
-
-      EQ_BANDS.forEach((_, i) => {
-        const slider = panel.querySelector(`#eq-slider-${i}`)
-        slider.addEventListener('input', () => {
-          const gain = +slider.value
-          panel.querySelector(`#eq-val-${i}`).textContent = (gain >= 0 ? '+' : '') + gain + 'dB'
-          if (eqFilters[i]) eqFilters[i].gain.value = gain
-          const gains = EQ_BANDS.map((_, j) => +panel.querySelector(`#eq-slider-${j}`).value)
-          localStorage.setItem('eqGains', JSON.stringify(gains))
-          const anyActive = gains.some(g => g !== 0)
-          eqEnabled = anyActive
-          el('np-eq-btn').classList.toggle('np-active', anyActive)
-        })
-      })
-
-      panel.querySelector('#eq-reset').addEventListener('click', () => {
-        EQ_BANDS.forEach((_, i) => {
-          const s = panel.querySelector(`#eq-slider-${i}`)
-          s.value = 0
-          panel.querySelector(`#eq-val-${i}`).textContent = '+0dB'
-          if (eqFilters[i]) eqFilters[i].gain.value = 0
-        })
-        localStorage.setItem('eqGains', JSON.stringify([0,0,0,0,0]))
-        eqEnabled = false; el('np-eq-btn').classList.remove('np-active')
-      })
-
-      setTimeout(() => {
-        document.addEventListener('click', function dismiss(e) {
-          if (!panel.contains(e.target) && e.target !== el('np-eq-btn')) {
-            panel.remove(); document.removeEventListener('click', dismiss)
-          }
-        })
-      }, 0)
-    }
-
-    function initEqualizer() {
-      const btn = el('np-eq-btn')
-      // Restore active state from saved gains
-      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-      eqEnabled = saved.some(g => g !== 0)
-      btn.classList.toggle('np-active', eqEnabled)
-      btn.addEventListener('click', showEqPanel)
-      // Apply saved EQ once audio starts (AudioContext needs user gesture first)
-      el('music-audio').addEventListener('play', () => {
-        if (!eqEnabled) return
-        buildEqChain(el('music-audio'))
-        if (eqCtx.state === 'suspended') eqCtx.resume()
-        const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-        saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
-      }, { once: true })
-    }
-
-    // ── Volume Normalization ──────────────────────────────
-    let normEnabled = false
-    let audioCtx = null, normGain = null, normComp = null, audioSrc = null
-
-    function initNormalization() {
-      const audio = el('music-audio')
-      const btn   = el('np-norm-btn')
-
-      function buildChain() {
-        if (audioCtx) return
-        audioCtx  = new (window.AudioContext || window.webkitAudioContext)()
-        audioSrc  = audioCtx.createMediaElementSource(audio)
-        normComp  = audioCtx.createDynamicsCompressor()
-        normComp.threshold.value = -24
-        normComp.knee.value      = 10
-        normComp.ratio.value     = 4
-        normComp.attack.value    = 0.003
-        normComp.release.value   = 0.25
-        normGain  = audioCtx.createGain()
-        normGain.gain.value = 1.4   // slight boost so normalized tracks feel full
-        // always connect source → destination; compressor inserted when enabled
-        audioSrc.connect(audioCtx.destination)
-      }
-
-      function applyNorm(on) {
-        buildChain()
-        // resume suspended context (browser autoplay policy)
-        if (audioCtx.state === 'suspended') audioCtx.resume()
-        audioSrc.disconnect()
-        if (on) {
-          audioSrc.connect(normComp)
-          normComp.connect(normGain)
-          normGain.connect(audioCtx.destination)
-        } else {
-          audioSrc.connect(audioCtx.destination)
-        }
-      }
-
-      btn.addEventListener('click', () => {
-        normEnabled = !normEnabled
-        applyNorm(normEnabled)
-        btn.classList.toggle('np-active', normEnabled)
-        btn.title = normEnabled ? 'Volume normalization ON' : 'Volume normalization'
-      })
-
-      // Re-apply after each new track starts (src swap resets the element)
-      audio.addEventListener('play', () => { if (normEnabled) applyNorm(true) })
-    }
-
-    // ── Gapless Playback ──────────────────────────────────
-    let gaplessBuffer = null   // { src, audio }
-
-    function preloadNextTrack() {
-      if (xfadeEnabled) return   // crossfade handles its own preload
-      const nextIdx = pShuffle ? null : queueIdx + 1
-      if (nextIdx === null || nextIdx >= playQueue.length) return
-      const next = playQueue[nextIdx]; if (!next || next.path?.startsWith('http')) return
-      const src = 'file:///' + next.path.replace(/\\/g, '/')
-      if (gaplessBuffer?.src === src) return   // already buffered
-      if (gaplessBuffer) { gaplessBuffer.audio.src = ''; gaplessBuffer = null }
-      const a = new Audio()
-      a.preload = 'auto'
-      a.src = src
-      gaplessBuffer = { src, audio: a }
-    }
-
-    // ── Crossfade ─────────────────────────────────────────
-    let xfadeEnabled  = false
-    let xfadeSecs     = 5          // crossfade duration in seconds
-    let xfading       = false      // guard — only one crossfade at a time
-    let ghostAudio    = null       // the fading-out clone
-
-    function initCrossfade() {
-      const btn = el('np-xfade-btn')
-      btn.addEventListener('click', () => {
-        xfadeEnabled = !xfadeEnabled
-        btn.classList.toggle('np-active', xfadeEnabled)
-        btn.title = xfadeEnabled ? `Crossfade ON (${xfadeSecs}s — tap to disable)` : 'Crossfade'
-      })
-
-      // Hook into timeupdate on the main audio element
-      el('music-audio').addEventListener('timeupdate', handleCrossfadeTick)
-    }
-
-    function handleCrossfadeTick() {
-      if (!xfadeEnabled || xfading || repeatMode === 'one') return
-      const audio = el('music-audio')
-      if (!audio || !isFinite(audio.duration) || audio.paused) return
-      const remaining = audio.duration - audio.currentTime
-      if (remaining > xfadeSecs || remaining <= 0) return
-
-      // Figure out the next track index
-      let nextIdx
-      if (pShuffle) {
-        nextIdx = Math.floor(Math.random() * playQueue.length)
-      } else {
-        nextIdx = queueIdx + 1
-        if (nextIdx >= playQueue.length) {
-          if (repeatMode === 'all') nextIdx = 0
-          else return   // nothing after last track
-        }
-      }
-      const nextTrack = playQueue[nextIdx]
-      if (!nextTrack) return
-
-      xfading = true
-
-      // Clone current audio → ghost for fade-out
-      ghostAudio = new Audio(audio.src)
-      ghostAudio.currentTime = audio.currentTime
-      ghostAudio.volume      = audio.volume
-      ghostAudio.play().catch(() => {})
-
-      // Silence & swap the main element to next track immediately
-      const targetVol = audio.volume
-      audio.volume = 0
-      queueIdx = nextIdx
-      playTrack(nextTrack, nextIdx)
-
-      // Fade ghost out, main in over xfadeSecs
-      const steps    = 40
-      const interval = (xfadeSecs * 1000) / steps
-      let   step     = 0
-      const fade = setInterval(() => {
-        step++
-        const t = step / steps
-        audio.volume      = Math.min(targetVol, t * targetVol)
-        ghostAudio.volume = Math.max(0, (1 - t) * targetVol)
-        if (step >= steps) {
-          clearInterval(fade)
-          ghostAudio.pause()
-          ghostAudio.src = ''
-          ghostAudio     = null
-          xfading        = false
-        }
-      }, interval)
-    }
-
-    function formatTime(s) {
-      const m = Math.floor(s / 60)
-      return m + ':' + String(Math.floor(s % 60)).padStart(2, '0')
-    }
-
     initPlayerBar()
     initCtxMenu()
-    initGestures()
-    initSidebar()
-    initConnectivityWatch()
-    initSleepTimer()
-    initEqualizer()
-    initNormalization()
-    initCrossfade()
-    initSpeedControl()
     init()
-    setTimeout(restorePlaybackState, 2000) // restore after library loads
+
+    // =====================================================
+    // GAMEPAD NAVIGATION
+    // =====================================================
+    ;(function() {
+      const DEAD_ZONE = 0.4, REPEAT_DELAY = 380, REPEAT_INTERVAL = 140
+      let prevButtons = {}, repeatDir = null, repeatTimer = null, gpConnected = false, rafId = null
+
+      function getFocusables() {
+        return Array.from(document.querySelectorAll(
+          '.lib-card, .music-tree-item, .lib-track-row, .music-track-row, .lib-play-btn, .play-all-btn, .nav-item[data-view], .fav-row, .queue-item'
+        )).filter(e => e.offsetParent !== null)
+      }
+      function getFocused() { return document.querySelector('.gp-focus') }
+      function setFocus(e) {
+        document.querySelectorAll('.gp-focus').forEach(x => x.classList.remove('gp-focus'))
+        if (e) { e.classList.add('gp-focus'); e.scrollIntoView({ block: 'nearest' }) }
+      }
+      function moveFocus(dir) {
+        const items = getFocusables(); if (!items.length) return
+        const cur = getFocused()
+        let idx = cur ? items.indexOf(cur) : -1
+        if (dir === 'down' || dir === 'right') idx = Math.min(items.length - 1, idx < 0 ? 0 : idx + 1)
+        else idx = Math.max(0, idx < 0 ? 0 : idx - 1)
+        setFocus(items[idx])
+      }
+      function pressButton(i) {
+        switch (i) {
+          case 0: { const f = getFocused(); if (f) f.click(); break }
+          case 1: {
+            if (document.body.classList.contains('queue-open')) { document.body.classList.remove('queue-open'); break }
+            const crumb = document.querySelector('.lib-breadcrumb .crumb:not(.active)')
+            if (crumb) crumb.click()
+            break
+          }
+          case 4:  el('p-prev')?.click(); break
+          case 5:  el('p-next')?.click(); break
+          case 9:  el('p-play')?.click(); break
+          case 12: moveFocus('up');    break
+          case 13: moveFocus('down'); break
+          case 14: moveFocus('left'); break
+          case 15: moveFocus('right'); break
+        }
+      }
+      function poll() {
+        const gps = navigator.getGamepads ? navigator.getGamepads() : []
+        let any = false
+        for (const gp of gps) {
+          if (!gp) continue
+          any = true
+          const prev = prevButtons[gp.index] || []
+          gp.buttons.forEach((btn, i) => { if (btn.pressed && !prev[i]) pressButton(i) })
+          prevButtons[gp.index] = gp.buttons.map(b => b.pressed)
+
+          const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0
+          let dir = null
+          if      (ay >  DEAD_ZONE) dir = 'down'
+          else if (ay < -DEAD_ZONE) dir = 'up'
+          else if (ax >  DEAD_ZONE) dir = 'right'
+          else if (ax < -DEAD_ZONE) dir = 'left'
+
+          if (dir !== repeatDir) {
+            clearTimeout(repeatTimer); repeatDir = dir
+            if (dir) {
+              moveFocus(dir)
+              repeatTimer = setTimeout(function repeat() {
+                moveFocus(repeatDir)
+                repeatTimer = setTimeout(repeat, REPEAT_INTERVAL)
+              }, REPEAT_DELAY)
+            }
+          }
+        }
+        if (any !== gpConnected) {
+          gpConnected = any
+          const ind = el('gp-indicator')
+          if (ind) { ind.textContent = any ? 'GAMEPAD' : ''; ind.style.display = any ? '' : 'none' }
+          if (!any) { document.querySelectorAll('.gp-focus').forEach(x => x.classList.remove('gp-focus')); clearTimeout(repeatTimer) }
+        }
+        rafId = requestAnimationFrame(poll)
+      }
+      window.addEventListener('gamepadconnected',    () => { if (!rafId) rafId = requestAnimationFrame(poll) })
+      window.addEventListener('gamepaddisconnected', () => {})
+      rafId = requestAnimationFrame(poll)
+    })()
 
     // =====================================================
     // ATOMICBLAST REMOTE CONTROL (Firefox extension API)
@@ -3395,4 +2317,3 @@
   </script>
 </body>
 </html>
-
