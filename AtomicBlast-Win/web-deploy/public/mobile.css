@@ -86,6 +86,16 @@ button, .nav-item, .music-track-row, .music-tree-item,
   -webkit-user-select: none;
 }
 
+/* Keep the queue drawer out of sight on startup. It should only appear after
+   playback has created the mini player and the user opens Up Next. */
+#queue-panel {
+  display: none !important;
+}
+
+body.player-bar-active.queue-open #queue-panel {
+  display: flex !important;
+}
+
 /* ── Streaming-style B2 home / library polish ───────────────────────── */
 .b2-home {
   min-height: 100%;
@@ -431,18 +441,18 @@ button, .nav-item, .music-track-row, .music-tree-item,
   .b2-hero {
     grid-template-columns: 1fr;
     min-height: 0;
-    padding: 20px;
-    border-radius: 28px;
-    gap: 18px;
+    padding: 18px;
+    border-radius: 24px;
+    gap: 12px;
   }
 
   .b2-hero h1 {
-    font-size: clamp(42px, 14vw, 62px);
+    font-size: clamp(34px, 11vw, 48px);
+    line-height: .95;
   }
 
   .b2-hero-stack {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    transform: none;
+    display: none !important;
   }
 
   .b2-cover-tile {
@@ -457,6 +467,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
   .b2-stats-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+    margin: 10px 0 14px;
   }
 
   .b2-stat-card {
@@ -661,13 +672,14 @@ button, .nav-item, .music-track-row, .music-tree-item,
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    padding: 20px !important;
-    border-radius: 28px !important;
+    min-height: 0 !important;
+    padding: 18px !important;
+    border-radius: 24px !important;
   }
 
   .b2-hero h1 {
-    font-size: clamp(38px, 13vw, 58px) !important;
-    line-height: .94 !important;
+    font-size: clamp(34px, 11vw, 48px) !important;
+    line-height: .95 !important;
     letter-spacing: -.055em !important;
   }
 
@@ -678,8 +690,7 @@ button, .nav-item, .music-track-row, .music-tree-item,
   }
 
   .b2-hero-stack {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    transform: none !important;
+    display: none !important;
   }
 
   .b2-cover-tile:nth-child(2),

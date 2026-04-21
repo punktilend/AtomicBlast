@@ -575,7 +575,7 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260421-ios-layout-fix">
+  <link rel="stylesheet" href="/mobile.css?v=20260421-queue-labels-fix">
 </head>
 <body>
   <!-- TOP NAV BAR -->
@@ -1991,7 +1991,7 @@
     }
 
     // =====================================================
-    // B2 LIBRARY BROWSER (Spotify/Plex-style)
+    // B2 LIBRARY BROWSER
     // =====================================================
     async function showB2Library() {
       const inner = el('music-content-inner'); if (!inner) return
@@ -2048,7 +2048,7 @@
         const initial = (album.name || artist.name || '?').charAt(0).toUpperCase()
         const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
         html += '<div class="b2-cover-tile">' +
-          (coverUrl ? '<img src="' + coverUrl + '" onerror="this.outerHTML=\'<div class=\\\"b2-cover-ph\\\">' + esc(initial) + '</div>\'">' : '<div class="b2-cover-ph">' + esc(initial) + '</div>') +
+          (coverUrl ? '<img src="' + coverUrl + '" alt="">' : '<div class="b2-cover-ph">' + esc(initial) + '</div>') +
           '</div>'
       }
       while (heroCovers.length < 4) {
@@ -2063,13 +2063,13 @@
         '</div>'
 
       if (featuredAlbums.length) {
-        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Plex-style shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
+        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
           '<div class="b2-shelf">'
         for (const { artist, album } of featuredAlbums) {
           const initial = (album.name || '?').charAt(0).toUpperCase()
           const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            ? '<img src="' + coverUrl + '" alt="">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>'
           html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
@@ -2079,7 +2079,7 @@
         html += '</div>'
       }
 
-      html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Jellyfin wall</div><h2>Artists</h2></div><button id="b2-all-artists-top" class="b2-pill-btn">' + lib.artists.length + ' total</button></div>'
+      html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Artist wall</div><h2>Artists</h2></div><button id="b2-all-artists-top" class="b2-pill-btn">' + lib.artists.length + ' total</button></div>'
       html += '<div class="lib-grid">'
       for (const artist of topArtists) {
         const initial = (artist.name || '?').charAt(0).toUpperCase()
@@ -2087,7 +2087,7 @@
         const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
         const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          ? '<img src="' + coverUrl + '" alt="">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
         html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
           '<div class="lib-card-art">' + artHtml + '</div>' +
@@ -2130,7 +2130,7 @@
                 : await ipcRenderer.invoke('fetch-artist-meta', { artistName: card.dataset.b2Artist })
               const image = meta?.coverArt || meta?.image
               if (image && artEl.querySelector('.lib-card-initial'))
-                artEl.innerHTML = '<img src="' + image + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(ini) + '</span>\'">'
+                artEl.innerHTML = '<img src="' + image + '" alt="">'
             } catch(e) {}
           })
         }
