@@ -575,7 +575,7 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260421-edition-walls">
+  <link rel="stylesheet" href="/mobile.css?v=20260421-source-format-walls">
 </head>
 <body>
   <!-- TOP NAV BAR -->
@@ -2029,17 +2029,9 @@
         .filter(x => x.album.coverPath)
         .sort((a, b) => (b.album.tracks?.length || 0) - (a.album.tracks?.length || 0))
         .slice(0, 8)
-      const editionAlbums = albumPool
-        .map(x => ({ ...x, edition: detectAlbumEdition(x.album.name) }))
-        .filter(x => x.edition)
-      const vinylAlbums = editionAlbums
-        .filter(x => x.edition === 'vinyl')
-        .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
-        .slice(0, 10)
-      const cdAlbums = editionAlbums
-        .filter(x => x.edition === 'cd')
-        .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
-        .slice(0, 10)
+      const sourceAlbums = albumPool
+        .map(x => ({ ...x, sourceFormat: detectAlbumSourceFormat(x.album.name) }))
+        .filter(x => x.sourceFormat)
       const heroCovers = featuredAlbums.slice(0, 4)
 
       let html = '<div class="b2-home">' +
@@ -2073,8 +2065,13 @@
           '<div class="b2-stat-card"><div class="b2-stat-num">' + totalTracks + '</div><div class="b2-stat-label">Tracks</div></div>' +
         '</div>'
 
-      html += renderEditionWall('vinyl', 'Vinyl pressings', 'Needle drops and LP rips', vinylAlbums, dlUrl, dlToken, bucket)
-      html += renderEditionWall('cd', 'CD masters', 'Disc-sourced FLAC editions', cdAlbums, dlUrl, dlToken, bucket)
+      for (const source of sourceFormatShowcases) {
+        const sourceItems = sourceAlbums
+          .filter(x => x.sourceFormat === source.kind)
+          .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
+          .slice(0, 10)
+        html += renderSourceFormatWall(source, sourceItems, dlUrl, dlToken, bucket)
+      }
 
       if (featuredAlbums.length) {
         html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
@@ -2151,20 +2148,37 @@
       })
     }
 
-    function detectAlbumEdition(albumName) {
+    const sourceFormatShowcases = [
+      { kind: 'vinyl', badge: 'VINYL', kicker: 'Analog shelf', title: 'Vinyl pressings', subtitle: 'Needle drops and LP rips' },
+      { kind: 'cassette', badge: 'CASSETTE', kicker: 'Tape shelf', title: 'Cassette transfers', subtitle: 'Analog tape editions preserved in FLAC' },
+      { kind: 'dat', badge: 'DAT', kicker: 'Digital tape', title: 'DAT masters', subtitle: 'Digital Audio Tape sources and transfers' },
+      { kind: 'minidisc', badge: 'MINIDISC', kicker: 'Disc shelf', title: 'MiniDisc captures', subtitle: 'MiniDisc sources archived as FLAC' },
+      { kind: 'reel', badge: 'REEL', kicker: 'Open reel', title: 'Reel transfers', subtitle: 'Open-reel and reel-to-reel sources' },
+      { kind: 'sacd', badge: 'SACD', kicker: 'Hi-res disc', title: 'SACD editions', subtitle: 'Super Audio CD sourced FLAC editions' },
+      { kind: 'dvd', badge: 'DVD-A', kicker: 'Hi-res disc', title: 'DVD audio editions', subtitle: 'DVD-A and DVD-sourced FLAC editions' },
+      { kind: 'cd', badge: 'CD FLAC', kicker: 'Silver shelf', title: 'CD masters', subtitle: 'Disc-sourced FLAC editions' }
+    ]
+
+    function detectAlbumSourceFormat(albumName) {
       const name = String(albumName || '').toLowerCase()
       if (/(^|[\s\[\(\{_-])vinyl($|[\s\]\)\}_-])|\blp\b|\bneedle\s*drop\b|\bneedledrop\b/.test(name)) return 'vinyl'
+      if (/\bcassette\b|\btape\b|\bmixtape\b|\btype\s*(i|ii|iv)\b/.test(name)) return 'cassette'
+      if (/(^|[\s\[\(\{_-])dat($|[\s\]\)\}_-])|\bdigital\s*audio\s*tape\b/.test(name)) return 'dat'
+      if (/\bmini[\s-]?disc\b|\bminidisc\b|\bmd\s*source\b|(^|[\s\[\(\{_-])md($|[\s\]\)\}_-])/.test(name)) return 'minidisc'
+      if (/\breel[\s-]?to[\s-]?reel\b|\bopen[\s-]?reel\b|\breel\b/.test(name)) return 'reel'
+      if (/\bsacd\b|\bsuper\s*audio\s*cd\b/.test(name)) return 'sacd'
+      if (/\bdvd[-\s]?a\b|\bdvd[\s-]?audio\b|\bdvd\b/.test(name)) return 'dvd'
       if (/\bflac[-\s]?cd\b|\bcd[-\s]?flac\b|\bcompact\s*disc\b|(^|[\s\[\(\{_-])cd($|[\s\]\)\}_-])/.test(name)) return 'cd'
       return ''
     }
 
-    function renderEditionWall(kind, title, subtitle, items, dlUrl, dlToken, bucket) {
+    function renderSourceFormatWall(source, items, dlUrl, dlToken, bucket) {
       if (!items.length) return ''
-      let html = '<section class="b2-edition-section b2-edition-' + kind + '">' +
+      let html = '<section class="b2-edition-section b2-edition-' + source.kind + '">' +
         '<div class="b2-edition-copy">' +
-          '<div class="b2-section-kicker">' + (kind === 'vinyl' ? 'Analog shelf' : 'Silver shelf') + '</div>' +
-          '<h2>' + title + '</h2>' +
-          '<p>' + subtitle + '</p>' +
+          '<div class="b2-section-kicker">' + esc(source.kicker) + '</div>' +
+          '<h2>' + esc(source.title) + '</h2>' +
+          '<p>' + esc(source.subtitle) + '</p>' +
         '</div>' +
         '<div class="b2-edition-wall">'
       for (const { artist, album } of items) {
@@ -2173,8 +2187,8 @@
         const artHtml = coverUrl
           ? '<img src="' + coverUrl + '" alt="">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
-        html += '<div class="lib-card b2-edition-card edition-' + kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
-          '<div class="b2-edition-badge">' + (kind === 'vinyl' ? 'VINYL' : 'CD FLAC') + '</div>' +
+        html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+          '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
           '<div class="lib-card-art b2-edition-art">' + artHtml + '</div>' +
           '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
           '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
