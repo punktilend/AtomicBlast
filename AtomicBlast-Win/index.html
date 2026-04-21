@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>AtomicBlast</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AtomicBlast">
+  <meta name="theme-color" content="#080c08">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <script src="/ipc-shim.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
@@ -567,6 +575,7 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
+  <link rel="stylesheet" href="/mobile.css?v=20260421-source-format-walls">
 </head>
 <body>
   <!-- TOP NAV BAR -->
@@ -705,7 +714,7 @@
   <div class="status-bar"><span><span class="status-dot"></span></span><span id="status-text">Loading...</span><span id="gp-indicator"></span></div>
 
   <script>
-    const { ipcRenderer } = require('electron')
+    // ipcRenderer provided by /ipc-shim.js (web mode)
 
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'http://23.95.216.131:3000'
@@ -1229,6 +1238,7 @@
           '<div class="music-content" id="music-content-inner"></div>' +
         '</div>'
 
+      bindSidebarPanel()
       renderMusicTree(musicLibrary)
       showB2Library()
 
@@ -1716,13 +1726,24 @@
       const overlay = el('sidebar-overlay')
       if (!panel) return
       const open = panel.classList.toggle('sidebar-open')
+      document.body.classList.toggle('sidebar-open', open)
       if (overlay) overlay.classList.toggle('active', open)
     }
     function closeSidebar() {
       const panel = document.querySelector('.music-lib-panel')
       const overlay = el('sidebar-overlay')
       if (panel) panel.classList.remove('sidebar-open')
+      document.body.classList.remove('sidebar-open')
       if (overlay) overlay.classList.remove('active')
+    }
+    function bindSidebarPanel() {
+      const panel = document.querySelector('.music-lib-panel')
+      if (!panel || panel.dataset.sidebarBound === '1') return
+      panel.dataset.sidebarBound = '1'
+      panel.addEventListener('click', e => e.stopPropagation())
+      panel.addEventListener('pointerdown', e => e.stopPropagation())
+      panel.addEventListener('touchstart', e => e.stopPropagation(), { passive: true })
+      panel.addEventListener('touchend', e => e.stopPropagation(), { passive: true })
     }
 
     function markPlayingRow(queueIndex) {
@@ -1970,7 +1991,7 @@
     }
 
     // =====================================================
-    // B2 LIBRARY BROWSER (Spotify/Plex-style)
+    // B2 LIBRARY BROWSER
     // =====================================================
     async function showB2Library() {
       const inner = el('music-content-inner'); if (!inner) return
@@ -1997,18 +2018,85 @@
       const bucket = lib.bucketName || 'SpAtomify'
 
       const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
-      let html = '<div class="lib-breadcrumb" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
-        '<span class="crumb active">Music</span>' +
-        '<button id="b2-shuffle-all-btn" style="background:#1a2e1a;border:1px solid #2a4e2a;color:#4ade80;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">&#x21C4; Shuffle All (' + totalTracks + ')</button>' +
+      const totalAlbums = lib.artists.reduce((s, a) => s + a.albums.length, 0)
+      const topArtists = [...lib.artists].sort((a, b) => {
+        const at = a.albums.reduce((s, al) => s + al.tracks.length, 0)
+        const bt = b.albums.reduce((s, al) => s + al.tracks.length, 0)
+        return bt - at || a.name.localeCompare(b.name)
+      }).slice(0, 10)
+      const albumPool = lib.artists.flatMap(artist => artist.albums.map(album => ({ artist, album })))
+      const featuredAlbums = albumPool
+        .filter(x => x.album.coverPath)
+        .sort((a, b) => (b.album.tracks?.length || 0) - (a.album.tracks?.length || 0))
+        .slice(0, 8)
+      const sourceAlbums = albumPool
+        .map(x => ({ ...x, sourceFormat: detectAlbumSourceFormat(x.album.name) }))
+        .filter(x => x.sourceFormat)
+      const heroCovers = featuredAlbums.slice(0, 4)
+
+      let html = '<div class="b2-home">' +
+        '<section class="b2-hero">' +
+          '<div>' +
+            '<div class="b2-eyebrow">AtomicBlast Radio</div>' +
+            '<h1>Your whole library, dialed in.</h1>' +
+            '<div class="b2-hero-sub">Browse artists, jump into albums, or shuffle the full SpAtomify vault with a darker streaming-room feel.</div>' +
+            '<div class="b2-hero-actions">' +
+              '<button id="b2-shuffle-all-btn" class="b2-primary-btn">&#x21C4; Shuffle All</button>' +
+              '<button id="b2-view-albums-btn" class="b2-ghost-btn">Browse Albums</button>' +
+              '<button id="b2-view-tracks-btn" class="b2-ghost-btn">All Tracks</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="b2-hero-stack">'
+      for (const { artist, album } of heroCovers) {
+        const initial = (album.name || artist.name || '?').charAt(0).toUpperCase()
+        const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+        html += '<div class="b2-cover-tile">' +
+          (coverUrl ? '<img src="' + coverUrl + '" alt="">' : '<div class="b2-cover-ph">' + esc(initial) + '</div>') +
+          '</div>'
+      }
+      while (heroCovers.length < 4) {
+        html += '<div class="b2-cover-tile"><div class="b2-cover-ph">♪</div></div>'
+        heroCovers.push({})
+      }
+      html += '</div></section>' +
+        '<div class="b2-stats-row">' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + lib.artists.length + '</div><div class="b2-stat-label">Artists</div></div>' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + totalAlbums + '</div><div class="b2-stat-label">Albums</div></div>' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + totalTracks + '</div><div class="b2-stat-label">Tracks</div></div>' +
         '</div>'
+
+      // Render Physical Media hub (compact category cards instead of all shelves)
+      inner.insertAdjacentHTML('beforeend', html)
+      renderPhysicalMediaHub(lib, sourceAlbums, dlUrl, dlToken, bucket)
+
+      html = ''
+
+      if (featuredAlbums.length) {
+        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
+          '<div class="b2-shelf">'
+        for (const { artist, album } of featuredAlbums) {
+          const initial = (album.name || '?').charAt(0).toUpperCase()
+          const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+          const artHtml = coverUrl
+            ? '<img src="' + coverUrl + '" alt="">'
+            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+          html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+            '<div class="lib-card-art">' + artHtml + '</div>' +
+            '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
+            '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
+        }
+        html += '</div>'
+      }
+
+      html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Artist wall</div><h2>Artists</h2></div><button id="b2-all-artists-top" class="b2-pill-btn">' + lib.artists.length + ' total</button></div>'
       html += '<div class="lib-grid">'
-      for (const artist of lib.artists) {
+      for (const artist of topArtists) {
         const initial = (artist.name || '?').charAt(0).toUpperCase()
         const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
         const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
         const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          ? '<img src="' + coverUrl + '" alt="">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
         html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
           '<div class="lib-card-art">' + artHtml + '</div>' +
@@ -2016,7 +2104,7 @@
           '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div></div>' +
           '</div>'
       }
-      html += '</div>'
+      html += '</div></div>'
       inner.innerHTML = html
 
       el('b2-shuffle-all-btn')?.addEventListener('click', () => {
@@ -2024,26 +2112,173 @@
         for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]] }
         setQueue(all, 0)
       })
+      el('b2-view-albums-btn')?.addEventListener('click', () => showB2AllAlbums())
+      el('b2-view-tracks-btn')?.addEventListener('click', () => showB2AllTracks())
+      el('b2-all-albums-top')?.addEventListener('click', () => showB2AllAlbums())
 
       inner.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (artist) showB2Artist(artist, lib, dlUrl, dlToken)
+          if (!artist) return
+          if (card.dataset.b2Album) {
+            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
+            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
+          } else {
+            showB2Artist(artist, lib, dlUrl, dlToken)
+          }
         })
         const artEl = card.querySelector('.lib-card-art')
         if (artEl?.querySelector('.lib-card-initial')) {
-          const name = card.dataset.b2Artist
+          const name = card.dataset.b2Album || card.dataset.b2Artist
           const ini = name.charAt(0).toUpperCase()
-          fetchItunesArt(name, '').then(async url => {
+          fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album || '').then(async url => {
             if (url) { applyItunesArt(artEl, url, ini); return }
             try {
-              const meta = await ipcRenderer.invoke('fetch-artist-meta', { artistName: name })
-              if (meta?.image && artEl.querySelector('.lib-card-initial'))
-                artEl.innerHTML = '<img src="' + meta.image + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(ini) + '</span>\'">'
+              const meta = card.dataset.b2Album
+                ? await ipcRenderer.invoke('fetch-album-meta', { artistName: card.dataset.b2Artist, albumName: card.dataset.b2Album })
+                : await ipcRenderer.invoke('fetch-artist-meta', { artistName: card.dataset.b2Artist })
+              const image = meta?.coverArt || meta?.image
+              if (image && artEl.querySelector('.lib-card-initial'))
+                artEl.innerHTML = '<img src="' + image + '" alt="">'
             } catch(e) {}
           })
         }
       })
+    }
+
+    const sourceFormatShowcases = [
+      { kind: 'vinyl', badge: 'VINYL', kicker: 'Analog shelf', title: 'Vinyl pressings', subtitle: 'Needle drops and LP rips', category: 'analog' },
+      { kind: 'cassette', badge: 'CASSETTE', kicker: 'Tape shelf', title: 'Cassette transfers', subtitle: 'Analog tape editions preserved in FLAC', category: 'tape' },
+      { kind: 'dat', badge: 'DAT', kicker: 'Digital tape', title: 'DAT masters', subtitle: 'Digital Audio Tape sources and transfers', category: 'digitaltape' },
+      { kind: 'minidisc', badge: 'MINIDISC', kicker: 'Disc shelf', title: 'MiniDisc captures', subtitle: 'MiniDisc sources archived as FLAC', category: 'disc' },
+      { kind: 'reel', badge: 'REEL', kicker: 'Open reel', title: 'Reel transfers', subtitle: 'Open-reel and reel-to-reel sources', category: 'analog' },
+      { kind: 'sacd', badge: 'SACD', kicker: 'Hi-res disc', title: 'SACD editions', subtitle: 'Super Audio CD sourced FLAC editions', category: 'hiresdisc' },
+      { kind: 'dvd', badge: 'DVD-A', kicker: 'Hi-res disc', title: 'DVD audio editions', subtitle: 'DVD-A and DVD-sourced FLAC editions', category: 'hiresdisc' },
+      { kind: 'cd', badge: 'CD FLAC', kicker: 'Silver shelf', title: 'CD masters', subtitle: 'Disc-sourced FLAC editions', category: 'silver' }
+    ]
+
+    const physicalMediaCategories = [
+      { id: 'analog', title: 'Analog', subtitle: 'Vinyl & open-reel tape', icon: 'V', color: '#ffb256', kinds: ['vinyl', 'reel'] },
+      { id: 'tape', title: 'Tape', subtitle: 'Cassette transfers', icon: 'C', color: '#ffd27a', kinds: ['cassette'] },
+      { id: 'digitaltape', title: 'Digital Tape', subtitle: 'DAT masters', icon: 'D', color: '#74d6ff', kinds: ['dat'] },
+      { id: 'disc', title: 'Disc', subtitle: 'MiniDisc captures', icon: 'M', color: '#74d6ff', kinds: ['minidisc'] },
+      { id: 'hiresdisc', title: 'Hi-Res Disc', subtitle: 'SACD & DVD-Audio', icon: 'H', color: '#bff1ff', kinds: ['sacd', 'dvd'] },
+      { id: 'silver', title: 'Silver', subtitle: 'CD-sourced editions', icon: 'S', color: '#aadeff', kinds: ['cd'] }
+    ]
+
+    function renderPhysicalMediaHub(lib, sourceAlbums, dlUrl, dlToken, bucket) {
+      const inner = el('music-content-inner'); if (!inner) return
+      const counts = {}
+      for (const cat of physicalMediaCategories) {
+        counts[cat.id] = sourceAlbums.filter(x => cat.kinds.includes(x.sourceFormat)).length
+      }
+      const totalPhysical = Object.values(counts).reduce((a, b) => a + b, 0)
+      if (totalPhysical === 0) return
+
+      let html = '<div class="b2-section-title"><div><div class="b2-section-kicker">Physical Media</div><h2>Source Formats</h2></div><span class="b2-pill-btn">' + totalPhysical + ' albums</span></div>' +
+        '<div class="b2-hub-grid">'
+      for (const cat of physicalMediaCategories) {
+        const count = counts[cat.id]
+        if (count === 0) continue
+        const sampleAlbum = sourceAlbums.find(x => cat.kinds.includes(x.sourceFormat) && x.album.coverPath)
+        const coverUrl = sampleAlbum ? b2CoverUrl(sampleAlbum.album.coverPath, dlUrl, dlToken, bucket) : ''
+        const artHtml = coverUrl
+          ? '<img src="' + coverUrl + '" alt="">'
+          : '<span class="b2-hub-icon" style="background:' + cat.color + '">' + cat.icon + '</span>'
+        html += '<div class="b2-hub-card" data-pm-category="' + cat.id + '">' +
+          '<div class="b2-hub-art">' + artHtml + '</div>' +
+          '<div class="b2-hub-info">' +
+          '<div class="b2-hub-title">' + esc(cat.title) + '</div>' +
+          '<div class="b2-hub-subtitle">' + esc(cat.subtitle) + '</div>' +
+          '<div class="b2-hub-count">' + count + ' album' + (count !== 1 ? 's' : '') + '</div>' +
+          '</div></div>'
+      }
+      html += '</div>'
+      inner.insertAdjacentHTML('beforeend', html)
+
+      inner.querySelectorAll('[data-pm-category]').forEach(card => {
+        card.addEventListener('click', () => showPhysicalMediaCategory(card.dataset.pmCategory, lib, sourceAlbums, dlUrl, dlToken, bucket))
+      })
+    }
+
+    function showPhysicalMediaCategory(catId, lib, sourceAlbums, dlUrl, dlToken, bucket) {
+      const inner = el('music-content-inner'); if (!inner) return
+      const cat = physicalMediaCategories.find(c => c.id === catId)
+      if (!cat) return
+
+      const catSources = sourceFormatShowcases.filter(s => cat.kinds.includes(s.kind))
+      let html = '<div class="lib-breadcrumb">' +
+        '<span class="crumb" id="pm-crumb-root">Music</span><span class="sep">›</span>' +
+        '<span class="crumb" id="pm-crumb-physical">Physical Media</span><span class="sep">›</span>' +
+        '<span class="crumb active">' + esc(cat.title) + '</span></div>' +
+        '<div class="b2-category-view">'
+      for (const source of catSources) {
+        const items = sourceAlbums
+          .filter(x => x.sourceFormat === source.kind)
+          .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
+        html += renderSourceFormatWall(source, items, dlUrl, dlToken, bucket)
+      }
+      html += '</div>'
+      inner.innerHTML = html
+
+      el('pm-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
+      el('pm-crumb-physical')?.addEventListener('click', () => {
+        showB2Artists(lib, dlUrl, dlToken)
+        setTimeout(() => {
+          const hub = inner.querySelector('.b2-hub-grid')
+          if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 50)
+      })
+
+      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
+        card.addEventListener('click', () => {
+          const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
+          if (!artist) return
+          if (card.dataset.b2Album) {
+            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
+            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
+          } else {
+            showB2Artist(artist, lib, dlUrl, dlToken)
+          }
+        })
+      })
+    }
+
+    function detectAlbumSourceFormat(albumName) {
+      const name = String(albumName || '').toLowerCase()
+      if (/(^|[\s\[\(\{_-])vinyl($|[\s\]\)\}_-])|\blp\b|\bneedle\s*drop\b|\bneedledrop\b/.test(name)) return 'vinyl'
+      if (/\bcassette\b|\btape\b|\bmixtape\b|\btype\s*(i|ii|iv)\b/.test(name)) return 'cassette'
+      if (/(^|[\s\[\(\{_-])dat($|[\s\]\)\}_-])|\bdigital\s*audio\s*tape\b/.test(name)) return 'dat'
+      if (/\bmini[\s-]?disc\b|\bminidisc\b|\bmd\s*source\b|(^|[\s\[\(\{_-])md($|[\s\]\)\}_-])/.test(name)) return 'minidisc'
+      if (/\breel[\s-]?to[\s-]?reel\b|\bopen[\s-]?reel\b|\breel\b/.test(name)) return 'reel'
+      if (/\bsacd\b|\bsuper\s*audio\s*cd\b/.test(name)) return 'sacd'
+      if (/\bdvd[-\s]?a\b|\bdvd[\s-]?audio\b|\bdvd\b/.test(name)) return 'dvd'
+      if (/\bflac[-\s]?cd\b|\bcd[-\s]?flac\b|\bcompact\s*disc\b|(^|[\s\[\(\{_-])cd($|[\s\]\)\}_-])/.test(name)) return 'cd'
+      return ''
+    }
+
+    function renderSourceFormatWall(source, items, dlUrl, dlToken, bucket) {
+      if (!items.length) return ''
+      let html = '<section class="b2-edition-section b2-edition-' + source.kind + '">' +
+        '<div class="b2-edition-copy">' +
+          '<div class="b2-section-kicker">' + esc(source.kicker) + '</div>' +
+          '<h2>' + esc(source.title) + '</h2>' +
+          '<p>' + esc(source.subtitle) + '</p>' +
+        '</div>' +
+        '<div class="b2-edition-wall">'
+      for (const { artist, album } of items) {
+        const initial = (album.name || '?').charAt(0).toUpperCase()
+        const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+        const artHtml = coverUrl
+          ? '<img src="' + coverUrl + '" alt="">'
+          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+          '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
+          '<div class="lib-card-art b2-edition-art">' + artHtml + '</div>' +
+          '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
+          '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
+      }
+      return html + '</div></section>'
     }
 
     function normalizeAlbumName(name) {
@@ -2567,8 +2802,7 @@
       el('pl-picker-new')?.addEventListener('click', openNewPlaylistFromPicker)
       el('pl-picker-new')?.addEventListener('touchend', openNewPlaylistFromPicker)
       el('pl-picker-modal')?.addEventListener('click', e => { if (e.target?.id === 'pl-picker-modal') hidePlaylistPicker() })
-      document.querySelector('.music-lib-panel')?.addEventListener('click', e => e.stopPropagation())
-      document.querySelector('.music-lib-panel')?.addEventListener('touchstart', e => e.stopPropagation(), { passive: true })
+      bindSidebarPanel()
       el('sidebar-toggle-btn')?.addEventListener('click', e => e.stopPropagation())
 
       // ── Now Playing panel wiring ──────────────────────────────────────────
@@ -3024,5 +3258,20 @@
       }
     }
   </script>
+
+  <script>
+  // AtomicBlast-Server: route all B2 audio + images through the local proxy (CORS fix for Safari)
+  function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
+    if (!filePath) return '';
+    return '/img?file=' + encodeURIComponent(filePath);
+  }
+  function b2TrackObj(track, artistName, album, dlUrl, dlToken, bucket) {
+    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=flac';
+    var coverUrl  = b2CoverUrl(album.coverPath);
+    return { id: track.path, title: track.title, artist: artistName, album: album.name,
+             path: signedUrl, ext: track.ext, coverPath: coverUrl };
+  }
+  </script>
 </body>
 </html>
+

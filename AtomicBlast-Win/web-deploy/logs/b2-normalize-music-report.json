@@ -1,0 +1,117 @@
+{
+  "mode": "analysis",
+  "bucket": "SpAtomify",
+  "prefix": "Music/",
+  "scannedFiles": 14245,
+  "parsedRecords": 14201,
+  "unchanged": 3390,
+  "alreadyPresent": 1013,
+  "scheduled": 9798,
+  "copied": 0,
+  "skipped": 0,
+  "failed": 0,
+  "samples": [
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/01. Never Could Toe The Mark.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/01. Never Could Toe The Mark.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/02. Talk Good Boogie.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/02. Talk Good Boogie.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/03. People Up In Texas.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/03. People Up In Texas.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/04. Sparkling Brown Eyes.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/04. Sparkling Brown Eyes.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/05. If She'll Leave Her Mama.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/05. If She'll Leave Her Mama.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/06. Settin' Me Up.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/06. Settin' Me Up.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/07. The Gemini Song (When I'm Bad, I'm Bad).flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/07. The Gemini Song (When I'm Bad, I'm Bad).flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/08. Where Would I Be (Without You).flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/08. Where Would I Be (Without You).flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/09. Whatever Gets You Through The Night.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/09. Whatever Gets You Through The Night.flac"
+    },
+    {
+      "from": "Music/1984. Waylon Jennings/Never Could Toe The Mark/10. The Entertainer.flac",
+      "to": "Music/Waylon Jennings/1984 - Never Could Toe The Mark/10. The Entertainer.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/01. The Devil's On The Loose.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/01. The Devil's On The Loose.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/02. You Showed Me Somethin' About Lovin' (I Never Knew Was).flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/02. You Showed Me Somethin' About Lovin' (I Never Knew Was).flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/03. Good Morning John.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/03. Good Morning John.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/04. The Broken Promise Land.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/04. The Broken Promise Land.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/05. Don't Bring It Around Anymore.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/05. Don't Bring It Around Anymore.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/06. Rhiannon.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/06. Rhiannon.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/07. Drinkin' And Dreamin'.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/07. Drinkin' And Dreamin'.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/08. As Far As The Eye Can See.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/08. As Far As The Eye Can See.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/09. Turn The Page.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/09. Turn The Page.flac"
+    },
+    {
+      "from": "Music/1985. Waylon Jennings/Turn The Page/10. Those Kind Of Memories.flac",
+      "to": "Music/Waylon Jennings/1985 - Turn The Page/10. Those Kind Of Memories.flac"
+    },
+    {
+      "from": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z.._/01 - Holler If Ya Hear Me.flac",
+      "to": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z/01 - Holler If Ya Hear Me.flac"
+    },
+    {
+      "from": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z.._/02 - Pac's Theme (Interlude).flac",
+      "to": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z/02 - Pac's Theme (Interlude).flac"
+    },
+    {
+      "from": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z.._/03 - Point The Finga.flac",
+      "to": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z/03 - Point The Finga.flac"
+    },
+    {
+      "from": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z.._/04 - Something 2 Die 4 (Interlude).flac",
+      "to": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z/04 - Something 2 Die 4 (Interlude).flac"
+    },
+    {
+      "from": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z.._/05 - Last Wordz (feat. Ice Cube & Ice-T).flac",
+      "to": "Music/2Pac/1993 - Strictly 4 My N.I.G.G.A.Z/05 - Last Wordz (feat. Ice Cube & Ice-T).flac"
+    }
+  ],
+  "failures": [],
+  "finishedAt": "2026-04-21T00:26:13.994Z"
+}
