@@ -42,6 +42,14 @@
     #gp-indicator { display: none; font-size: 11px; color: #00e5ff; margin-left: 12px; letter-spacing: .03em; }
     .back-btn { background: #0f1a0f; border: 1px solid #1a2e1a; border-radius: 8px; color: #999; padding: 6px 14px; cursor: pointer; font-size: 13px; }
     .back-btn:hover { border-color: #4ade80; color: #4ade80; }
+    body.playlist-modal-open .music-content,
+    body.playlist-modal-open #main-content,
+    body.playlist-modal-open .main-body,
+    body.playlist-modal-open #player-bar,
+    body.playlist-modal-open #now-playing-panel,
+    body.playlist-modal-open .music-lib-panel { pointer-events: none !important; }
+    body.playlist-modal-open #new-pl-modal,
+    body.playlist-modal-open #new-pl-modal * { pointer-events: auto !important; }
 
     /* ===== MUSIC PLAYER ===== */
     .music-layout { display:flex; height:100%; overflow:hidden; }
@@ -115,27 +123,232 @@
     .cloud-field input:focus { border-color:#4ade80; }
 
     /* ===== PERSISTENT PLAYER BAR ===== */
-    #player-bar { position:fixed; bottom:28px; left:0; right:0; height:72px; background:rgba(5,10,8,0.97); border-top:1px solid rgba(74,222,128,0.1); backdrop-filter:blur(12px); display:flex; align-items:center; padding:0 20px; gap:12px; z-index:50; }
-    .player-art { width:48px; height:48px; border-radius:3px; background:#0f1a0f; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:20px; color:#333; }
+    #player-bar {
+      --player-cover-image: none;
+      position: fixed;
+      bottom: 14px;
+      left: 18px;
+      right: 18px;
+      min-height: 88px;
+      background:
+        linear-gradient(180deg, rgba(20,28,20,0.96), rgba(7,11,9,0.98)),
+        radial-gradient(circle at top left, rgba(74,222,128,0.14), transparent 38%);
+      border: 1px solid rgba(122,255,170,0.12);
+      border-radius: 24px;
+      backdrop-filter: blur(20px) saturate(140%);
+      box-shadow: 0 18px 44px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.03);
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      gap: 14px;
+      z-index: 50;
+      overflow: hidden;
+    }
+    #player-bar::before {
+      content: '';
+      position: absolute;
+      inset: -18%;
+      background-image: var(--player-cover-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(34px) saturate(120%);
+      opacity: 0.16;
+      transform: scale(1.06);
+      pointer-events: none;
+    }
+    #player-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 26%, transparent 72%, rgba(255,255,255,0.02));
+      pointer-events: none;
+    }
+    #player-bar > * { position: relative; z-index: 1; }
+    .player-art {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #172417, #0d140f);
+      border: 1px solid rgba(122,255,170,0.08);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.34);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #244024;
+      position: relative;
+    }
+    .player-art::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent 38%);
+      pointer-events: none;
+    }
     .player-art img { width:100%; height:100%; object-fit:cover; }
-    .player-meta { min-width:120px; max-width:180px; overflow:hidden; flex-shrink:0; }
-    .player-meta .p-title  { color:#ddd; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .player-meta .p-artist { color:#555; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-    .player-btns { display:flex; align-items:center; gap:2px; flex-shrink:0; }
-    .p-btn { background:none; border:none; color:#555; font-size:16px; cursor:pointer; padding:6px 8px; border-radius:4px; transition:color .15s; line-height:1; }
-    .p-btn:hover { color:#ccc; }
-    .p-btn.p-play { font-size:22px; color:#4ade80; }
-    .p-btn.p-play:hover { color:#6ee7a0; }
-    .p-btn.p-active { color:#4ade80; }
-    .player-seek { flex:1; display:flex; align-items:center; gap:8px; min-width:0; }
-    .p-time { color:#3a4e3a; font-size:11px; white-space:nowrap; flex-shrink:0; font-variant-numeric:tabular-nums; }
-    .seek-bar { flex:1; height:4px; background:#1a2e1a; border-radius:2px; cursor:pointer; position:relative; transition:height .1s; }
-    .seek-bar:hover { height:6px; }
-    .seek-fill { height:100%; background:#4ade80; border-radius:2px; pointer-events:none; width:0%; }
-    .player-vol { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-    .player-vol .vol-icon { color:#3a4e3a; font-size:13px; cursor:pointer; user-select:none; }
-    .player-vol input[type=range] { width:70px; accent-color:#4ade80; cursor:pointer; }
-    .player-bar-active #main-content { padding-bottom:72px; }
+    .player-meta {
+      min-width: 0;
+      width: min(280px, 28vw);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .player-meta .p-title  {
+      color: #f5f7f5;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-meta .p-artist {
+      color: #8b988d;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 4px;
+    }
+    .p-queue-pos {
+      font-size: 10px;
+      color: #4ade80;
+      margin-top: 5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .player-btns {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-shrink:0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 999px;
+      padding: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+    .p-btn {
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      color: #7b867c;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 999px;
+      transition: transform .15s, color .15s, background .15s, border-color .15s, box-shadow .15s;
+      line-height: 1;
+      flex-shrink: 0;
+      font-family: inherit;
+      font-weight: 700;
+    }
+    .p-btn:hover {
+      color: #edf2ee;
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+    .p-btn.p-play {
+      width: 56px;
+      height: 56px;
+      font-size: 26px;
+      color: #061109;
+      background: linear-gradient(180deg, #56ec8f, #35d970);
+      border-color: rgba(122,255,170,0.32);
+      box-shadow: 0 10px 28px rgba(74,222,128,0.28);
+    }
+    .p-btn.p-play:hover {
+      color: #061109;
+      background: linear-gradient(180deg, #69f09b, #3ee278);
+      transform: translateY(-1px) scale(1.01);
+    }
+    .p-btn.p-active {
+      color: #4ade80;
+      border-color: rgba(74,222,128,0.24);
+      background: rgba(74,222,128,0.08);
+    }
+    #p-like.liked {
+      color:#f472b6;
+      border-color: rgba(244,114,182,0.25);
+      background: rgba(244,114,182,0.08);
+    }
+    #p-queue-btn {
+      width: auto;
+      min-width: 84px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      gap: 6px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .queue-btn-icon { font-size: 16px; line-height: 1; }
+    .queue-btn-label { font-size: 11px; font-weight: 700; color: #aab3ab; }
+    .player-seek {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 0 12px;
+      min-height: 42px;
+    }
+    .p-time {
+      color: #748176;
+      font-size: 11px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .seek-bar {
+      flex: 1;
+      height: 6px;
+      background: #1b241d;
+      border-radius: 999px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: height .1s, background .15s;
+    }
+    .seek-bar:hover { height: 8px; background:#202b23; }
+    .seek-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #37d970, #59eb93);
+      border-radius: 999px;
+      pointer-events: none;
+      width: 0%;
+      box-shadow: 0 0 18px rgba(74,222,128,0.26);
+    }
+    .player-vol {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-shrink:0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 0 12px;
+      min-height: 42px;
+    }
+    .player-vol .vol-icon {
+      color:#7f8a81;
+      font-size:14px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .player-vol input[type=range] { width:86px; accent-color:#4ade80; cursor:pointer; }
+    .player-bar-active #main-content { padding-bottom:104px; }
 
     /* ===== QUEUE PANEL ===== */
     #queue-panel { position:fixed; bottom:100px; left:0; right:0; max-height:340px; background:rgba(5,10,8,0.97); border-top:1px solid rgba(74,222,128,0.1); backdrop-filter:blur(12px); display:flex; flex-direction:column; z-index:49; transform:translateY(100%); transition:transform .25s ease; overflow:hidden; }
@@ -173,7 +386,111 @@
     .track-like-btn { background:none; border:none; color:#2a3e2a; cursor:pointer; font-size:12px; padding:0 4px; opacity:0; flex-shrink:0; line-height:1; }
     .music-track-row:hover .track-like-btn { opacity:1; }
     .track-like-btn.liked { color:#f472b6; opacity:1; }
+    .track-remove-btn { background:none; border:none; color:#476047; cursor:pointer; font-size:15px; padding:0 4px; opacity:.7; flex-shrink:0; line-height:1; }
+    .music-track-row:hover .track-remove-btn { opacity:1; color:#ff8d8d; }
     .music-tree-item.playlist-liked { color:#f472b6; }
+
+    /* ===== NOW PLAYING FULL PANEL ===== */
+    #np-panel {
+      --player-cover-image: none;
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(circle at top center, rgba(74,222,128,0.14), transparent 26%),
+        linear-gradient(180deg, #0b120d 0%, #060907 100%);
+      z-index:300;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:max(env(safe-area-inset-top,0px),24px) 28px max(env(safe-area-inset-bottom,0px),24px);
+      transform:translateY(100%);
+      transition:transform .32s cubic-bezier(.4,0,.2,1);
+      will-change:transform;
+      overflow:hidden;
+    }
+    #np-panel::after {
+      content:'';
+      position:absolute;
+      inset:-10%;
+      background-image: var(--player-cover-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(52px) saturate(118%);
+      opacity: 0.22;
+      transform: scale(1.08);
+      pointer-events:none;
+    }
+    #np-panel > * { position: relative; z-index: 1; }
+    body.np-open #np-panel { transform:translateY(0); }
+    #np-handle { width:42px; height:5px; background:rgba(255,255,255,0.18); border-radius:999px; align-self:center; margin-bottom:20px; flex-shrink:0; cursor:pointer; }
+    #np-panel::before {
+      content:'NOW PLAYING';
+      display:block;
+      align-self:center;
+      color:#89948a;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.14em;
+      margin-bottom:18px;
+    }
+    #np-art-wrap { width:min(100%,360px); aspect-ratio:1; align-self:center; margin-bottom:28px; flex-shrink:0; }
+    #np-art-wrap img { width:100%; height:100%; object-fit:cover; border-radius:24px; display:block; box-shadow:0 24px 56px rgba(0,0,0,.56); }
+    .np-art-ph { width:100%; height:100%; border-radius:24px; background:linear-gradient(180deg, #152017, #0c120e); display:flex; align-items:center; justify-content:center; font-size:88px; color:#1f3c26; box-shadow:0 24px 56px rgba(0,0,0,.46); }
+    #np-info { width:100%; max-width:400px; align-self:center; display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-shrink:0; }
+    #np-title-block { flex:1; min-width:0; }
+    #np-title { font-size:42px; line-height:1.04; font-weight:800; color:#fff; letter-spacing:-0.03em; white-space:normal; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    #np-sub { font-size:18px; color:#8c978d; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #np-like-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:999px; font-size:24px; color:#6f7971; cursor:pointer; padding:0; width:48px; height:48px; flex-shrink:0; -webkit-tap-highlight-color:transparent; transition:color .12s, border-color .12s, background .12s; display:flex; align-items:center; justify-content:center; }
+    #np-like-btn.liked { color:#f472b6; }
+    #np-seek-wrap {
+      width:100%;
+      max-width:400px;
+      align-self:center;
+      margin:18px 0 6px;
+      flex-shrink:0;
+      background:rgba(255,255,255,0.035);
+      border:1px solid rgba(255,255,255,0.05);
+      border-radius:24px;
+      padding:14px 16px 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    #np-seek-bar { height:8px; background:#1d271f; border-radius:999px; cursor:pointer; position:relative; transition:height .1s; overflow:hidden; }
+    #np-seek-bar:active { height:10px; }
+    #np-seek-fill { height:100%; background:linear-gradient(90deg, #37d970, #65f09d); border-radius:999px; pointer-events:none; width:0%; box-shadow:0 0 18px rgba(74,222,128,0.24); }
+    #np-times { display:flex; justify-content:space-between; margin-top:10px; }
+    #np-cur, #np-dur { font-size:12px; color:#7d897e; font-variant-numeric:tabular-nums; font-weight:700; }
+    #np-controls { width:100%; max-width:400px; align-self:center; margin:26px 0 0; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .np-btn {
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.05);
+      color:#a4aea5;
+      cursor:pointer;
+      font-size:22px;
+      width:56px;
+      height:56px;
+      border-radius:999px;
+      line-height:1;
+      -webkit-tap-highlight-color:transparent;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform .15s, background .15s, border-color .15s, color .15s;
+    }
+    .np-btn:hover { transform:translateY(-1px); color:#fff; background:rgba(255,255,255,0.06); }
+    #np-play-btn { font-size:52px; color:#071009; width:82px; height:82px; background:linear-gradient(180deg, #56ec8f, #35d970); border-color:rgba(122,255,170,0.28); box-shadow:0 16px 36px rgba(74,222,128,0.22); }
+    .np-btn.np-active { color:#4ade80; }
+    #np-bottom-row { width:100%; max-width:400px; align-self:center; display:flex; justify-content:stretch; margin-top:24px; flex-shrink:0; }
+    .np-pill-btn { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.06); color:#eef3ef; font-size:14px; font-weight:700; padding:14px 18px; border-radius:999px; cursor:pointer; -webkit-tap-highlight-color:transparent; width:100%; text-align:center; letter-spacing:.01em; }
+    .np-pill-btn:active { border-color:#4ade80; color:#4ade80; }
+    .np-btn-label {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #8f9a90;
+      text-align: center;
+      margin-top: 16px;
+      max-width: 400px;
+    }
 
     /* ===== B2 LIBRARY BROWSER ===== */
     .lib-section-header { color:#4ade80; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:20px 24px 8px; }
@@ -261,10 +578,12 @@
       <div class="nav-item active" data-view="media"><span class="nav-icon">♪</span><span>MUSIC</span></div>
     </div>
     <div class="topnav-right">
+      <button id="sidebar-toggle-btn" title="Library">&#9776;</button>
       <div class="search-bar"><input type="text" id="search-input" placeholder="Search library..."></div>
       <div class="nav-item" data-view="settings"><span class="nav-icon">≡</span><span>SETTINGS</span></div>
     </div>
   </nav>
+  <div id="sidebar-overlay"></div>
 
   <!-- MAIN CONTENT -->
   <div class="main">
@@ -304,12 +623,12 @@
       <input type="range" id="p-vol" min="0" max="100" value="80">
     </div>
     <button class="p-btn" id="p-fullscreen" title="Fullscreen" style="display:none">⛶</button>
-    <button class="p-btn" id="p-queue-btn" title="Up Next">⋮≡<span id="p-queue-badge"></span></button>
+    <button class="p-btn" id="p-queue-btn" title="Up Next"><span class="queue-btn-icon">≡</span><span class="queue-btn-label">Queue</span><span id="p-queue-badge"></span></button>
   </div>
 
   <!-- New Playlist modal -->
-  <div id="new-pl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center">
-    <div style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:10px;padding:24px;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+  <div id="new-pl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:410;align-items:center;justify-content:center;padding:20px">
+    <div id="new-pl-dialog" style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:14px;padding:22px;min-width:min(360px,100%);max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.8)">
       <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:14px;letter-spacing:.04em">NEW PLAYLIST</div>
       <input id="new-pl-input" placeholder="Playlist name…" autocomplete="off"
         style="width:100%;background:#080f08;border:1px solid #2a4e2a;color:#ccc;padding:9px 12px;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit">
@@ -320,10 +639,51 @@
     </div>
   </div>
 
+  <!-- Playlist picker modal -->
+  <div id="pl-picker-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:401;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:14px;padding:22px;min-width:min(360px,100%);max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+      <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:8px;letter-spacing:.04em">ADD TO PLAYLIST</div>
+      <div style="color:#6d7c6d;font-size:12px;margin-bottom:14px" id="pl-picker-sub">Choose a playlist or make a new one.</div>
+      <div id="pl-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow:auto"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button id="pl-picker-new" type="button" onclick="event.preventDefault(); event.stopPropagation(); window.openNewPlaylistFromPicker && window.openNewPlaylistFromPicker(event); return false;" ontouchend="event.preventDefault(); event.stopPropagation(); window.openNewPlaylistFromPicker && window.openNewPlaylistFromPicker(event); return false;" style="flex:1;background:#4ade80;color:#000;border:none;padding:11px 12px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer">+ New Playlist</button>
+        <button id="pl-picker-cancel" style="flex:1;background:#0f1a0f;color:#aaa;border:1px solid #1a2e1a;padding:11px 12px;border-radius:999px;font-size:13px;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Queue panel -->
   <div id="queue-panel">
     <div class="queue-header">Up Next <span id="queue-count-label"></span><button id="queue-close" class="queue-close-btn">✕</button></div>
     <div id="queue-list"></div>
+  </div>
+
+  <!-- Full Now Playing panel -->
+  <div id="np-panel">
+    <div id="np-handle"></div>
+    <div id="np-art-wrap"><div id="np-art-inner" class="np-art-ph">♪</div></div>
+    <div id="np-info">
+      <div id="np-title-block">
+        <div id="np-title">—</div>
+        <div id="np-sub">—</div>
+      </div>
+      <button id="np-like-btn" class="np-btn">♡</button>
+    </div>
+    <div id="np-seek-wrap">
+      <div id="np-seek-bar"><div id="np-seek-fill"></div></div>
+      <div id="np-times"><span id="np-cur">0:00</span><span id="np-dur">0:00</span></div>
+    </div>
+    <div id="np-controls">
+      <button id="np-shuf-btn" class="np-btn" title="Shuffle">⇄</button>
+      <button id="np-prev-btn" class="np-btn" title="Previous">⏮</button>
+      <button id="np-play-btn" class="np-btn" title="Play / Pause">▶</button>
+      <button id="np-next-btn" class="np-btn" title="Next">⏭</button>
+      <button id="np-rep-btn" class="np-btn" title="Repeat">↺</button>
+    </div>
+    <div class="np-btn-label">Playback Controls</div>
+    <div id="np-bottom-row">
+      <button id="np-addpl-btn" class="np-pill-btn">+ Add to Playlist</button>
+    </div>
   </div>
 
   <!-- Context menu -->
@@ -492,7 +852,7 @@
       if (b2Lib) {
         const artist = b2Lib.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase())
         if (artist) {
-          const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+          const bucket = b2Lib.bucketName || 'SpAtomify'
           const tracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, b2DlUrl, b2DlToken, bucket)))
           for (let i = tracks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [tracks[i], tracks[j]] = [tracks[j], tracks[i]] }
           setQueue(tracks, 0)
@@ -516,21 +876,50 @@
     function createPlaylist(initialTrack) {
       return new Promise(resolve => {
         const modal = el('new-pl-modal')
+        const dialog = el('new-pl-dialog')
         const input = el('new-pl-input')
-        modal.style.display = 'flex'
-        setTimeout(() => input.focus(), 50)
-        const finish = name => {
+        const okBtn = el('new-pl-ok')
+        const cancelBtn = el('new-pl-cancel')
+        if (!modal || !input || !okBtn || !cancelBtn) { resolve(null); return }
+
+        const cleanup = () => {
           modal.style.display = 'none'
-          el('new-pl-ok').onclick = null; el('new-pl-cancel').onclick = null; input.onkeydown = null
+          document.body.classList.remove('playlist-modal-open')
+          okBtn.removeEventListener('click', onOk)
+          cancelBtn.removeEventListener('click', onCancel)
+          input.removeEventListener('keydown', onKeyDown)
+          modal.removeEventListener('click', onBackdropClick)
+          dialog?.removeEventListener('click', stopDialogPropagation)
+          dialog?.removeEventListener('touchstart', stopDialogPropagation)
+        }
+        const finish = name => {
+          cleanup()
           if (!name?.trim()) { resolve(null); return }
           const pl = { id: 'pl_' + Date.now(), name: name.trim(), tracks: initialTrack ? [initialTrack] : [] }
-          playlists.playlists.push(pl); savePlaylists()
+          playlists.playlists.push(pl)
+          savePlaylists()
           renderMusicTree(musicLibrary)
           resolve(pl)
         }
-        el('new-pl-ok').onclick     = () => finish(input.value)
-        el('new-pl-cancel').onclick  = () => finish(null)
-        input.onkeydown = e => { if (e.key === 'Enter') finish(input.value); else if (e.key === 'Escape') finish(null) }
+        const onOk = () => finish(input.value)
+        const onCancel = () => finish(null)
+        const onKeyDown = e => {
+          if (e.key === 'Enter') finish(input.value)
+          else if (e.key === 'Escape') finish(null)
+        }
+        const onBackdropClick = e => { if (e.target === modal) finish(null) }
+        const stopDialogPropagation = e => e.stopPropagation()
+
+        input.value = ''
+        document.body.classList.add('playlist-modal-open')
+        modal.style.display = 'flex'
+        okBtn.addEventListener('click', onOk)
+        cancelBtn.addEventListener('click', onCancel)
+        input.addEventListener('keydown', onKeyDown)
+        modal.addEventListener('click', onBackdropClick)
+        dialog?.addEventListener('click', stopDialogPropagation)
+        dialog?.addEventListener('touchstart', stopDialogPropagation)
+        setTimeout(() => input.focus(), 50)
       })
     }
     function addTrackToPlaylist(track, plId) {
@@ -538,6 +927,61 @@
       if (!pl.tracks.some(t => (t.path || t.title) === (track.path || track.title))) pl.tracks.push(track)
       savePlaylists(); setStatus('Added to ' + pl.name)
     }
+    function shuffleTracks(tracks) {
+      const copy = [...tracks]
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[copy[i], copy[j]] = [copy[j], copy[i]]
+      }
+      return copy
+    }
+    let playlistPickerTrack = null
+    let playlistPickerCreateBusy = false
+    function showPlaylistPicker(track) {
+      if (!track) return
+      ctxTrack = track
+      playlistPickerTrack = track
+      const modal = el('pl-picker-modal')
+      const list = el('pl-picker-list')
+      const sub = el('pl-picker-sub')
+      if (!modal || !list) return
+      if (sub) sub.textContent = 'Add "' + (track.title || track.path?.split(/[\\/]/).pop() || 'Track') + '" to a playlist.'
+      const items = playlists.playlists.map(pl =>
+        '<button class="pl-picker-item" data-pl-id="' + esc(pl.id) + '" style="width:100%;text-align:left;background:#101910;border:1px solid #1d311d;color:#eef3ef;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600">' +
+        esc(pl.name) + '<span style="float:right;color:#6d7c6d;font-weight:500">' + pl.tracks.length + '</span></button>'
+      ).join('')
+      list.innerHTML = items || '<div style="color:#6d7c6d;font-size:12px;padding:8px 2px">No playlists yet. Create one below.</div>'
+      list.querySelectorAll('[data-pl-id]').forEach(item => item.addEventListener('click', () => {
+        addTrackToPlaylist(track, item.dataset.plId)
+        hidePlaylistPicker()
+      }))
+      modal.style.display = 'flex'
+    }
+    function hidePlaylistPicker() {
+      const modal = el('pl-picker-modal')
+      if (modal) modal.style.display = 'none'
+      playlistPickerTrack = null
+    }
+    async function openNewPlaylistFromPicker(e) {
+      if (e) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      if (playlistPickerCreateBusy) return false
+      const track = playlistPickerTrack || ctxTrack
+      if (!track) return
+      playlistPickerCreateBusy = true
+      try {
+        const pl = await createPlaylist(track)
+        if (!pl) return false
+        hidePlaylistPicker()
+        setStatus('Created playlist: ' + pl.name)
+        return false
+      } finally {
+        setTimeout(() => { playlistPickerCreateBusy = false }, 250)
+      }
+    }
+    window.openNewPlaylistFromPicker = openNewPlaylistFromPicker
     async function showPlaylist(plId) {
       let tracks, name, color
       if (plId === 'liked') {
@@ -551,7 +995,7 @@
           } catch (e) { setStatus('Error loading B2: ' + e.message) }
         }
         // Build track objects — prefer server metadata for clean titles/artist/format
-        const bucket = b2Lib?.bucketName || 'aharveyGoogleDriveBackup'
+        const bucket = b2Lib?.bucketName || 'SpAtomify'
         tracks = playlists.liked.map(filePath => {
           const meta = serverFavsMeta.get(filePath)
           if (filePath.startsWith('Music/') && b2DlUrl) {
@@ -586,11 +1030,13 @@
               '<h2 style="color:#fff">Liked Songs</h2>' +
               '<div class="lib-sub">' + tracks.length + ' track' + (tracks.length !== 1 ? 's' : '') + '</div>' +
               '<button class="lib-play-btn" id="fav-play-all">▶ Play All</button>' +
+              '<button class="lib-play-btn" id="fav-shuffle-all" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
             '</div>' +
           '</div>' +
           '<div class="fav-list" id="fav-list"></div>'
 
         c.querySelector('#fav-play-all')?.addEventListener('click', () => setQueue(tracks, 0))
+        c.querySelector('#fav-shuffle-all')?.addEventListener('click', () => { const shuffled = shuffleTracks(tracks); if (shuffled.length) setQueue(shuffled, 0) })
 
         const listEl = c.querySelector('#fav-list')
         listEl.innerHTML = tracks.map((t, i) => {
@@ -642,21 +1088,28 @@
             '<h2>' + esc(name) + '</h2>' +
             '<p class="meta-sub">' + tracks.length + ' track' + (tracks.length !== 1 ? 's' : '') + '</p>' +
             '<button class="play-all-btn">▶ Play All</button>' +
-            (plId !== 'liked' ? '<button class="play-all-btn" id="del-pl-btn" style="margin-left:8px;background:#0f1a0f;color:#c44;border:1px solid #3a1a1a">✕ Delete</button>' : '') +
+            '<button class="play-all-btn" id="pl-shuffle-btn" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
+            (plId !== 'liked' ? '<button class="play-all-btn" id="pl-delete-btn" style="margin-left:8px;background:#0f1a0f;color:#ff8d8d;border:1px solid #4a2323">✕ Delete Playlist</button>' : '') +
           '</div>' +
         '</div>' +
         '<div class="music-tracks-list">' +
           '<div class="music-track-header"><span>#</span><span>Title</span><span></span><span>Duration</span><span>Format</span></div>' +
-          tracks.map((t, i) => trackRowHtml(t, i)).join('') +
+          tracks.map((t, i) => plId !== 'liked' ? playlistTrackRowHtml(t, i) : trackRowHtml(t, i)).join('') +
         '</div>'
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(tracks, 0))
-      el('del-pl-btn')?.addEventListener('click', () => {
+      c.querySelector('#pl-shuffle-btn')?.addEventListener('click', () => { const shuffled = shuffleTracks(tracks); if (shuffled.length) setQueue(shuffled, 0) })
+      c.querySelector('#pl-delete-btn')?.addEventListener('click', () => {
+        const pl = playlists.playlists.find(p => p.id === plId)
+        if (!pl) return
+        if (!confirm('Delete playlist "' + pl.name + '"?')) return
         playlists.playlists = playlists.playlists.filter(p => p.id !== plId)
         savePlaylists()
         if (el('music-tree')) renderMusicTree(musicLibrary)
+        setStatus('Deleted playlist: ' + pl.name)
         showAllTracks()
       })
-      wireTrackRows(c, tracks)
+      if (plId !== 'liked') wirePlaylistTrackRows(c, tracks, plId)
+      else wireTrackRows(c, tracks)
     }
 
     // ── Context menu ───────────────────────────────────────────────────────
@@ -671,7 +1124,7 @@
       sub.querySelectorAll('[data-pl-id]').forEach(item => item.addEventListener('click', () => {
         addTrackToPlaylist(ctxTrack, item.dataset.plId); hideCtxMenu()
       }))
-      sub.querySelector('#ctx-new-pl')?.addEventListener('click', () => { createPlaylist(ctxTrack); hideCtxMenu() })
+      sub.querySelector('#ctx-new-pl')?.addEventListener('click', () => { const track = ctxTrack; hideCtxMenu(); createPlaylist(track) })
       const W = window.innerWidth
       const x = e.clientX + 190 > W ? e.clientX - 190 : e.clientX
       const y = e.clientY + 280 > window.innerHeight ? e.clientY - 280 : e.clientY
@@ -684,6 +1137,14 @@
       el('ctx-play-next')?.addEventListener('click',  () => { if (ctxTrack) { playNext(ctxTrack); setStatus('Playing next: ' + (ctxTrack.title || '')); hideCtxMenu() } })
       el('ctx-add-queue')?.addEventListener('click',  () => { if (ctxTrack) { addToQueue(ctxTrack); setStatus('Added to queue'); hideCtxMenu() } })
       el('ctx-like')?.addEventListener('click',       () => { if (ctxTrack) { toggleLike(ctxTrack); hideCtxMenu() } })
+      el('ctx-add-playlist')?.addEventListener('click', e => {
+        if (!ctxTrack) return
+        if (_isTouchDevice) {
+          e.stopPropagation()
+          hideCtxMenu()
+          showPlaylistPicker(ctxTrack)
+        }
+      })
       el('ctx-artist-radio')?.addEventListener('click', () => {
         if (ctxTrack) { doArtistRadio(ctxTrack.albumArtist || ctxTrack.artist); hideCtxMenu() }
       })
@@ -828,7 +1289,7 @@
 
     function showB2AllAlbums() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       let html = '<div class="lib-breadcrumb"><span class="crumb active">All Albums</span></div>'
       html += '<div class="lib-grid">'
       for (const artist of b2Lib.artists) {
@@ -862,7 +1323,7 @@
 
     function showB2AllTracks() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       const allTracks = b2Lib.artists.flatMap(artist =>
         artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
       )
@@ -921,7 +1382,7 @@
 
     function showB2Search(q) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       const lq = q.toLowerCase()
 
       const matchArtists = b2Lib.artists.filter(a => a.name.toLowerCase().includes(lq))
@@ -1107,6 +1568,7 @@
             (album.year ? '<p class="meta-sub">' + album.year + '</p>' : '') +
             '<p class="meta-sub">' + album.tracks.length + ' track' + (album.tracks.length !== 1 ? 's' : '') + '</p>' +
             '<button class="play-all-btn">▶ Play All</button>' +
+            '<button class="play-all-btn" id="album-shuffle-btn" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
             '<button class="play-all-btn" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px" data-radio="' + esc(album.tracks[0]?.albumArtist || album.tracks[0]?.artist || '') + '">📻 Radio</button>' +
           '</div>' +
         '</div>' +
@@ -1115,6 +1577,7 @@
           album.tracks.map((t, i) => trackRowHtml(t, i)).join('') +
         '</div>'
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(album.tracks, 0))
+      c.querySelector('#album-shuffle-btn')?.addEventListener('click', () => { const shuffled = shuffleTracks(album.tracks); if (shuffled.length) setQueue(shuffled, 0) })
       c.querySelector('[data-radio]')?.addEventListener('click', e => doArtistRadio(e.target.dataset.radio))
       wireTrackRows(c, album.tracks)
     }
@@ -1179,18 +1642,87 @@
         '<span class="music-track-fmt">' + (t.ext || '').replace('.', '') + '</span>' +
       '</div>'
     }
+    function playlistTrackRowHtml(t, i) {
+      const num = t.trackNo || (i + 1)
+      return '<div class="music-track-row" data-qi="' + i + '">' +
+        '<span class="music-track-num">' + num + '</span>' +
+        '<div class="music-track-info">' +
+          '<div class="music-track-title">' + esc(t.title || t.path.split(/[\\/]/).pop()) + '</div>' +
+          ((t.artist || t.album) ? '<div class="music-track-artist">' + esc(t.artist || t.album || '') + '</div>' : '') +
+        '</div>' +
+        '<button class="track-remove-btn" data-remove-i="' + i + '" title="Remove from playlist">✕</button>' +
+        '<span class="music-track-dur">' + fmtTime(t.duration) + '</span>' +
+        '<span class="music-track-fmt">' + (t.ext || '').replace('.', '') + '</span>' +
+      '</div>'
+    }
+
+    const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
     function wireTrackRows(container, tracks) {
       container.querySelectorAll('.music-track-row').forEach(row => {
         const i = parseInt(row.dataset.qi)
-        row.addEventListener('dblclick', () => setQueue(tracks, i))
         row.addEventListener('click', e => {
           if (e.target.classList.contains('track-like-btn')) { toggleLike(tracks[i]); return }
           container.querySelectorAll('.music-track-row').forEach(r => r.classList.remove('active'))
           row.classList.add('active')
+          setQueue(tracks, i)
         })
+        row.addEventListener('dblclick', e => { e.preventDefault() })
+        row.addEventListener('contextmenu', e => showCtxMenu(e, tracks[i]))
+        let _lp = null, _lpFired = false
+        row.addEventListener('touchstart', e => {
+          _lpFired = false
+          _lp = setTimeout(() => {
+            _lpFired = true
+            const t = e.touches[0]
+            showCtxMenu({ preventDefault: function(){}, clientX: t.clientX, clientY: t.clientY }, tracks[i])
+          }, 500)
+        }, { passive: true })
+        row.addEventListener('touchend',  () => clearTimeout(_lp))
+        row.addEventListener('touchmove', () => clearTimeout(_lp))
+      })
+    }
+    function wirePlaylistTrackRows(container, tracks, plId) {
+      container.querySelectorAll('.music-track-row').forEach(row => {
+        const i = parseInt(row.dataset.qi)
+        row.addEventListener('click', e => {
+          if (e.target.classList.contains('track-remove-btn')) return
+          container.querySelectorAll('.music-track-row').forEach(r => r.classList.remove('active'))
+          row.classList.add('active')
+          setQueue(tracks, i)
+        })
+        row.addEventListener('dblclick', e => { e.preventDefault() })
         row.addEventListener('contextmenu', e => showCtxMenu(e, tracks[i]))
       })
+      container.querySelectorAll('.track-remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault()
+          e.stopPropagation()
+          const idx = parseInt(btn.dataset.removeI)
+          const pl = playlists.playlists.find(p => p.id === plId)
+          if (!pl || Number.isNaN(idx)) return
+          const removed = pl.tracks[idx]
+          pl.tracks.splice(idx, 1)
+          savePlaylists()
+          if (el('music-tree')) renderMusicTree(musicLibrary)
+          setStatus('Removed from ' + pl.name + ': ' + (removed?.title || 'Track'))
+          showPlaylist(plId)
+        })
+      })
+    }
+
+    function toggleSidebar() {
+      const panel = document.querySelector('.music-lib-panel')
+      const overlay = el('sidebar-overlay')
+      if (!panel) return
+      const open = panel.classList.toggle('sidebar-open')
+      if (overlay) overlay.classList.toggle('active', open)
+    }
+    function closeSidebar() {
+      const panel = document.querySelector('.music-lib-panel')
+      const overlay = el('sidebar-overlay')
+      if (panel) panel.classList.remove('sidebar-open')
+      if (overlay) overlay.classList.remove('active')
     }
 
     function markPlayingRow(queueIndex) {
@@ -1208,7 +1740,7 @@
       if (currentHls) { currentHls.destroy(); currentHls = null }
       musicVideoPlaying = track.isVideo || false
       const audio = el('music-audio')
-      const isHttp = track.path.startsWith('http')
+      const isHttp = track.path.startsWith('http') || track.path.startsWith('/')
       const src = isHttp ? track.path : 'file:///' + track.path.replace(/\\/g, '/')
 
       if (musicVideoPlaying) {
@@ -1233,6 +1765,7 @@
             audio.play().catch(() => {})
           } else {
             audio.src = src
+            audio.preload = 'auto'
             audio.addEventListener('canplay', function seekOnce() {
               audio.removeEventListener('canplay', seekOnce)
               audio.currentTime = track.cueStartMs / 1000
@@ -1240,6 +1773,7 @@
             }, { once: true })
           }
         } else {
+          audio.preload = 'auto'
           audio.src = src
           audio.play().catch(() => {})
         }
@@ -1248,7 +1782,8 @@
       updatePlayerBar(track)
       showPlayerBar()
       if (idx !== undefined) markPlayingRow(idx)
-      updateQueueBadge(); updateQueuePanel()
+      updateQueueBadge()
+      if (document.body.classList.contains('queue-open')) updateQueuePanel()
       const pLike = el('p-like')
       if (pLike) { pLike.textContent = isLiked(track) ? '♥' : '♡'; pLike.classList.toggle('liked', isLiked(track)) }
       const pos = el('p-queue-pos')
@@ -1276,6 +1811,67 @@
 
     function hideVideoPlayer() { const v = el('music-video-el'); if (v) { v.pause(); v.src = '' } }
     function showPlayerBar()   { el('player-bar').style.display = ''; document.body.classList.add('player-bar-active') }
+    function skipToPrevTrack(forceTrackSkip) {
+      if (!playQueue.length) return
+      const audio = el('music-audio')
+      const med = musicVideoPlaying ? el('music-video-el') : audio
+      const cur = playQueue[queueIdx]
+      if (!forceTrackSkip && med) {
+        if (cur?.cueStartMs != null) {
+          const chOffset = med.currentTime - cur.cueStartMs / 1000
+          if (chOffset > 3) { med.currentTime = cur.cueStartMs / 1000; return }
+        } else if (med.currentTime > 3) {
+          med.currentTime = 0
+          return
+        }
+      }
+      queueIdx = Math.max(0, queueIdx - 1)
+      playTrack(playQueue[queueIdx], queueIdx)
+    }
+    function skipToNextTrack() {
+      if (!playQueue.length) return
+      queueIdx = pShuffle ? Math.floor(Math.random() * playQueue.length) : Math.min(playQueue.length - 1, queueIdx + 1)
+      playTrack(playQueue[queueIdx], queueIdx)
+    }
+    function updateMediaSession(track) {
+      if (!('mediaSession' in navigator) || !track) return
+      try {
+        const title = track.title || track.path.split(/[\\/]/).pop()
+        const artist = track.artist || ''
+        const album = track.album || ''
+        const artwork = track.coverPath ? [
+          { src: track.coverPath, sizes: '96x96', type: 'image/png' },
+          { src: track.coverPath, sizes: '192x192', type: 'image/png' },
+          { src: track.coverPath, sizes: '512x512', type: 'image/png' }
+        ] : []
+        navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album, artwork })
+      } catch (e) {}
+      try {
+        navigator.mediaSession.setActionHandler('play', () => el('p-play')?.click())
+        navigator.mediaSession.setActionHandler('pause', () => el('p-play')?.click())
+        navigator.mediaSession.setActionHandler('previoustrack', () => skipToPrevTrack(true))
+        navigator.mediaSession.setActionHandler('nexttrack', () => skipToNextTrack())
+        navigator.mediaSession.setActionHandler('seekbackward', null)
+        navigator.mediaSession.setActionHandler('seekforward', null)
+        navigator.mediaSession.setActionHandler('seekto', details => {
+          if (details && typeof details.seekTime === 'number') seekToPct(details.seekTime / ((musicVideoPlaying ? el('music-video-el') : el('music-audio'))?.duration || 1))
+        })
+      } catch (e) {}
+    }
+    function updateMediaSessionState(playing) {
+      if (!('mediaSession' in navigator)) return
+      try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused' } catch (e) {}
+    }
+    function updateMediaSessionPosition(cur, dur) {
+      if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState || !isFinite(dur) || dur <= 0) return
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: dur,
+          playbackRate: 1,
+          position: Math.max(0, Math.min(cur, dur))
+        })
+      } catch (e) {}
+    }
 
     function updatePlayerBar(track) {
       el('p-title').textContent  = track.title  || track.path.split(/[\\/]/).pop()
@@ -1283,12 +1879,68 @@
       const art = el('player-art')
       if (track.coverPath) art.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.textContent=\'♪\'">'
       else art.innerHTML = track.isVideo ? '🎬' : '♪'
+      applyPlayerBackdrop(track.coverPath)
+      syncNowPlaying(track)
+      updateMediaSession(track)
     }
 
     function updateSeekBar(cur, dur) {
       el('p-cur').textContent = fmtTime(cur)
       el('p-dur').textContent = fmtTime(dur)
       el('seek-fill').style.width = (dur > 0 ? (cur / dur * 100) : 0) + '%'
+      updateNowPlayingSeek(cur, dur)
+      updateMediaSessionPosition(cur, dur)
+    }
+
+    // ── Now Playing full panel ─────────────────────────────────────────────
+    function openNowPlaying() {
+      if (!playQueue[queueIdx]) return
+      syncNowPlaying(playQueue[queueIdx])
+      document.body.classList.add('np-open')
+    }
+    function closeNowPlaying() { document.body.classList.remove('np-open') }
+    function applyPlayerBackdrop(coverPath) {
+      const bg = coverPath ? 'url("' + String(coverPath).replace(/"/g, '\\"') + '")' : 'none'
+      el('player-bar')?.style.setProperty('--player-cover-image', bg)
+      el('np-panel')?.style.setProperty('--player-cover-image', bg)
+    }
+    function syncNowPlaying(track) {
+      const inner = el('np-art-inner'); if (!inner) return
+      el('np-title').textContent = track.title || track.path.split(/[\\/]/).pop()
+      el('np-sub').textContent   = track.artist || track.album || 'Unknown'
+      applyPlayerBackdrop(track.coverPath)
+      if (track.coverPath) {
+        inner.className = ''
+        inner.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.className=\'np-art-ph\';this.parentElement.textContent=\'♪\'">'
+      } else {
+        inner.className = 'np-art-ph'
+        inner.textContent = '♪'
+      }
+      const liked = isLiked(track)
+      const lb = el('np-like-btn'); if (lb) { lb.textContent = liked ? '♥' : '♡'; lb.classList.toggle('liked', liked) }
+      const audio = el('music-audio')
+      const pb = el('np-play-btn'); if (pb) pb.textContent = (audio && !audio.paused) ? '⏸' : '▶'
+      const sb = el('np-shuf-btn'); if (sb) sb.classList.toggle('np-active', pShuffle)
+      const rb = el('np-rep-btn')
+      if (rb) { rb.textContent = repeatMode === 'one' ? '↺¹' : '↺'; rb.classList.toggle('np-active', repeatMode !== 'none') }
+    }
+    function updateNowPlayingSeek(cur, dur) {
+      const fill = el('np-seek-fill'); if (!fill) return
+      fill.style.width = (dur > 0 ? (cur / dur * 100) : 0) + '%'
+      el('np-cur').textContent = fmtTime(cur)
+      el('np-dur').textContent = fmtTime(dur)
+    }
+    function seekToPct(pct) {
+      const med = musicVideoPlaying ? el('music-video-el') : el('music-audio')
+      const cur = playQueue[queueIdx]
+      if (!med || !isFinite(med.duration)) return
+      if (cur && cur.cueStartMs != null) {
+        const s = cur.cueStartMs / 1000
+        const e2 = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
+        med.currentTime = s + pct * (e2 - s)
+      } else {
+        med.currentTime = pct * med.duration
+      }
     }
 
     function onTrackEnded() {
@@ -1337,14 +1989,18 @@
     function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
       if (!filePath) return null
       const encoded = filePath.split('/').map(encodeURIComponent).join('/')
-      return dlUrl + '/file/' + (bucketName || 'aharveyGoogleDriveBackup') + '/' + encoded + '?Authorization=' + dlToken
+      return dlUrl + '/file/' + (bucketName || 'SpAtomify') + '/' + encoded + '?Authorization=' + dlToken
     }
 
     function showB2Artists(lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
 
-      let html = '<div class="lib-breadcrumb"><span class="crumb active">Music</span></div>'
+      const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
+      let html = '<div class="lib-breadcrumb" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
+        '<span class="crumb active">Music</span>' +
+        '<button id="b2-shuffle-all-btn" style="background:#1a2e1a;border:1px solid #2a4e2a;color:#4ade80;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">&#x21C4; Shuffle All (' + totalTracks + ')</button>' +
+        '</div>'
       html += '<div class="lib-grid">'
       for (const artist of lib.artists) {
         const initial = (artist.name || '?').charAt(0).toUpperCase()
@@ -1362,6 +2018,12 @@
       }
       html += '</div>'
       inner.innerHTML = html
+
+      el('b2-shuffle-all-btn')?.addEventListener('click', () => {
+        const all = lib.artists.flatMap(a => a.albums.flatMap(al => al.tracks.map(t => b2TrackObj(t, a.name, al, dlUrl, dlToken, lib.bucketName))))
+        for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]] }
+        setQueue(all, 0)
+      })
 
       inner.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
@@ -1397,7 +2059,7 @@
 
     function showB2Artist(artist, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const initial = (artist.name || '?').charAt(0).toUpperCase()
       const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
       const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
@@ -1569,7 +2231,7 @@
 
     async function showB2AlbumGroup(artist, albums, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const primary = albums.reduce((best, a) => a.tracks.length >= best.tracks.length ? a : best, albums[0])
       const groupTitle = normalizeAlbumName(primary.name).replace(/\b\w/g, c => c.toUpperCase()) || primary.name
       const initial = groupTitle.charAt(0).toUpperCase()
@@ -1592,6 +2254,7 @@
           '<h2>' + esc(groupTitle) + '</h2>' +
           '<div class="lib-sub">' + esc(artist.name) + ' · ' + albums.length + ' versions · ' + totalTracks + ' tracks</div>' +
           '<button class="lib-play-btn" id="b2-group-play">▶ Play All</button>' +
+          '<button class="lib-play-btn" id="b2-group-shuffle" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
         '</div></div>'
 
       html += '<div id="b2-group-sections"></div>'
@@ -1678,6 +2341,7 @@
 
       // Wire up play buttons and track rows after all sections rendered
       inner.querySelector('#b2-group-play')?.addEventListener('click', () => setQueue(allQueued, 0))
+      inner.querySelector('#b2-group-shuffle')?.addEventListener('click', () => { const shuffled = shuffleTracks(allQueued); if (shuffled.length) setQueue(shuffled, 0) })
       inner.querySelectorAll('[data-ver-play]').forEach(btn => {
         const off = parseInt(btn.dataset.verPlay)
         btn.addEventListener('click', e => { e.stopPropagation(); setQueue(allQueued, off) })
@@ -1709,7 +2373,7 @@
 
     async function showB2Album(artist, album, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const initial = (album.name || '?').charAt(0).toUpperCase()
       const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
 
@@ -1730,6 +2394,7 @@
           '<h2>' + esc(album.name) + '</h2>' +
           '<div class="lib-sub" id="b2-album-sub">' + esc(artist.name) + '</div>' +
           '<button class="lib-play-btn" id="b2-album-play">▶ Play All</button>' +
+          '<button class="lib-play-btn" id="b2-album-shuffle" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
         '</div></div>' +
         '<div id="b2-album-wiki" class="lib-album-wiki"></div>'
 
@@ -1829,6 +2494,7 @@
 
       listEl.innerHTML = trackHtml
       inner.querySelector('#b2-album-play')?.addEventListener('click', () => setQueue(queuedTracks, 0))
+      inner.querySelector('#b2-album-shuffle')?.addEventListener('click', () => { const shuffled = shuffleTracks(queuedTracks); if (shuffled.length) setQueue(shuffled, 0) })
 
       inner.querySelectorAll('.lib-track-row').forEach(row => {
         const i = parseInt(row.dataset.b2Ti)
@@ -1864,30 +2530,15 @@
         }
       })
       audio.addEventListener('ended', () => { if (!cueAdvancing) onTrackEnded() })
-      audio.addEventListener('play',  () => { el('p-play').textContent = '⏸'; ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle }) })
-      audio.addEventListener('pause', () => { el('p-play').textContent = '▶'; ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle }) })
+      audio.addEventListener('play',  () => { el('p-play').textContent = '⏸'; const n = el('np-play-btn'); if (n) n.textContent = '⏸'; updateMediaSessionState(true); ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle }) })
+      audio.addEventListener('pause', () => { el('p-play').textContent = '▶'; const n = el('np-play-btn'); if (n) n.textContent = '▶'; updateMediaSessionState(false); ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle }) })
 
       el('p-play').addEventListener('click', () => {
         if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
         else audio.paused ? audio.play().catch(() => {}) : audio.pause()
       })
-      el('p-prev').addEventListener('click', () => {
-        if (!playQueue.length) return
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med) {
-          if (cur?.cueStartMs != null) {
-            const chOffset = med.currentTime - cur.cueStartMs / 1000
-            if (chOffset > 3) { med.currentTime = cur.cueStartMs / 1000; return }
-          } else if (med.currentTime > 3) { med.currentTime = 0; return }
-        }
-        queueIdx = Math.max(0, queueIdx - 1); playTrack(playQueue[queueIdx], queueIdx)
-      })
-      el('p-next').addEventListener('click', () => {
-        if (!playQueue.length) return
-        queueIdx = pShuffle ? Math.floor(Math.random() * playQueue.length) : Math.min(playQueue.length - 1, queueIdx + 1)
-        playTrack(playQueue[queueIdx], queueIdx)
-      })
+      el('p-prev').addEventListener('click', () => skipToPrevTrack(false))
+      el('p-next').addEventListener('click', () => skipToNextTrack())
       el('p-shuffle').addEventListener('click', () => { pShuffle = !pShuffle; el('p-shuffle').classList.toggle('p-active', pShuffle) })
       el('p-repeat').addEventListener('click', () => {
         repeatMode = repeatMode === 'none' ? 'all' : repeatMode === 'all' ? 'one' : 'none'
@@ -1906,23 +2557,79 @@
       })
       el('seek-bar').addEventListener('click', e => {
         const r = el('seek-bar').getBoundingClientRect()
-        const pct = (e.clientX - r.left) / r.width
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med && isFinite(med.duration)) {
-          if (cur?.cueStartMs != null) {
-            const startSec = cur.cueStartMs / 1000
-            const endSec   = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
-            med.currentTime = startSec + pct * (endSec - startSec)
-          } else {
-            med.currentTime = pct * med.duration
-          }
-        }
+        seekToPct((e.clientX - r.left) / r.width)
       })
       el('p-fullscreen').addEventListener('click', () => { const v = el('music-video-el'); if (v) v.requestFullscreen?.() })
       el('p-like')?.addEventListener('click', () => { if (playQueue[queueIdx]) toggleLike(playQueue[queueIdx]) })
       el('p-queue-btn')?.addEventListener('click', () => { document.body.classList.toggle('queue-open'); updateQueuePanel() })
       el('queue-close')?.addEventListener('click', () => { document.body.classList.remove('queue-open') })
+      el('pl-picker-cancel')?.addEventListener('click', e => { e.stopPropagation(); hidePlaylistPicker() })
+      el('pl-picker-new')?.addEventListener('click', openNewPlaylistFromPicker)
+      el('pl-picker-new')?.addEventListener('touchend', openNewPlaylistFromPicker)
+      el('pl-picker-modal')?.addEventListener('click', e => { if (e.target?.id === 'pl-picker-modal') hidePlaylistPicker() })
+      document.querySelector('.music-lib-panel')?.addEventListener('click', e => e.stopPropagation())
+      document.querySelector('.music-lib-panel')?.addEventListener('touchstart', e => e.stopPropagation(), { passive: true })
+      el('sidebar-toggle-btn')?.addEventListener('click', e => e.stopPropagation())
+
+      // ── Now Playing panel wiring ──────────────────────────────────────────
+      el('player-art').style.cursor = 'pointer'
+      el('player-art').addEventListener('click', openNowPlaying)
+      const _playerMeta = document.querySelector('.player-meta')
+      if (_playerMeta) { _playerMeta.style.cursor = 'pointer'; _playerMeta.addEventListener('click', openNowPlaying) }
+
+      el('np-handle').addEventListener('click', closeNowPlaying)
+      el('np-like-btn').addEventListener('click', () => {
+        const t = playQueue[queueIdx]; if (!t) return
+        toggleLike(t); syncNowPlaying(t)
+      })
+      el('np-play-btn').addEventListener('click', () => el('p-play').click())
+      el('np-prev-btn').addEventListener('click', () => el('p-prev').click())
+      el('np-next-btn').addEventListener('click', () => el('p-next').click())
+      el('np-shuf-btn').addEventListener('click', () => {
+        el('p-shuffle').click()
+        el('np-shuf-btn').classList.toggle('np-active', pShuffle)
+      })
+      el('np-rep-btn').addEventListener('click', () => {
+        el('p-repeat').click()
+        el('np-rep-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
+        el('np-rep-btn').classList.toggle('np-active', repeatMode !== 'none')
+      })
+      el('np-addpl-btn').addEventListener('click', () => {
+        const t = playQueue[queueIdx]; if (!t) return
+        showPlaylistPicker(t)
+      })
+      // NP seek bar — click and touch scrubbing
+      el('np-seek-bar').addEventListener('click', e => {
+        const r = el('np-seek-bar').getBoundingClientRect()
+        seekToPct(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
+      })
+      el('np-seek-bar').addEventListener('touchstart', e => {
+        const r = el('np-seek-bar').getBoundingClientRect()
+        seekToPct(Math.max(0, Math.min(1, (e.touches[0].clientX - r.left) / r.width)))
+      }, { passive: true })
+      el('np-seek-bar').addEventListener('touchmove', e => {
+        const r = el('np-seek-bar').getBoundingClientRect()
+        seekToPct(Math.max(0, Math.min(1, (e.touches[0].clientX - r.left) / r.width)))
+      }, { passive: true })
+      // Swipe-down to close
+      let _npY0 = 0, _npSwiping = false
+      const _npPanel = el('np-panel')
+      _npPanel.addEventListener('touchstart', e => {
+        if (e.target.closest('button') || e.target.id === 'np-seek-bar' || e.target.closest('#np-seek-bar')) return
+        _npY0 = e.touches[0].clientY; _npSwiping = true
+        _npPanel.style.transition = 'none'
+      }, { passive: true })
+      _npPanel.addEventListener('touchmove', e => {
+        if (!_npSwiping) return
+        const dy = e.touches[0].clientY - _npY0
+        if (dy > 0) _npPanel.style.transform = 'translateY(' + dy + 'px)'
+      }, { passive: true })
+      _npPanel.addEventListener('touchend', e => {
+        if (!_npSwiping) return
+        _npSwiping = false; _npPanel.style.transition = ''
+        if ((e.changedTouches[0].clientY - _npY0) > 80) { _npPanel.style.transform = ''; closeNowPlaying() }
+        else _npPanel.style.transform = ''
+      })
     }
 
     // =====================================================
@@ -1945,7 +2652,7 @@
         '<p style="color:#333;font-size:11px;margin:0">Used for resolving YouTube links and radio streams. Ensure <code style="color:#4ade80">yt-dlp</code> is in your PATH or provide the full path.</p>' +
         '</div>' +
         '<div style="margin-top:16px;background:#0a150a;border:1px solid #1a2e1a;border-radius:6px;padding:12px 16px;font-size:12px;color:#555">' +
-        '☁ <span style="color:#4ade80">aharveyGoogleDriveBackup</span> — Backblaze B2 (hard-coded)' +
+        '☁ <span style="color:#4ade80">SpAtomify</span> — Backblaze B2 (hard-coded)' +
         '</div>' +
         '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">' +
         '<button class="back-btn" id="save-settings-btn" style="background:#4ade80;color:#000;border-color:#4ade80">Save Settings</button>' +
@@ -2169,6 +2876,8 @@
     initPlayerBar()
     initCtxMenu()
     init()
+    el('sidebar-toggle-btn')?.addEventListener('click', toggleSidebar)
+    el('sidebar-overlay')?.addEventListener('click', closeSidebar)
 
     // =====================================================
     // GAMEPAD NAVIGATION
@@ -2302,7 +3011,7 @@
           b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
         } catch (e) { return }
       }
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       for (const artist of b2Lib.artists) {
         for (const album of artist.albums) {
           const track = album.tracks.find(t => t.path === trackPath)

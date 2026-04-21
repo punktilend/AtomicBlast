@@ -5,14 +5,33 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Load /opt/pulse-proxy/.env when present so PM2 restarts keep B2 credentials.
+const ENV_FILE = path.join(__dirname, '.env');
+try {
+  if (fs.existsSync(ENV_FILE)) {
+    const envText = fs.readFileSync(ENV_FILE, 'utf8');
+    envText.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim();
+      if (key && process.env[key] == null) process.env[key] = value;
+    });
+  }
+} catch (e) {
+  console.error('[startup] Failed to load .env:', e.message);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // B2 config
-const B2_BUCKET_URL = process.env.B2_BUCKET_URL || 'https://s3.us-east-005.backblazeb2.com/aharveyGoogleDriveBackup';
-const B2_KEY_ID     = process.env.B2_KEY_ID  || '0055a9c537f296d0000000014';
-const B2_APP_KEY    = process.env.B2_APP_KEY || 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc';
-const B2_BUCKET     = process.env.B2_BUCKET  || 'aharveyGoogleDriveBackup';
+const B2_BUCKET_URL = process.env.B2_BUCKET_URL || 'https://s3.us-east-005.backblazeb2.com/SpAtomify';
+const B2_KEY_ID     = process.env.B2_KEY_ID  || '';
+const B2_APP_KEY    = process.env.B2_APP_KEY || '';
+const B2_BUCKET     = process.env.B2_BUCKET  || 'SpAtomify';
 const B2_PREFIX     = process.env.B2_PREFIX  || 'Music/';
 
 // Quality presets
@@ -24,7 +43,7 @@ const QUALITY_PRESETS = {
 };
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -135,6 +154,7 @@ function isAudioFile(name) { return AUDIO_EXTS.has(path.extname(name).toLowerCas
 function stripFolderTags(name) {
   let s = name;
   s = s.replace(/^[\(\[]\d{4}[\)\]]\s*[-–]?\s*/, '');
+  s = s.replace(/^\d{4}\.\s+/, '');
   let prev;
   do { prev = s; s = s.replace(/\s*[\(\[][^\)\]]{1,80}[\)\]]\s*$/, '').trim(); } while (s !== prev);
   s = s.replace(/\s*[-–]\s*(FLAC|MP3|AAC|OGG|WMA|WAV|ALAC|320|V0|V2)\s*$/i, '').trim();
@@ -142,9 +162,17 @@ function stripFolderTags(name) {
 }
 
 function isBareYear(s) { return /^\d{4}$/.test(s.trim()); }
+function isYearDotPrefix(s) { return /^\d{4}\.\s+\S/.test(s.trim()); }
 
 function parseArtistAlbumFolder(folderName) {
   let s = stripFolderTags(folderName);
+
+  // "Artist -YEAR- Album" e.g. "AFI -1999- Black Sails In The Sunset"
+  const compactYear = s.match(/^(.+?)\s+-(\d{4})-\s+(.+)$/);
+  if (compactYear) {
+    return { artist: compactYear[1].trim(), album: stripFolderTags(compactYear[3].trim()) };
+  }
+
   const dashIdx = s.search(/\s+[-_]\s+/);
   if (dashIdx === -1) {
     if (s.includes(' ')) {
@@ -188,17 +216,13 @@ function parseMusicPath(parts) {
     const { artist, album } = parseArtistAlbumFolder(folder1);
     return { artistName: artist, albumName: album, filename: parts[2] };
   }
-  if (parts.length === 4 && isBareYear(folder1)) {
+  if (parts.length === 4 && (isBareYear(folder1) || isYearDotPrefix(folder1))) {
     const { artist, album } = parseArtistAlbumFolder(parts[2]);
     return { artistName: artist, albumName: album, filename: parts[3] };
   }
   if (parts.length === 4) {
     const { artist: a1 } = parseArtistAlbumFolder(folder1);
     const { album: al2 } = parseArtistAlbumFolder(parts[2]);
-    if (isBareYear(folder1)) {
-      const { artist: a2, album: alb2 } = parseArtistAlbumFolder(parts[2]);
-      return { artistName: a2, albumName: alb2, filename: parts[3] };
-    }
     return { artistName: a1, albumName: al2, filename: parts[3] };
   }
   const { artist: artistName } = parseArtistAlbumFolder(folder1);
@@ -372,23 +396,59 @@ app.get('/api/b2-file-text', async (req, res) => {
   }
 });
 
+function b2FileUrl(filePath) {
+  if (!b2Cache) return null;
+  const encoded = filePath.split('/').map(encodeURIComponent).join('/');
+  return `${b2Cache.dlUrl}/file/${B2_BUCKET}/${encoded}?Authorization=${b2Cache.dlToken}`;
+}
+
+// ── Image proxy (cover art from B2 — avoids CORS in Safari) ─────────────────
+app.get('/img', async (req, res) => {
+  const { file } = req.query;
+  if (!file) return res.status(400).end();
+  if (!b2Cache) { try { await scanB2Music(); } catch (e) { return res.status(503).end(); } }
+  const fileUrl = b2FileUrl(file);
+  https.get(fileUrl, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
+    if (b2res.statusCode !== 200) return res.status(b2res.statusCode).end();
+    res.setHeader('Content-Type', b2res.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    b2res.pipe(res);
+  }).on('error', () => res.status(500).end());
+});
+
 // ── Stream endpoint ───────────────────────────────────────────────────────────
 app.get('/stream', async (req, res) => {
   const { file, quality = 'high' } = req.query;
   if (!file) return res.status(400).json({ error: 'Missing file param' });
+  if (!b2Cache) { try { await scanB2Music(); } catch (e) { return res.status(503).json({ error: 'B2 not ready' }); } }
 
   const preset = QUALITY_PRESETS[quality];
-  const fileUrl = `${B2_BUCKET_URL}/${encodeURIComponent(file)}`;
-  const authString = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString('base64');
-  const headers = { Authorization: `Basic ${authString}` };
+  const fileUrl = b2FileUrl(file);
 
+  // Safari requires Range request support to play audio.
+  // Forward the Range header to B2 and relay the 206 response + headers back.
   if (quality === 'flac' || preset === null) {
-    res.setHeader('Content-Type', 'audio/flac');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    fetchStream(fileUrl, headers, (err, stream) => {
-      if (err) return res.status(500).json({ error: 'Failed to fetch from B2' });
-      stream.pipe(res);
+    const b2Headers = { 'User-Agent': 'AtomicBlast/1.0' };
+    if (req.headers['range']) b2Headers['Range'] = req.headers['range'];
+    const proto = fileUrl.startsWith('https') ? https : http;
+    const b2req = proto.get(fileUrl, { headers: b2Headers }, (b2res) => {
+      if (b2res.statusCode !== 200 && b2res.statusCode !== 206) {
+        console.error('[stream] B2 returned', b2res.statusCode, file);
+        return res.status(b2res.statusCode || 500).end();
+      }
+      const ext = file.split('.').pop().toLowerCase();
+      const mime = ext === 'flac' ? 'audio/flac' : ext === 'mp3' ? 'audio/mpeg' :
+                   ext === 'm4a' ? 'audio/mp4'  : ext === 'ogg'  ? 'audio/ogg'  : 'audio/flac';
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Accept-Ranges', 'bytes');
+      if (b2res.headers['content-length'])  res.setHeader('Content-Length',  b2res.headers['content-length']);
+      if (b2res.headers['content-range'])   res.setHeader('Content-Range',   b2res.headers['content-range']);
+      if (b2res.headers['last-modified'])   res.setHeader('Last-Modified',   b2res.headers['last-modified']);
+      res.status(b2res.statusCode);
+      b2res.pipe(res);
     });
+    b2req.on('error', e => { console.error('[stream] B2 error:', e.message); if (!res.headersSent) res.status(500).end(); });
+    req.on('close', () => b2req.destroy());
     return;
   }
 
@@ -398,7 +458,7 @@ app.get('/stream', async (req, res) => {
   res.setHeader('Content-Type', mimeType);
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  fetchStream(fileUrl, headers, (err, stream) => {
+  fetchStream(fileUrl, {}, (err, stream) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch from B2' });
     const ffmpeg = spawn('ffmpeg', ['-i','pipe:0','-vn','-acodec',codec,'-b:a',preset,'-f',isLow?'adts':'mp3','pipe:1']);
     stream.pipe(ffmpeg.stdin);
@@ -411,8 +471,8 @@ app.get('/stream', async (req, res) => {
 
 function fetchStream(url, headers, cb) {
   const proto = url.startsWith('https') ? https : http;
-  proto.get(url, { headers }, (response) => {
-    if (response.statusCode !== 200) return cb(new Error(`B2 returned ${response.statusCode}`));
+  proto.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0', ...headers } }, (response) => {
+    if (response.statusCode !== 200 && response.statusCode !== 206) return cb(new Error(`B2 returned ${response.statusCode}`));
     cb(null, response);
   }).on('error', cb);
 }

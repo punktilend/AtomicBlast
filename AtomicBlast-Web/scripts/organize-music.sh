@@ -151,6 +151,9 @@ process_torrent() {
         --include "*.flac" --include "*.mp3" --include "*.aac" \
         --include "*.ogg"  --include "*.wav" --include "*.m4a" \
         --include "*.opus" --include "*.wma" \
+        --include "*.cue"  --include "*.log" --include "*.m3u" \
+        --include "*.m3u8" --include "*.nfo" --include "*.jpg" \
+        --include "*.jpeg" --include "*.png" --include "*.webp" \
         --log-file="$LOG" 2>/dev/null
     log "  Copied to: $dst"
     fetch_artist_art "$ARTIST" "$MUSIC/$ARTIST"

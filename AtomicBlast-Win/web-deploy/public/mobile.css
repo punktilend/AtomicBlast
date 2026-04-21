@@ -1,16 +1,83 @@
 /* AtomicBlast — iPhone / mobile overrides */
+/* NOTE: This file is injected LAST in <head>, after the inline <style> block,
+   so same-specificity rules here win over the inline CSS. */
 
-/* ── Safe areas (iPhone notch / home indicator) ───────────────────────── */
+/* ── Sidebar toggle button — hidden on desktop ───────────────────────── */
+#sidebar-toggle-btn { display: none; }
+#sidebar-overlay    { display: none; }
+
+/* ── Hide desktop-only status bar on mobile ──────────────────────────── */
+.status-bar { display: none !important; }
+
+/* ── Mini player stays floating on iPhone ────────────────────────────── */
+#player-bar {
+  bottom: 10px !important;
+  left: 10px !important;
+  right: 10px !important;
+  height: auto !important;
+  min-height: 74px !important;
+  padding: 10px 12px !important;
+  padding-bottom: max(env(safe-area-inset-bottom), 6px) !important;
+  gap: 6px !important;
+  border-radius: 22px !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.42) !important;
+}
+
+/* ── Safe areas for notch / Dynamic Island ──────────────────────────── */
 .topnav {
-  padding-top: max(env(safe-area-inset-top), 0px);
-  min-height: calc(60px + env(safe-area-inset-top));
-}
-.status-bar {
-  padding-bottom: max(env(safe-area-inset-bottom), 4px);
-  min-height: calc(28px + env(safe-area-inset-bottom));
+  padding-top: max(env(safe-area-inset-top), 0px) !important;
+  height: auto !important;
+  min-height: calc(60px + env(safe-area-inset-top)) !important;
+  align-items: flex-end !important;
+  padding-bottom: 8px !important;
 }
 
-/* ── Prevent tap highlight / text selection on controls ───────────────── */
+/* ── Contain momentum scroll — stops the loose rubber-band overscroll ── */
+.music-content, .main-body, #queue-list, .music-tree {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safari/iOS can mis-measure cards and rows when content-visibility is used.
+   Turning it off there keeps the library tiles and tracks consistently sized. */
+html.is-ios-webkit .lib-card,
+html.is-ios-webkit .lib-track-row {
+  content-visibility: visible !important;
+  contain-intrinsic-size: auto !important;
+}
+
+.lib-card,
+.lib-card-info,
+.lib-card-name,
+.lib-card-sub,
+.stacked-art,
+.stacked-art .stacked-front,
+.stacked-art .stacked-back {
+  min-width: 0;
+}
+
+html, body,
+.music-content, .main-body, #queue-list, .music-tree {
+  scroll-snap-type: none !important;
+  scroll-padding: 0 !important;
+}
+
+.lib-card,
+.music-track-row,
+.lib-track-row,
+.queue-item,
+.cloud-item,
+.fav-row,
+.music-tree-item,
+.lib-header,
+.music-album-header,
+.lib-section-header,
+.lib-breadcrumb {
+  scroll-snap-align: none !important;
+  scroll-snap-stop: normal !important;
+}
+
+/* ── Prevent tap highlight / text selection on controls ─────────────── */
 button, .nav-item, .music-track-row, .music-tree-item,
 .lib-track-row, .album-tile, .artist-tile, .cloud-item,
 .queue-item, .ctx-item {
@@ -19,63 +86,475 @@ button, .nav-item, .music-track-row, .music-tree-item,
   -webkit-user-select: none;
 }
 
+/* ── Streaming-style B2 home / library polish ───────────────────────── */
+.b2-home {
+  min-height: 100%;
+  padding: 18px 22px 116px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(81, 214, 132, 0.24), transparent 34%),
+    radial-gradient(circle at 92% 10%, rgba(16, 185, 129, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(19, 34, 22, 0.92), #070a08 42%, #050706 100%);
+}
+
+.b2-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 255, 185, 0.13);
+  border-radius: 32px;
+  padding: 26px;
+  min-height: 248px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  gap: 24px;
+  align-items: end;
+  background:
+    linear-gradient(135deg, rgba(83, 235, 134, 0.18), rgba(8, 14, 10, 0.94) 50%),
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.13), transparent 30%);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.b2-hero::before {
+  content: '';
+  position: absolute;
+  inset: auto -8% -34% 42%;
+  height: 82%;
+  background: radial-gradient(circle, rgba(74,222,128,0.28), transparent 66%);
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.b2-eyebrow,
+.b2-section-kicker {
+  color: #7ef2a6;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.b2-hero h1 {
+  margin: 10px 0 8px;
+  color: #fff;
+  font-size: clamp(36px, 7vw, 76px);
+  line-height: .88;
+  letter-spacing: -.07em;
+  max-width: 740px;
+}
+
+.b2-hero-sub {
+  color: #aab7ac;
+  max-width: 620px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.b2-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.b2-primary-btn,
+.b2-ghost-btn,
+.b2-pill-btn {
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  font-weight: 850;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.b2-primary-btn {
+  color: #06100a;
+  background: linear-gradient(180deg, #77f4a4, #32d66e);
+  padding: 12px 22px;
+  box-shadow: 0 14px 32px rgba(74,222,128,0.24);
+}
+
+.b2-ghost-btn {
+  color: #e7f0e9;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.09);
+  padding: 12px 18px;
+  backdrop-filter: blur(14px);
+}
+
+.b2-hero-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  transform: rotate(-2deg);
+}
+
+.b2-cover-tile {
+  aspect-ratio: 1;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #152117, #0b110c);
+  box-shadow: 0 18px 38px rgba(0,0,0,0.36);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.b2-cover-tile:nth-child(2) { transform: translateY(28px) rotate(4deg); }
+.b2-cover-tile:nth-child(3) { transform: translateY(-8px) rotate(6deg); }
+.b2-cover-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.b2-cover-ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#2b5f35; font-size:42px; font-weight:900; }
+
+.b2-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.b2-stat-card {
+  border-radius: 22px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.b2-stat-num { color:#fff; font-size:24px; font-weight:900; letter-spacing:-.04em; }
+.b2-stat-label { color:#738075; font-size:11px; margin-top:2px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+
+.b2-section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 2px 12px;
+}
+
+.b2-section-title h2 {
+  color: #fff;
+  font-size: 22px;
+  letter-spacing: -.035em;
+}
+
+.b2-pill-btn {
+  color: #8cf4ad;
+  background: rgba(74,222,128,0.09);
+  border: 1px solid rgba(74,222,128,0.18);
+  padding: 8px 13px;
+  font-size: 12px;
+}
+
+.b2-shelf {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(152px, 188px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 0 2px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.b2-shelf::-webkit-scrollbar { display: none; }
+
+.b2-home .lib-grid {
+  padding: 0 !important;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.b2-home .lib-card,
+.b2-home-card {
+  background: rgba(255,255,255,0.055) !important;
+  border: 1px solid rgba(255,255,255,0.065);
+  border-radius: 22px !important;
+  padding: 10px;
+  box-shadow: 0 18px 42px rgba(0,0,0,0.2);
+}
+
+.b2-home .lib-card-art,
+.b2-home-card .lib-card-art {
+  border-radius: 16px !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
+}
+
+.b2-home .lib-card-info {
+  padding: 10px 3px 2px !important;
+}
+
 @media (max-width: 900px) {
 
-  /* ── Nav bar: horizontally scrollable tabs ──────────────────────────── */
+  /* ── Nav bar ─────────────────────────────────────────────────────────── */
   .topnav {
-    padding-left: 12px;
-    padding-right: 12px;
-    gap: 4px;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    gap: 0 !important;
   }
-  .topnav-logo { margin-right: 10px; }
+  .topnav-logo { display: none !important; }
   .topnav-tabs {
+    flex: 1;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
     scrollbar-width: none;
-    gap: 2px;
+    gap: 0;
   }
   .topnav-tabs::-webkit-scrollbar { display: none; }
   .nav-item {
-    padding: 8px 10px;
+    padding: 8px 12px;
     font-size: 11px;
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .topnav-right { gap: 4px; }
+  .topnav-right {
+    flex-shrink: 0;
+    gap: 4px;
+    margin-left: 6px !important;
+  }
+  .search-bar input {
+    width: 110px !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
 
-  /* ── Hide left sidebar — show content full width ────────────────────── */
-  .music-lib-panel { display: none !important; }
+  /* ── Sidebar toggle button ───────────────────────────────────────────── */
+  #sidebar-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    padding: 6px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #sidebar-toggle-btn:active { color: #4ade80; }
+
+  /* ── Sidebar overlay backdrop ────────────────────────────────────────── */
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 304;
+    pointer-events: none;
+  }
+  #sidebar-overlay.active {
+    display: block;
+    pointer-events: auto;
+    left: min(80vw, 300px);
+  }
+
+  /* ── Sidebar: hidden by default, slides in as overlay when open ──────── */
+  .music-lib-panel {
+    display: none !important;
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: 80vw !important;
+    max-width: 300px !important;
+    z-index: 305;
+    box-shadow: 4px 0 32px rgba(0,0,0,0.85);
+    overflow-y: auto;
+    padding-top: max(env(safe-area-inset-top), 0px) !important;
+    pointer-events: auto !important;
+  }
+  .music-lib-panel.sidebar-open {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  body.sidebar-open .music-content,
+  body.sidebar-open #main-content,
+  body.sidebar-open .main-body,
+  body.sidebar-open #player-bar {
+    pointer-events: none !important;
+  }
+  body.sidebar-open .music-lib-panel,
+  body.sidebar-open .music-lib-panel * {
+    pointer-events: auto !important;
+  }
   .music-layout { flex-direction: column; }
   .music-content { width: 100% !important; min-width: 0; }
 
-  /* ── Main body padding ───────────────────────────────────────────────── */
-  .main-body { padding: 12px 16px 140px; }
+  /* ── Compact player bar ─────────────────────────────────────────────── */
+  /* Keep art small in the mini bar */
+  #player-bar .player-art {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+    border-radius: 14px !important;
+  }
+  /* Meta stretches to fill space */
+  #player-bar .player-meta {
+    flex: 1 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+  /* Hide non-essential controls */
+  #player-bar .player-seek,
+  #player-bar .player-vol,
+  #player-bar #p-shuffle,
+  #player-bar #p-repeat,
+  #player-bar #p-like,
+  #player-bar #p-fullscreen {
+    display: none !important;
+  }
+  /* Bigger touch targets for prev/play/next */
+  #player-bar .p-btn {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+  }
+  #player-bar .p-btn.p-play {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 24px !important;
+  }
+  #player-bar .player-btns {
+    gap: 6px !important;
+    padding: 4px !important;
+  }
+  #player-bar #p-queue-btn {
+    min-width: 40px !important;
+    padding: 0 10px !important;
+  }
+  #player-bar .queue-btn-label {
+    display: none !important;
+  }
+
+  /* ── Main body padding — just enough to clear the 60px player bar ───── */
+  .main-body { padding: 12px 16px 92px; }
   .view-header { padding: 12px 16px 0; }
 
-  /* ── Artist / album grid — 2 columns on phone ───────────────────────── */
-  .artist-grid, .album-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+  .b2-home {
+    padding: 12px 12px 112px;
+  }
+
+  .b2-hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 20px;
+    border-radius: 28px;
+    gap: 18px;
+  }
+
+  .b2-hero h1 {
+    font-size: clamp(42px, 14vw, 62px);
+  }
+
+  .b2-hero-stack {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    transform: none;
+  }
+
+  .b2-cover-tile {
+    border-radius: 15px;
+  }
+
+  .b2-cover-tile:nth-child(2),
+  .b2-cover-tile:nth-child(3) {
+    transform: none;
+  }
+
+  .b2-stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .b2-stat-card {
+    border-radius: 18px;
+    padding: 12px 10px;
+  }
+
+  .b2-stat-num {
+    font-size: 20px;
+  }
+
+  .b2-stat-label {
+    font-size: 9px;
+  }
+
+  .b2-shelf {
+    grid-auto-columns: minmax(132px, 42vw);
+    gap: 10px;
+  }
+
+  .b2-home .lib-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    padding: 0 !important;
+  }
+
+  .b2-home .lib-card,
+  .b2-home-card {
+    border-radius: 22px !important;
+    padding: 10px !important;
+    background: rgba(255,255,255,0.055) !important;
+    border: 1px solid rgba(255,255,255,0.065) !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,0.2) !important;
+  }
+
+  .b2-home .lib-card-art,
+  .b2-home-card .lib-card-art {
+    border-radius: 16px !important;
+  }
+
+  /* ── Artist / album grid — 3 columns, tighter cards ─────────────────── */
+  .artist-grid, .album-grid,
+  .lib-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 0 12px 16px !important;
+  }
+  /* Smaller, grounded cards */
+  .lib-card {
+    border-radius: 4px !important;
+    transform: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+  .lib-card-art {
+    border-radius: 4px 4px 0 0 !important;
+  }
+  .lib-card-art .lib-card-initial {
+    font-size: 28px !important;
+  }
+  .lib-card-info {
+    padding: 5px 7px 6px !important;
+  }
+  .lib-card-name {
+    font-size: 11px !important;
+  }
+  .lib-card-sub {
+    font-size: 10px !important;
+    margin-top: 1px !important;
+  }
+  .stacked-art .stacked-back {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    opacity: 0.28 !important;
+  }
+  .stacked-art .stacked-front {
+    border-radius: 4px 4px 0 0 !important;
+  }
+  .stacked-badge {
+    top: 4px !important;
+    right: 4px !important;
   }
 
   /* ── Touch-friendly track rows ───────────────────────────────────────── */
-  .music-track-row,
-  .lib-track-row {
+  .music-track-row, .lib-track-row {
     padding: 11px 10px;
     min-height: 52px;
   }
-  .music-track-header { display: none; } /* hide column headers on small screen */
+  .music-track-header { display: none; }
 
   /* ── Larger cloud items ──────────────────────────────────────────────── */
   .cloud-item { padding: 12px 14px; font-size: 14px; min-height: 48px; }
 
   /* ── Album header ────────────────────────────────────────────────────── */
-  .music-album-header {
-    padding: 16px 16px 12px;
-    gap: 12px;
-  }
-  .music-album-art { width: 80px; height: 80px; }
+  .music-album-header { padding: 16px 16px 12px; gap: 12px; }
+  .music-album-art { width: 80px !important; height: 80px !important; }
   .music-album-meta h2 { font-size: 16px; }
 
   /* ── Queue panel full-width ──────────────────────────────────────────── */
@@ -88,38 +567,180 @@ button, .nav-item, .music-track-row, .music-tree-item,
     border-radius: 0 !important;
   }
 
-  /* ── Now-playing bar — taller touch target ───────────────────────────── */
-  .now-playing-bar, #now-playing-bar {
-    padding: 10px 16px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-  }
-
-  /* ── Player page ─────────────────────────────────────────────────────── */
-  .player-art { width: 240px !important; height: 240px !important; }
-
-  /* ── Stacked album tile ──────────────────────────────────────────────── */
-  .stacked-art { width: 100% !important; padding-top: 100% !important; }
-
   /* ── Context menu ────────────────────────────────────────────────────── */
-  #ctx-menu {
-    font-size: 15px;
-  }
-  .ctx-item {
-    padding: 13px 18px;
-    min-height: 48px;
+  #ctx-menu { font-size: 15px; }
+  .ctx-item { padding: 13px 18px; min-height: 48px; }
+}
+
+@media (max-width: 640px) {
+  .lib-grid, .artist-grid, .album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
   }
 }
 
 @media (max-width: 480px) {
-
-  /* Slightly more compact on smaller iPhones */
   .nav-item { padding: 7px 9px; font-size: 10.5px; }
-
-  /* Artist grid — still 2 cols but tighter */
-  .artist-grid, .album-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .lib-grid, .artist-grid, .album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
+    padding: 0 10px 16px !important;
+  }
+  .main-body { padding: 10px 10px 92px; }
+}
+
+/* iOS Safari/PWA fallback: force the phone drawer layout even when Safari
+   reports an odd viewport width after app launch/rotation. */
+@supports (-webkit-touch-callout: none) {
+  .music-layout {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100vw !important;
   }
 
-  .main-body { padding: 10px 12px 140px; }
+  .music-content,
+  #music-content-inner {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .music-lib-panel {
+    display: none !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 80vw !important;
+    max-width: 300px !important;
+    min-width: 0 !important;
+    z-index: 305 !important;
+    overflow-y: auto !important;
+    padding-top: max(env(safe-area-inset-top), 0px) !important;
+    pointer-events: auto !important;
+  }
+
+  .music-lib-panel.sidebar-open {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #sidebar-toggle-btn {
+    display: flex !important;
+  }
+
+  #sidebar-overlay.active {
+    display: block !important;
+    pointer-events: auto !important;
+    left: min(80vw, 300px) !important;
+  }
+
+  body.sidebar-open .music-content,
+  body.sidebar-open #main-content,
+  body.sidebar-open .main-body,
+  body.sidebar-open #player-bar {
+    pointer-events: none !important;
+  }
+
+  body.sidebar-open .music-lib-panel,
+  body.sidebar-open .music-lib-panel * {
+    pointer-events: auto !important;
+  }
+
+  .b2-home {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    padding: 12px 12px 112px !important;
+    overflow-x: hidden !important;
+  }
+
+  .b2-hero {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 20px !important;
+    border-radius: 28px !important;
+  }
+
+  .b2-hero h1 {
+    font-size: clamp(38px, 13vw, 58px) !important;
+    line-height: .94 !important;
+    letter-spacing: -.055em !important;
+  }
+
+  .b2-hero-sub {
+    max-width: 100% !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  .b2-hero-stack {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    transform: none !important;
+  }
+
+  .b2-cover-tile:nth-child(2),
+  .b2-cover-tile:nth-child(3) {
+    transform: none !important;
+  }
+
+  .b2-stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .b2-shelf {
+    grid-auto-columns: minmax(132px, 42vw) !important;
+  }
+
+  .b2-home .lib-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding: 0 !important;
+  }
+}
+
+/* ── Now Playing panel — touch-optimised ────────────────────────────── */
+@media (max-width: 900px) {
+  #np-panel {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  #np-art-wrap {
+    width: min(100%, calc(100vw - 40px)) !important;
+    margin-bottom: 16px !important;
+  }
+  #np-title {
+    font-size: 32px !important;
+  }
+  #np-sub {
+    font-size: 15px !important;
+    margin-top: 8px !important;
+  }
+  #np-info,
+  #np-seek-wrap,
+  #np-controls,
+  #np-bottom-row,
+  .np-btn-label {
+    max-width: calc(100vw - 40px) !important;
+  }
+  .np-btn {
+    width: 50px !important;
+    height: 50px !important;
+    padding: 0 !important;
+    font-size: 20px !important;
+  }
+  #np-play-btn {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 42px !important;
+  }
+  #np-seek-bar {
+    height: 6px !important;
+    border-radius: 3px !important;
+  }
+  #np-seek-fill {
+    border-radius: 3px !important;
+  }
 }

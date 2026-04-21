@@ -10,12 +10,10 @@
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/assets/icon-192.png">
-  <link rel="stylesheet" href="/mobile.css">
   <script src="/ipc-shim.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --app-vh: 100vh; }
-    body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: var(--app-vh); min-height: var(--app-vh); display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+    body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
 
     /* ===== TOP NAV BAR ===== */
     .topnav { height: 60px; min-height: 60px; background: rgba(8,12,8,0.97); display: flex; align-items: center; padding: 0 20px; gap: 0; border-bottom: 1px solid rgba(74,222,128,0.08); position: relative; z-index: 100; flex-shrink: 0; }
@@ -52,17 +50,14 @@
     #gp-indicator { display: none; font-size: 11px; color: #00e5ff; margin-left: 12px; letter-spacing: .03em; }
     .back-btn { background: #0f1a0f; border: 1px solid #1a2e1a; border-radius: 8px; color: #999; padding: 6px 14px; cursor: pointer; font-size: 13px; }
     .back-btn:hover { border-color: #4ade80; color: #4ade80; }
-
-    /* ===== HAMBURGER & SIDEBAR DRAWER ===== */
-    .topnav-hamburger { display:none; background:none; border:none; color:#666; font-size:22px; cursor:pointer; padding:4px 10px 4px 4px; flex-shrink:0; line-height:1; }
-    .topnav-hamburger:hover { color:#ccc; }
-    #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:140; }
-    body.sidebar-open #sidebar-overlay { display:block; }
-
-    /* ===== MOBILE SWIPE-BACK INDICATOR ===== */
-    #mobile-back-btn { display:none; background:none; border:none; color:#4ade80; font-size:13px; font-weight:700; cursor:pointer; padding:10px 16px 4px; align-items:center; gap:5px; letter-spacing:.03em; }
-    #mobile-back-btn:active { opacity:0.6; }
-    @media (max-width: 900px) { #mobile-back-btn.visible { display:flex; } }
+    body.playlist-modal-open .music-content,
+    body.playlist-modal-open #main-content,
+    body.playlist-modal-open .main-body,
+    body.playlist-modal-open #player-bar,
+    body.playlist-modal-open #now-playing-panel,
+    body.playlist-modal-open .music-lib-panel { pointer-events: none !important; }
+    body.playlist-modal-open #new-pl-modal,
+    body.playlist-modal-open #new-pl-modal * { pointer-events: auto !important; }
 
     /* ===== MUSIC PLAYER ===== */
     .music-layout { display:flex; height:100%; overflow:hidden; }
@@ -102,7 +97,7 @@
     .music-track-dur { text-align:right; color:#3a4e3a; font-size:12px; }
     .music-track-fmt { text-align:right; color:#2a3e2a; font-size:10px; text-transform:uppercase; }
     .music-video-wrap { flex:1; display:flex; align-items:center; justify-content:center; background:#000; min-height:200px; }
-    #music-video-el { width:100%; height:100%; max-height:calc(var(--app-vh) - 180px); object-fit:contain; display:block; }
+    #music-video-el { width:100%; height:100%; max-height:calc(100vh - 180px); object-fit:contain; display:block; }
     .music-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; color:#333; gap:10px; text-align:center; padding:20px; }
     .music-empty .me-icon { font-size:48px; }
     .music-empty .me-text { font-size:13px; line-height:1.6; }
@@ -136,60 +131,232 @@
     .cloud-field input:focus { border-color:#4ade80; }
 
     /* ===== PERSISTENT PLAYER BAR ===== */
-    #player-bar { position:fixed; bottom:28px; left:0; right:0; height:72px; background:rgba(5,10,8,0.97); border-top:1px solid rgba(74,222,128,0.1); backdrop-filter:blur(12px); display:flex; align-items:center; padding:0 20px; gap:12px; z-index:50; }
-    .player-art { width:48px; height:48px; border-radius:3px; background:#0f1a0f; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:20px; color:#333; }
+    #player-bar {
+      --player-cover-image: none;
+      position: fixed;
+      bottom: 14px;
+      left: 18px;
+      right: 18px;
+      min-height: 88px;
+      background:
+        linear-gradient(180deg, rgba(20,28,20,0.96), rgba(7,11,9,0.98)),
+        radial-gradient(circle at top left, rgba(74,222,128,0.14), transparent 38%);
+      border: 1px solid rgba(122,255,170,0.12);
+      border-radius: 24px;
+      backdrop-filter: blur(20px) saturate(140%);
+      box-shadow: 0 18px 44px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.03);
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      gap: 14px;
+      z-index: 50;
+      overflow: hidden;
+    }
+    #player-bar::before {
+      content: '';
+      position: absolute;
+      inset: -18%;
+      background-image: var(--player-cover-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(34px) saturate(120%);
+      opacity: 0.16;
+      transform: scale(1.06);
+      pointer-events: none;
+    }
+    #player-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), transparent 26%, transparent 72%, rgba(255,255,255,0.02));
+      pointer-events: none;
+    }
+    #player-bar > * { position: relative; z-index: 1; }
+    .player-art {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #172417, #0d140f);
+      border: 1px solid rgba(122,255,170,0.08);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.34);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #244024;
+      position: relative;
+    }
+    .player-art::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.18), transparent 38%);
+      pointer-events: none;
+    }
     .player-art img { width:100%; height:100%; object-fit:cover; }
-    .player-meta { min-width:120px; max-width:180px; overflow:hidden; flex-shrink:0; }
-    .player-meta .p-title  { color:#ddd; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .player-meta .p-artist { color:#555; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-    .player-btns { display:flex; align-items:center; gap:2px; flex-shrink:0; }
-    .p-btn { background:none; border:none; color:#555; font-size:16px; cursor:pointer; padding:6px 8px; border-radius:4px; transition:color .15s; line-height:1; }
-    .p-btn:hover { color:#ccc; }
-    .p-btn.p-play { font-size:22px; color:#4ade80; }
-    .p-btn.p-play:hover { color:#6ee7a0; }
-    .p-btn.p-active { color:#4ade80; }
-    .player-seek { flex:1; display:flex; align-items:center; gap:8px; min-width:0; }
-    .p-time { color:#3a4e3a; font-size:11px; white-space:nowrap; flex-shrink:0; font-variant-numeric:tabular-nums; }
-    .seek-bar { flex:1; height:4px; background:#1a2e1a; border-radius:2px; cursor:pointer; position:relative; transition:height .1s; }
-    .seek-bar:hover { height:6px; }
-    .seek-fill { height:100%; background:#4ade80; border-radius:2px; pointer-events:none; width:0%; }
-    .player-vol { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-    .player-vol .vol-icon { color:#3a4e3a; font-size:13px; cursor:pointer; user-select:none; }
-    .player-vol input[type=range] { width:70px; accent-color:#4ade80; cursor:pointer; }
-    .player-bar-active #main-content { padding-bottom:72px; }
-
-    /* ===== NOW PLAYING SCREEN ===== */
-    #np-screen { display:none; position:fixed; inset:0; height:var(--app-vh); min-height:var(--app-vh); background:#080c08; z-index:300; flex-direction:column; align-items:center; padding:0 28px; overflow:hidden; padding-top:max(env(safe-area-inset-top),20px); padding-bottom:max(env(safe-area-inset-bottom),24px); transition:background 1.2s ease; }
-    body.np-open #np-screen { display:flex; }
-    .np-topbar { width:100%; display:flex; align-items:center; justify-content:space-between; padding:4px 0 12px; flex-shrink:0; }
-    .np-topbar-label { font-size:11px; font-weight:700; letter-spacing:.1em; color:#555; text-transform:uppercase; }
-    .np-icon-btn { background:none; border:none; color:#555; font-size:24px; cursor:pointer; padding:6px 4px; line-height:1; min-width:40px; min-height:40px; display:flex; align-items:center; justify-content:center; }
-    .np-icon-btn:hover { color:#ccc; }
-    .np-art-wrap { width:100%; max-width:min(340px,calc(100vw - 56px)); aspect-ratio:1/1; margin:8px auto 20px; border-radius:12px; background:#0f1a0f; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 16px 48px rgba(0,0,0,.8); flex-shrink:0; }
-    .np-art-wrap img { width:100%; height:100%; object-fit:cover; }
-    .np-art-placeholder { font-size:72px; color:#2a3e2a; }
-    .np-info { width:100%; display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-shrink:0; }
-    .np-info-left { flex:1; min-width:0; }
-    .np-title { color:#fff; font-size:20px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .np-artist { color:#666; font-size:14px; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .np-like-btn { background:none; border:none; color:#777; font-size:26px; cursor:pointer; padding:4px; flex-shrink:0; line-height:1; transition:color .15s; }
-    .np-like-btn.liked { color:#f472b6; }
-    .np-seek-wrap { width:100%; flex-shrink:0; margin-bottom:4px; }
-    .np-seek-bar { width:100%; height:4px; background:#1a2e1a; border-radius:2px; cursor:pointer; position:relative; transition:height .1s; }
-    .np-seek-bar:hover { height:6px; }
-    .np-seek-fill { height:100%; background:#4ade80; border-radius:2px; pointer-events:none; width:0%; }
-    .np-times { display:flex; justify-content:space-between; margin-top:7px; }
-    .np-time { font-size:11px; color:#3a4e3a; font-variant-numeric:tabular-nums; }
-    .np-controls { display:flex; align-items:center; justify-content:center; gap:28px; margin:20px 0; flex-shrink:0; }
-    .np-ctrl-btn { background:none; border:none; color:#ccc; font-size:30px; cursor:pointer; padding:10px; line-height:1; min-width:52px; min-height:52px; display:flex; align-items:center; justify-content:center; }
-    .np-ctrl-play { background:none; border:none; color:#4ade80; font-size:52px; cursor:pointer; padding:6px; line-height:1; min-width:64px; min-height:64px; display:flex; align-items:center; justify-content:center; }
-    .np-ctrl-play:hover { color:#6ee7a0; }
-    .np-extra-row { width:100%; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; padding:0 4px; }
-    .np-extra-btn { background:none; border:none; color:#555; font-size:20px; cursor:pointer; padding:10px 8px; line-height:1; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
-    .np-extra-btn.np-active { color:#4ade80; }
-    .np-vol-row { flex:1; display:flex; align-items:center; gap:8px; padding:0 8px; }
-    .np-vol-icon { font-size:14px; color:#444; }
-    .np-vol-slider { flex:1; accent-color:#4ade80; cursor:pointer; height:4px; }
+    .player-meta {
+      min-width: 0;
+      width: min(280px, 28vw);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .player-meta .p-title  {
+      color: #f5f7f5;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-meta .p-artist {
+      color: #8b988d;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 4px;
+    }
+    .p-queue-pos {
+      font-size: 10px;
+      color: #4ade80;
+      margin-top: 5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .player-btns {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-shrink:0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 999px;
+      padding: 6px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+    .p-btn {
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      color: #7b867c;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 999px;
+      transition: transform .15s, color .15s, background .15s, border-color .15s, box-shadow .15s;
+      line-height: 1;
+      flex-shrink: 0;
+      font-family: inherit;
+      font-weight: 700;
+    }
+    .p-btn:hover {
+      color: #edf2ee;
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+    .p-btn.p-play {
+      width: 56px;
+      height: 56px;
+      font-size: 26px;
+      color: #061109;
+      background: linear-gradient(180deg, #56ec8f, #35d970);
+      border-color: rgba(122,255,170,0.32);
+      box-shadow: 0 10px 28px rgba(74,222,128,0.28);
+    }
+    .p-btn.p-play:hover {
+      color: #061109;
+      background: linear-gradient(180deg, #69f09b, #3ee278);
+      transform: translateY(-1px) scale(1.01);
+    }
+    .p-btn.p-active {
+      color: #4ade80;
+      border-color: rgba(74,222,128,0.24);
+      background: rgba(74,222,128,0.08);
+    }
+    #p-like.liked {
+      color:#f472b6;
+      border-color: rgba(244,114,182,0.25);
+      background: rgba(244,114,182,0.08);
+    }
+    #p-queue-btn {
+      width: auto;
+      min-width: 84px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      gap: 6px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .queue-btn-icon { font-size: 16px; line-height: 1; }
+    .queue-btn-label { font-size: 11px; font-weight: 700; color: #aab3ab; }
+    .player-seek {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 0 12px;
+      min-height: 42px;
+    }
+    .p-time {
+      color: #748176;
+      font-size: 11px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .seek-bar {
+      flex: 1;
+      height: 6px;
+      background: #1b241d;
+      border-radius: 999px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: height .1s, background .15s;
+    }
+    .seek-bar:hover { height: 8px; background:#202b23; }
+    .seek-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #37d970, #59eb93);
+      border-radius: 999px;
+      pointer-events: none;
+      width: 0%;
+      box-shadow: 0 0 18px rgba(74,222,128,0.26);
+    }
+    .player-vol {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-shrink:0;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding: 0 12px;
+      min-height: 42px;
+    }
+    .player-vol .vol-icon {
+      color:#7f8a81;
+      font-size:14px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .player-vol input[type=range] { width:86px; accent-color:#4ade80; cursor:pointer; }
+    .player-bar-active #main-content { padding-bottom:104px; }
 
     /* ===== QUEUE PANEL ===== */
     #queue-panel { position:fixed; bottom:100px; left:0; right:0; max-height:340px; background:rgba(5,10,8,0.97); border-top:1px solid rgba(74,222,128,0.1); backdrop-filter:blur(12px); display:flex; flex-direction:column; z-index:49; transform:translateY(100%); transition:transform .25s ease; overflow:hidden; }
@@ -227,12 +394,116 @@
     .track-like-btn { background:none; border:none; color:#2a3e2a; cursor:pointer; font-size:12px; padding:0 4px; opacity:0; flex-shrink:0; line-height:1; }
     .music-track-row:hover .track-like-btn { opacity:1; }
     .track-like-btn.liked { color:#f472b6; opacity:1; }
+    .track-remove-btn { background:none; border:none; color:#476047; cursor:pointer; font-size:15px; padding:0 4px; opacity:.7; flex-shrink:0; line-height:1; }
+    .music-track-row:hover .track-remove-btn { opacity:1; color:#ff8d8d; }
     .music-tree-item.playlist-liked { color:#f472b6; }
+
+    /* ===== NOW PLAYING FULL PANEL ===== */
+    #np-panel {
+      --player-cover-image: none;
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(circle at top center, rgba(74,222,128,0.14), transparent 26%),
+        linear-gradient(180deg, #0b120d 0%, #060907 100%);
+      z-index:300;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:max(env(safe-area-inset-top,0px),24px) 28px max(env(safe-area-inset-bottom,0px),24px);
+      transform:translateY(100%);
+      transition:transform .32s cubic-bezier(.4,0,.2,1);
+      will-change:transform;
+      overflow:hidden;
+    }
+    #np-panel::after {
+      content:'';
+      position:absolute;
+      inset:-10%;
+      background-image: var(--player-cover-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(52px) saturate(118%);
+      opacity: 0.22;
+      transform: scale(1.08);
+      pointer-events:none;
+    }
+    #np-panel > * { position: relative; z-index: 1; }
+    body.np-open #np-panel { transform:translateY(0); }
+    #np-handle { width:42px; height:5px; background:rgba(255,255,255,0.18); border-radius:999px; align-self:center; margin-bottom:20px; flex-shrink:0; cursor:pointer; }
+    #np-panel::before {
+      content:'NOW PLAYING';
+      display:block;
+      align-self:center;
+      color:#89948a;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.14em;
+      margin-bottom:18px;
+    }
+    #np-art-wrap { width:min(100%,360px); aspect-ratio:1; align-self:center; margin-bottom:28px; flex-shrink:0; }
+    #np-art-wrap img { width:100%; height:100%; object-fit:cover; border-radius:24px; display:block; box-shadow:0 24px 56px rgba(0,0,0,.56); }
+    .np-art-ph { width:100%; height:100%; border-radius:24px; background:linear-gradient(180deg, #152017, #0c120e); display:flex; align-items:center; justify-content:center; font-size:88px; color:#1f3c26; box-shadow:0 24px 56px rgba(0,0,0,.46); }
+    #np-info { width:100%; max-width:400px; align-self:center; display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-shrink:0; }
+    #np-title-block { flex:1; min-width:0; }
+    #np-title { font-size:42px; line-height:1.04; font-weight:800; color:#fff; letter-spacing:-0.03em; white-space:normal; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    #np-sub { font-size:18px; color:#8c978d; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #np-like-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:999px; font-size:24px; color:#6f7971; cursor:pointer; padding:0; width:48px; height:48px; flex-shrink:0; -webkit-tap-highlight-color:transparent; transition:color .12s, border-color .12s, background .12s; display:flex; align-items:center; justify-content:center; }
+    #np-like-btn.liked { color:#f472b6; }
+    #np-seek-wrap {
+      width:100%;
+      max-width:400px;
+      align-self:center;
+      margin:18px 0 6px;
+      flex-shrink:0;
+      background:rgba(255,255,255,0.035);
+      border:1px solid rgba(255,255,255,0.05);
+      border-radius:24px;
+      padding:14px 16px 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    #np-seek-bar { height:8px; background:#1d271f; border-radius:999px; cursor:pointer; position:relative; transition:height .1s; overflow:hidden; }
+    #np-seek-bar:active { height:10px; }
+    #np-seek-fill { height:100%; background:linear-gradient(90deg, #37d970, #65f09d); border-radius:999px; pointer-events:none; width:0%; box-shadow:0 0 18px rgba(74,222,128,0.24); }
+    #np-times { display:flex; justify-content:space-between; margin-top:10px; }
+    #np-cur, #np-dur { font-size:12px; color:#7d897e; font-variant-numeric:tabular-nums; font-weight:700; }
+    #np-controls { width:100%; max-width:400px; align-self:center; margin:26px 0 0; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .np-btn {
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.05);
+      color:#a4aea5;
+      cursor:pointer;
+      font-size:22px;
+      width:56px;
+      height:56px;
+      border-radius:999px;
+      line-height:1;
+      -webkit-tap-highlight-color:transparent;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform .15s, background .15s, border-color .15s, color .15s;
+    }
+    .np-btn:hover { transform:translateY(-1px); color:#fff; background:rgba(255,255,255,0.06); }
+    #np-play-btn { font-size:52px; color:#071009; width:82px; height:82px; background:linear-gradient(180deg, #56ec8f, #35d970); border-color:rgba(122,255,170,0.28); box-shadow:0 16px 36px rgba(74,222,128,0.22); }
+    .np-btn.np-active { color:#4ade80; }
+    #np-bottom-row { width:100%; max-width:400px; align-self:center; display:flex; justify-content:stretch; margin-top:24px; flex-shrink:0; }
+    .np-pill-btn { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.06); color:#eef3ef; font-size:14px; font-weight:700; padding:14px 18px; border-radius:999px; cursor:pointer; -webkit-tap-highlight-color:transparent; width:100%; text-align:center; letter-spacing:.01em; }
+    .np-pill-btn:active { border-color:#4ade80; color:#4ade80; }
+    .np-btn-label {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #8f9a90;
+      text-align: center;
+      margin-top: 16px;
+      max-width: 400px;
+    }
 
     /* ===== B2 LIBRARY BROWSER ===== */
     .lib-section-header { color:#4ade80; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:20px 24px 8px; }
     .lib-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; padding:0 24px 16px; }
-    .lib-card { background:#0d180d; border-radius:8px; cursor:pointer; transition:transform .15s,box-shadow .15s; content-visibility:auto; contain-intrinsic-size:220px; }
+    .lib-card { background:#0d180d; border-radius:8px; cursor:pointer; transition:transform .15s,box-shadow .15s; }
     .lib-card:hover { transform:translateY(-3px); box-shadow:0 0 16px rgba(74,222,128,0.18); }
     .lib-card-art { aspect-ratio:1/1; background:#111; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:6px 6px 0 0; }
     .lib-card-art img { width:100%; height:100%; object-fit:cover; }
@@ -280,7 +551,7 @@
     .lib-meta-stats span { color:#3a5e3a; }
     .lib-album-wiki { padding:4px 24px 16px; color:#666; font-size:11px; line-height:1.6; max-width:680px; font-style:italic; }
     .lib-track-list { padding:0 24px 80px; }
-    .lib-track-row { display:grid; grid-template-columns:32px 1fr 80px 60px; padding:8px 10px; color:#555; font-size:13px; cursor:pointer; border-radius:4px; align-items:center; content-visibility:auto; contain-intrinsic-size:44px; }
+    .lib-track-row { display:grid; grid-template-columns:32px 1fr 80px 60px; padding:8px 10px; color:#555; font-size:13px; cursor:pointer; border-radius:4px; align-items:center; }
     .lib-track-row:hover { background:#0d180d; color:#bbb; }
     .lib-track-row.playing { color:#4ade80; }
     .lib-track-num   { color:#2a3e2a; text-align:right; padding-right:12px; font-size:12px; }
@@ -304,13 +575,11 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
+  <link rel="stylesheet" href="/mobile.css?v=20260421-ios-layout-fix">
 </head>
 <body>
-  <!-- Safe-area spacer: physically pushes nav below the iOS status bar / Dynamic Island zone -->
-  <div id="ios-safe-top"></div>
   <!-- TOP NAV BAR -->
   <nav class="topnav">
-    <button class="topnav-hamburger" id="topnav-hamburger" title="Library">&#9776;</button>
     <div class="topnav-logo">
       <img src="assets/pulse-logo.svg" alt="AtomicBlast">
     </div>
@@ -318,17 +587,15 @@
       <div class="nav-item active" data-view="media"><span class="nav-icon">♪</span><span>MUSIC</span></div>
     </div>
     <div class="topnav-right">
+      <button id="sidebar-toggle-btn" title="Library">&#9776;</button>
       <div class="search-bar"><input type="text" id="search-input" placeholder="Search library..."></div>
       <div class="nav-item" data-view="settings"><span class="nav-icon">≡</span><span>SETTINGS</span></div>
     </div>
   </nav>
-
-  <!-- Sidebar overlay (mobile) -->
   <div id="sidebar-overlay"></div>
 
   <!-- MAIN CONTENT -->
   <div class="main">
-    <button id="mobile-back-btn" onclick="goBack()">&#8592; Back</button>
     <div class="view-header" id="view-header" style="display:none">
       <h2 id="view-title">Settings</h2>
       <span class="subtitle" id="view-subtitle"></span>
@@ -347,8 +614,7 @@
       <div class="p-artist" id="p-artist">—</div>
       <div class="p-queue-pos" id="p-queue-pos"></div>
     </div>
-    <button class="p-btn" id="p-like" title="Like this track">♡</button>
-    <button class="p-btn" id="p-add-playlist" title="Add to playlist">≡+</button>
+    <button class="p-btn" id="p-like" title="Like">♡</button>
     <div class="player-btns">
       <button class="p-btn" id="p-shuffle" title="Shuffle">⇄</button>
       <button class="p-btn" id="p-prev"    title="Previous">⏮</button>
@@ -366,61 +632,12 @@
       <input type="range" id="p-vol" min="0" max="100" value="80">
     </div>
     <button class="p-btn" id="p-fullscreen" title="Fullscreen" style="display:none">⛶</button>
-    <button class="p-btn" id="p-queue-btn" title="Up Next">⋮≡<span id="p-queue-badge"></span></button>
-    <button class="p-btn" id="p-sleep-btn" title="Sleep timer" style="display:none;font-size:11px;color:#4ade80">🌙<span id="p-sleep-badge"></span></button>
-  </div>
-
-  <!-- Now Playing full-screen overlay (mobile) -->
-  <div id="np-screen">
-    <div class="np-topbar">
-      <button id="np-down" class="np-icon-btn" title="Close now playing">&#8964;</button>
-      <span class="np-topbar-label">Now Playing</span>
-      <button id="np-queue-open2" class="np-icon-btn" title="Open queue">&#8942;&#8801;</button>
-    </div>
-    <div id="np-art-wrap" class="np-art-wrap"><span class="np-art-placeholder">&#9834;</span></div>
-    <div class="np-info">
-      <div class="np-info-left">
-        <div id="np-title" class="np-title">&#8212;</div>
-        <div id="np-artist" class="np-artist">&#8212;</div>
-      </div>
-      <button id="np-like-btn" class="np-like-btn" title="Like this track">&#9825;</button>
-    </div>
-    <div class="np-seek-wrap">
-      <div id="np-seek-bar" class="np-seek-bar"><div id="np-seek-fill" class="np-seek-fill"></div></div>
-      <div class="np-times">
-        <span id="np-cur" class="np-time">0:00</span>
-        <span id="np-dur" class="np-time">0:00</span>
-      </div>
-    </div>
-    <div class="np-controls">
-      <button id="np-prev-btn" class="np-ctrl-btn" title="Previous track">&#9198;</button>
-      <button id="np-play-btn" class="np-ctrl-play" title="Play or pause">&#9654;</button>
-      <button id="np-next-btn" class="np-ctrl-btn" title="Next track">&#9197;</button>
-    </div>
-    <div class="np-extra-row">
-      <button id="np-add-pl-btn" class="np-extra-btn" title="Add to playlist">≡+</button>
-      <button id="np-shuffle-btn" class="np-extra-btn" title="Shuffle">⇄</button>
-      <button id="np-sleep-btn" class="np-extra-btn" title="Sleep timer">🌙</button>
-      <div class="np-vol-row">
-        <span class="np-vol-icon np-vol-lo">&#128265;</span>
-        <input type="range" id="np-vol-slider" min="0" max="100" value="80" class="np-vol-slider">
-        <span class="np-vol-icon np-vol-hi">&#128266;</span>
-      </div>
-      <button id="np-eq-btn"    class="np-extra-btn" title="Equalizer">EQ</button>
-      <button id="np-norm-btn"  class="np-extra-btn" title="Volume normalization">≋</button>
-      <button id="np-xfade-btn" class="np-extra-btn" title="Crossfade">⇌</button>
-      <button id="np-speed-btn" class="np-extra-btn" title="Playback speed">1×</button>
-      <button id="np-repeat-btn" class="np-extra-btn" title="Repeat">&#8634;</button>
-    </div>
-    <div id="np-help-text" style="width:100%;margin-top:8px;padding:0 6px;color:#3a4e3a;font-size:11px;line-height:1.5;text-align:center;flex-shrink:0">
-      Queue opens Up Next. ≡+ adds this song to a playlist. Shuffle randomizes the queue. Moon sets a sleep timer. EQ changes tone. ≋ evens out loudness. ⇌ blends song endings. 1× changes speed. ↺ repeats.
-    </div>
-    <div id="np-lyrics" style="width:100%;margin-top:12px;max-height:140px;overflow-y:auto;font-size:13px;line-height:1.7;color:#555;text-align:center;flex-shrink:0;scrollbar-width:none"></div>
+    <button class="p-btn" id="p-queue-btn" title="Up Next"><span class="queue-btn-icon">≡</span><span class="queue-btn-label">Queue</span><span id="p-queue-badge"></span></button>
   </div>
 
   <!-- New Playlist modal -->
-  <div id="new-pl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center">
-    <div style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:10px;padding:24px;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+  <div id="new-pl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:410;align-items:center;justify-content:center;padding:20px">
+    <div id="new-pl-dialog" style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:14px;padding:22px;min-width:min(360px,100%);max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.8)">
       <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:14px;letter-spacing:.04em">NEW PLAYLIST</div>
       <input id="new-pl-input" placeholder="Playlist name…" autocomplete="off"
         style="width:100%;background:#080f08;border:1px solid #2a4e2a;color:#ccc;padding:9px 12px;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;font-family:inherit">
@@ -431,14 +648,15 @@
     </div>
   </div>
 
-  <div id="playlist-picker-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:410;align-items:center;justify-content:center">
-    <div style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:10px;padding:20px;min-width:min(360px,calc(100vw - 32px));max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.8)">
-      <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:6px;letter-spacing:.04em">ADD TO PLAYLIST</div>
-      <div id="playlist-picker-track" style="color:#666;font-size:12px;margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="playlist-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:min(50vh,320px);overflow:auto"></div>
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button id="playlist-picker-new" style="flex:1;background:#4ade80;color:#000;border:none;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">New Playlist</button>
-        <button id="playlist-picker-cancel" style="flex:1;background:#0f1a0f;color:#666;border:1px solid #1a2e1a;padding:9px;border-radius:6px;font-size:13px;cursor:pointer">Close</button>
+  <!-- Playlist picker modal -->
+  <div id="pl-picker-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:401;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#0d1a0d;border:1px solid #2a4e2a;border-radius:14px;padding:22px;min-width:min(360px,100%);max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+      <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:8px;letter-spacing:.04em">ADD TO PLAYLIST</div>
+      <div style="color:#6d7c6d;font-size:12px;margin-bottom:14px" id="pl-picker-sub">Choose a playlist or make a new one.</div>
+      <div id="pl-picker-list" style="display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow:auto"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button id="pl-picker-new" type="button" onclick="event.preventDefault(); event.stopPropagation(); window.openNewPlaylistFromPicker && window.openNewPlaylistFromPicker(event); return false;" ontouchend="event.preventDefault(); event.stopPropagation(); window.openNewPlaylistFromPicker && window.openNewPlaylistFromPicker(event); return false;" style="flex:1;background:#4ade80;color:#000;border:none;padding:11px 12px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer">+ New Playlist</button>
+        <button id="pl-picker-cancel" style="flex:1;background:#0f1a0f;color:#aaa;border:1px solid #1a2e1a;padding:11px 12px;border-radius:999px;font-size:13px;cursor:pointer">Cancel</button>
       </div>
     </div>
   </div>
@@ -447,6 +665,34 @@
   <div id="queue-panel">
     <div class="queue-header">Up Next <span id="queue-count-label"></span><button id="queue-close" class="queue-close-btn">✕</button></div>
     <div id="queue-list"></div>
+  </div>
+
+  <!-- Full Now Playing panel -->
+  <div id="np-panel">
+    <div id="np-handle"></div>
+    <div id="np-art-wrap"><div id="np-art-inner" class="np-art-ph">♪</div></div>
+    <div id="np-info">
+      <div id="np-title-block">
+        <div id="np-title">—</div>
+        <div id="np-sub">—</div>
+      </div>
+      <button id="np-like-btn" class="np-btn">♡</button>
+    </div>
+    <div id="np-seek-wrap">
+      <div id="np-seek-bar"><div id="np-seek-fill"></div></div>
+      <div id="np-times"><span id="np-cur">0:00</span><span id="np-dur">0:00</span></div>
+    </div>
+    <div id="np-controls">
+      <button id="np-shuf-btn" class="np-btn" title="Shuffle">⇄</button>
+      <button id="np-prev-btn" class="np-btn" title="Previous">⏮</button>
+      <button id="np-play-btn" class="np-btn" title="Play / Pause">▶</button>
+      <button id="np-next-btn" class="np-btn" title="Next">⏭</button>
+      <button id="np-rep-btn" class="np-btn" title="Repeat">↺</button>
+    </div>
+    <div class="np-btn-label">Playback Controls</div>
+    <div id="np-bottom-row">
+      <button id="np-addpl-btn" class="np-pill-btn">+ Add to Playlist</button>
+    </div>
   </div>
 
   <!-- Context menu -->
@@ -477,221 +723,18 @@
     let musicLibrary = null
     let playQueue = [], queueIdx = -1
     let pShuffle = false, repeatMode = 'none'
-    let shuffleHistory = []
-
-    // ── Recently Played ───────────────────────────────────
-    const RECENT_MAX = 50
-    function recentTrackKey(track) {
-      return track?.recentKey || track?.id || track?.filePath || track?.path || track?.title || ''
-    }
-    function getRecentlyPlayed() {
-      try { return JSON.parse(localStorage.getItem('recentlyPlayed') || '[]') } catch { return [] }
-    }
-    function pushRecentlyPlayed(track) {
-      const key = recentTrackKey(track)
-      if (!key) return
-      let recent = getRecentlyPlayed().filter(t => recentTrackKey(t) !== key)
-      recent.unshift({
-        recentKey: key,
-        id: track.id || '',
-        filePath: track.filePath || '',
-        path: track.path,
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        coverPath: track.coverPath,
-        artistArtPath: track.artistArtPath || getArtistCoverUrl(getTrackArtistName(track)),
-        source: track.id ? 'b2' : (track.path?.startsWith('http') ? 'stream' : 'local'),
-        ts: Date.now(),
-      })
-      if (recent.length > RECENT_MAX) recent = recent.slice(0, RECENT_MAX)
-      localStorage.setItem('recentlyPlayed', JSON.stringify(recent))
-    }
-    async function resolveRecentTrack(rec) {
-      if (!rec) return null
-      const key = recentTrackKey(rec)
-      if (!key) return rec
-      // Load B2 silently — never call ensureB2Lib here because that replaces the UI
-      if (!b2Lib) {
-        try { await loadB2Lib() } catch (_) {}
-      }
-      if (b2Lib) {
-        const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-        // Extract raw B2 path from a legacy signed URL stored as key/id
-        function extractB2Path(str) {
-          if (!str || !str.includes('/file/')) return str
-          const m = str.match(/\/file\/[^/?]+\/(.+?)(?:\?|$)/)
-          return m ? decodeURIComponent(m[1]) : str
-        }
-        const cleanId  = extractB2Path(rec.id)
-        const cleanKey = extractB2Path(key)
-        for (const artist of b2Lib.artists) {
-          for (const album of artist.albums) {
-            const match = album.tracks.find(t => t.path === cleanId || t.path === cleanKey)
-            if (match) {
-              return b2TrackObj(match, artist.name, album, b2DlUrl, b2DlToken, bucket)
-            }
-          }
-        }
-      }
-      const localMatch = musicLibrary?.allTracks?.find(t => recentTrackKey(t) === key || t.path === rec.filePath || t.path === rec.path)
-      return localMatch || rec
-    }
     let currentHls = null
     let musicVideoPlaying = false
     let cloudSources = []
     let b2Lib = null, b2DlUrl = null, b2DlToken = null
-    let b2AllTracks = []
-    let b2LibLoadingPromise = null
-    let b2ArtistCount = 0, b2AlbumCount = 0, b2TrackCount = 0
-    let navHistory = [] // stack of {fn, label} for swipe-back navigation
     const VIDEO_EXTS_CLIENT = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv'])
     let playlists = { liked: [], playlists: [] }
     let ctxTrack = null
     let cueAdvancing = false
     let serverFavsMeta = new Map() // filePath → {title, artist, album, format}
-    let activeTrackRow = null
-    let playingTrackRow = null
-    let lastSeekUiMs = 0
-    let lastMediaSessionPositionMs = 0
-    const IS_IOS_WEBKIT = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    let orientationSyncTimer = null
 
     // ── iTunes art fallback ────────────────────────────────────────────────
     const itunesArtCache = new Map()
-    function findArtistInAnyLibrary(artistName, libOverride) {
-      if (!artistName) return null
-      const name = artistName.toLowerCase()
-      const localArtist = libOverride?.artists?.find(a => a.name?.toLowerCase() === name)
-      if (localArtist) return localArtist
-      const b2Artist = b2Lib?.artists?.find(a => a.name?.toLowerCase() === name)
-      if (b2Artist) return b2Artist
-      return musicLibrary?.artists?.find(a => a.name?.toLowerCase() === name) || null
-    }
-    function getArtistCoverPath(artistName, libOverride) {
-      const artist = findArtistInAnyLibrary(artistName, libOverride)
-      if (!artist?.albums?.length) return null
-      return artist.albums.find(a => a.coverPath)?.coverPath || artist.albums[0]?.coverPath || null
-    }
-    function getArtistCoverUrl(artistName, libOverride, dlUrlOverride, dlTokenOverride, bucketOverride) {
-      const rawPath = getArtistCoverPath(artistName, libOverride)
-      if (!rawPath) return null
-      const looksRemote = /^https?:\/\//i.test(rawPath)
-      if (looksRemote) return rawPath
-      const bucket = bucketOverride || libOverride?.bucketName || b2Lib?.bucketName || 'aharveyGoogleDriveBackup'
-      const dlUrl = dlUrlOverride || b2DlUrl
-      const dlToken = dlTokenOverride || b2DlToken
-      if (dlUrl && dlToken) return b2CoverUrl(rawPath, dlUrl, dlToken, bucket)
-      return rawPath
-    }
-    function getTrackArtistName(track) {
-      return track?.albumArtist || track?.artist || ''
-    }
-    function getTrackArtUrl(track) {
-      if (!track) return null
-      return track.coverPath || track.artistArtPath || getArtistCoverUrl(getTrackArtistName(track)) || null
-    }
-    function artPlaceholderHtml(size, glyph) {
-      const icon = glyph || '♪'
-      const boxSize = typeof size === 'number' ? size + 'px' : (size || '36px')
-      return '<div style="width:' + boxSize + ';height:' + boxSize + ';background:#1a2e1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#2a3e2a;font-size:' + (boxSize === '36px' ? '18px' : '24px') + ';flex-shrink:0">' + icon + '</div>'
-    }
-    function artImgHtml(url, size, glyph) {
-      return url
-        ? '<img src="' + esc(url) + '" style="width:' + size + ';height:' + size + ';object-fit:cover;border-radius:8px;display:block;flex-shrink:0" onerror="this.outerHTML=\'' + artPlaceholderHtml(size, glyph).replace(/'/g, "\\'") + '\'">'
-        : artPlaceholderHtml(size, glyph)
-    }
-    function updateNowPlayingControlHints() {
-      const shuffleTitle = pShuffle ? 'Shuffle is on' : 'Shuffle'
-      const repeatTitle = repeatMode === 'one' ? 'Repeat current track' : repeatMode === 'all' ? 'Repeat queue' : 'Repeat'
-      const likeTitle = playQueue[queueIdx] ? (isLiked(playQueue[queueIdx]) ? 'Unlike this track' : 'Like this track') : 'Like this track'
-      el('p-like')?.setAttribute('title', likeTitle)
-      el('np-like-btn')?.setAttribute('title', likeTitle)
-      el('p-shuffle')?.setAttribute('title', shuffleTitle)
-      el('np-shuffle-btn')?.setAttribute('title', shuffleTitle)
-      el('p-repeat')?.setAttribute('title', repeatTitle)
-      el('np-repeat-btn')?.setAttribute('title', repeatTitle)
-    }
-    function syncViewportHeight() {
-      const vh = (window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0)
-      if (!vh) return
-      document.documentElement.style.setProperty('--app-vh', vh + 'px')
-    }
-    let _lastOrientationLandscape = null
-    function syncResponsiveLayout() {
-      syncViewportHeight()
-      const isLandscape = window.innerWidth > window.innerHeight
-      if (isLandscape !== _lastOrientationLandscape && _lastOrientationLandscape !== null) {
-        // Orientation actually changed — dismiss overlays that don't reflow cleanly
-        document.body.classList.remove('queue-open')
-        document.body.classList.remove('sidebar-open')
-      }
-      _lastOrientationLandscape = isLandscape
-      if (isLandscape) {
-        document.body.classList.remove('sidebar-open')
-      }
-      const playerBar = el('player-bar')
-      if (playerBar) {
-        playerBar.style.width = ''
-        playerBar.style.left = ''
-        playerBar.style.right = ''
-      }
-      const queuePanel = el('queue-panel')
-      if (queuePanel) {
-        queuePanel.style.width = ''
-        queuePanel.style.left = ''
-        queuePanel.style.right = ''
-      }
-      const np = el('np-screen')
-      if (np) {
-        np.style.height = 'var(--app-vh)'
-        np.style.minHeight = 'var(--app-vh)'
-      }
-      const video = el('music-video-el')
-      if (video) {
-        video.style.maxHeight = 'calc(var(--app-vh) - 180px)'
-      }
-    }
-    function queueResponsiveLayoutSync(delay) {
-      clearTimeout(orientationSyncTimer)
-      orientationSyncTimer = setTimeout(syncResponsiveLayout, delay == null ? 80 : delay)
-    }
-    function rebuildB2Caches(lib) {
-      b2Lib = lib
-      b2DlUrl = lib?.dlUrl || null
-      b2DlToken = lib?.dlToken || null
-      b2ArtistCount = lib?.artists?.length || 0
-      b2AlbumCount = 0
-      b2TrackCount = 0
-      b2AllTracks = []
-      if (!lib?.artists?.length) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
-      for (const artist of lib.artists) {
-        b2AlbumCount += artist.albums.length
-        for (const album of artist.albums) {
-          b2TrackCount += album.tracks.length
-          for (const track of album.tracks) {
-            b2AllTracks.push(b2TrackObj(track, artist.name, album, b2DlUrl, b2DlToken, bucket))
-          }
-        }
-      }
-    }
-    function deferArtworkLoad(elements, loadFn) {
-      const cards = Array.from(elements || [])
-      if (!cards.length) return
-      if (!('IntersectionObserver' in window)) {
-        cards.forEach(loadFn)
-        return
-      }
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return
-          observer.unobserve(entry.target)
-          loadFn(entry.target)
-        })
-      }, { rootMargin: IS_IOS_WEBKIT ? '160px 0px' : '260px 0px' })
-      cards.forEach(card => observer.observe(card))
-    }
     async function fetchItunesArt(artist, album) {
       const key = artist + '\x00' + (album || '')
       if (itunesArtCache.has(key)) return itunesArtCache.get(key)
@@ -718,24 +761,6 @@
     function applyItunesArt(artEl, url, initial) {
       if (!url || !artEl || !artEl.querySelector('.lib-card-initial')) return
       artEl.innerHTML = '<img src="' + url + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-    }
-    function renderLibraryLoadingState(label) {
-      const inner = el('music-content-inner'); if (!inner) return
-      inner.innerHTML = '<div class="lib-loading"><div class="spinner"></div><span>' + esc(label || 'Loading library…') + '</span></div>'
-      renderJumpBackIn()
-    }
-    async function loadB2Lib(opts) {
-      const options = opts || {}
-      if (b2Lib && !options.force) return b2Lib
-      if (b2LibLoadingPromise && !options.force) return b2LibLoadingPromise
-      b2LibLoadingPromise = ipcRenderer.invoke('scan-b2-music').then(lib => {
-        rebuildB2Caches(lib)
-        renderMusicTree(musicLibrary || { artists: [], allTracks: [] })
-        return lib
-      }).finally(() => {
-        b2LibLoadingPromise = null
-      })
-      return b2LibLoadingPromise
     }
 
     // ── Media key IPC ──────────────────────────────────────────────────────
@@ -775,12 +800,6 @@
       if (pLike && cur && trackKey(cur) === key) {
         pLike.textContent = liked ? '♥' : '♡'
         pLike.classList.toggle('liked', liked)
-        const npLike = el('np-like-btn')
-        if (npLike) {
-          npLike.textContent = liked ? '♥' : '♡'
-          npLike.classList.toggle('liked', liked)
-        }
-        updateNowPlayingControlHints()
       }
       document.querySelectorAll('.music-track-row').forEach(row => {
         const qi = parseInt(row.dataset.qi)
@@ -838,10 +857,11 @@
     // ── Artist radio ───────────────────────────────────────────────────────
     function doArtistRadio(artistName) {
       if (!artistName) return
+      // Try B2 library first
       if (b2Lib) {
         const artist = b2Lib.artists.find(a => a.name.toLowerCase() === artistName.toLowerCase())
         if (artist) {
-          const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+          const bucket = b2Lib.bucketName || 'SpAtomify'
           const tracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, b2DlUrl, b2DlToken, bucket)))
           for (let i = tracks.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [tracks[i], tracks[j]] = [tracks[j], tracks[i]] }
           setQueue(tracks, 0)
@@ -865,21 +885,50 @@
     function createPlaylist(initialTrack) {
       return new Promise(resolve => {
         const modal = el('new-pl-modal')
+        const dialog = el('new-pl-dialog')
         const input = el('new-pl-input')
-        modal.style.display = 'flex'
-        setTimeout(() => input.focus(), 50)
-        const finish = name => {
+        const okBtn = el('new-pl-ok')
+        const cancelBtn = el('new-pl-cancel')
+        if (!modal || !input || !okBtn || !cancelBtn) { resolve(null); return }
+
+        const cleanup = () => {
           modal.style.display = 'none'
-          el('new-pl-ok').onclick = null; el('new-pl-cancel').onclick = null; input.onkeydown = null
+          document.body.classList.remove('playlist-modal-open')
+          okBtn.removeEventListener('click', onOk)
+          cancelBtn.removeEventListener('click', onCancel)
+          input.removeEventListener('keydown', onKeyDown)
+          modal.removeEventListener('click', onBackdropClick)
+          dialog?.removeEventListener('click', stopDialogPropagation)
+          dialog?.removeEventListener('touchstart', stopDialogPropagation)
+        }
+        const finish = name => {
+          cleanup()
           if (!name?.trim()) { resolve(null); return }
           const pl = { id: 'pl_' + Date.now(), name: name.trim(), tracks: initialTrack ? [initialTrack] : [] }
-          playlists.playlists.push(pl); savePlaylists()
+          playlists.playlists.push(pl)
+          savePlaylists()
           renderMusicTree(musicLibrary)
           resolve(pl)
         }
-        el('new-pl-ok').onclick     = () => finish(input.value)
-        el('new-pl-cancel').onclick  = () => finish(null)
-        input.onkeydown = e => { if (e.key === 'Enter') finish(input.value); else if (e.key === 'Escape') finish(null) }
+        const onOk = () => finish(input.value)
+        const onCancel = () => finish(null)
+        const onKeyDown = e => {
+          if (e.key === 'Enter') finish(input.value)
+          else if (e.key === 'Escape') finish(null)
+        }
+        const onBackdropClick = e => { if (e.target === modal) finish(null) }
+        const stopDialogPropagation = e => e.stopPropagation()
+
+        input.value = ''
+        document.body.classList.add('playlist-modal-open')
+        modal.style.display = 'flex'
+        okBtn.addEventListener('click', onOk)
+        cancelBtn.addEventListener('click', onCancel)
+        input.addEventListener('keydown', onKeyDown)
+        modal.addEventListener('click', onBackdropClick)
+        dialog?.addEventListener('click', stopDialogPropagation)
+        dialog?.addEventListener('touchstart', stopDialogPropagation)
+        setTimeout(() => input.focus(), 50)
       })
     }
     function addTrackToPlaylist(track, plId) {
@@ -887,78 +936,61 @@
       if (!pl.tracks.some(t => (t.path || t.title) === (track.path || track.title))) pl.tracks.push(track)
       savePlaylists(); setStatus('Added to ' + pl.name)
     }
-    function closePlaylistPicker() {
-      const modal = el('playlist-picker-modal')
-      if (modal) modal.style.display = 'none'
-      if (modal) modal.dataset.trackPath = ''
+    function shuffleTracks(tracks) {
+      const copy = [...tracks]
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[copy[i], copy[j]] = [copy[j], copy[i]]
+      }
+      return copy
     }
+    let playlistPickerTrack = null
+    let playlistPickerCreateBusy = false
     function showPlaylistPicker(track) {
       if (!track) return
-      const modal = el('playlist-picker-modal')
-      const list = el('playlist-picker-list')
-      const trackLabel = el('playlist-picker-track')
-      if (!modal || !list || !trackLabel) return
-      trackLabel.textContent = (track.title || 'Unknown track') + ' · ' + (getTrackArtistName(track) || track.album || 'Unknown artist')
+      ctxTrack = track
+      playlistPickerTrack = track
+      const modal = el('pl-picker-modal')
+      const list = el('pl-picker-list')
+      const sub = el('pl-picker-sub')
+      if (!modal || !list) return
+      if (sub) sub.textContent = 'Add "' + (track.title || track.path?.split(/[\\/]/).pop() || 'Track') + '" to a playlist.'
+      const items = playlists.playlists.map(pl =>
+        '<button class="pl-picker-item" data-pl-id="' + esc(pl.id) + '" style="width:100%;text-align:left;background:#101910;border:1px solid #1d311d;color:#eef3ef;padding:12px 14px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600">' +
+        esc(pl.name) + '<span style="float:right;color:#6d7c6d;font-weight:500">' + pl.tracks.length + '</span></button>'
+      ).join('')
+      list.innerHTML = items || '<div style="color:#6d7c6d;font-size:12px;padding:8px 2px">No playlists yet. Create one below.</div>'
+      list.querySelectorAll('[data-pl-id]').forEach(item => item.addEventListener('click', () => {
+        addTrackToPlaylist(track, item.dataset.plId)
+        hidePlaylistPicker()
+      }))
       modal.style.display = 'flex'
-      modal.dataset.trackPath = track.path || ''
-      if (!playlists.playlists.length) {
-        list.innerHTML = '<div style="padding:12px;border:1px dashed #1f311f;border-radius:8px;color:#666;font-size:12px;text-align:center">No playlists yet. Create one to save this track.</div>'
-      } else {
-        list.innerHTML = playlists.playlists.map(pl => {
-          const exists = pl.tracks.some(t => (t.path || t.title) === (track.path || track.title))
-          return '<button class="playlist-pick-item" data-pl-id="' + esc(pl.id) + '" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:#0f1a0f;border:1px solid #1a2e1a;color:#ccc;padding:10px 12px;border-radius:8px;font-size:13px;cursor:pointer">' +
-            '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(pl.name) + '</span>' +
-            '<span style="color:' + (exists ? '#4ade80' : '#555') + ';font-size:11px">' + (exists ? 'Added' : 'Add') + '</span>' +
-          '</button>'
-        }).join('')
+    }
+    function hidePlaylistPicker() {
+      const modal = el('pl-picker-modal')
+      if (modal) modal.style.display = 'none'
+      playlistPickerTrack = null
+    }
+    async function openNewPlaylistFromPicker(e) {
+      if (e) {
+        e.preventDefault()
+        e.stopPropagation()
       }
-      list.querySelectorAll('.playlist-pick-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-          addTrackToPlaylist(track, btn.dataset.plId)
-          closePlaylistPicker()
-        })
-      })
-      el('playlist-picker-new').onclick = async () => {
-        closePlaylistPicker()
+      if (playlistPickerCreateBusy) return false
+      const track = playlistPickerTrack || ctxTrack
+      if (!track) return
+      playlistPickerCreateBusy = true
+      try {
         const pl = await createPlaylist(track)
-        if (pl) setStatus('Created ' + pl.name)
+        if (!pl) return false
+        hidePlaylistPicker()
+        setStatus('Created playlist: ' + pl.name)
+        return false
+      } finally {
+        setTimeout(() => { playlistPickerCreateBusy = false }, 250)
       }
-      el('playlist-picker-cancel').onclick = closePlaylistPicker
-      modal.onclick = e => { if (e.target === modal) closePlaylistPicker() }
     }
-    function showRecentlyPlayed() {
-      const inner = el('music-content-inner'); if (!inner) return
-      const recent = getRecentlyPlayed()
-      if (!recent.length) {
-        inner.innerHTML = '<div style="padding:32px;color:#444;font-size:13px">No recently played tracks yet.</div>'
-        return
-      }
-      let html = '<div style="padding:16px 12px 8px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a">RECENTLY PLAYED</div>'
-      html += '<div class="track-list">'
-      recent.forEach((t, i) => {
-        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || 'Unknown')
-        const artist = esc(t.artist || t.album || '')
-        const cover  = artImgHtml(getTrackArtUrl(t), '36px')
-        html += `<div class="track-row" data-recent-idx="${i}" style="display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;border-radius:4px">
-          ${cover}
-          <div style="min-width:0;flex:1">
-            <div style="color:#ccc;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
-            <div style="color:#444;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
-          </div>
-        </div>`
-      })
-      html += '</div>'
-      inner.innerHTML = html
-      inner.querySelectorAll('[data-recent-idx]').forEach(row => {
-        row.addEventListener('click', async () => {
-          const t = recent[+row.dataset.recentIdx]
-          if (!t) return
-          const resolved = await resolveRecentTrack(t)
-          if (resolved) setQueue([resolved], 0)
-        })
-      })
-    }
-
+    window.openNewPlaylistFromPicker = openNewPlaylistFromPicker
     async function showPlaylist(plId) {
       let tracks, name, color
       if (plId === 'liked') {
@@ -972,7 +1004,7 @@
           } catch (e) { setStatus('Error loading B2: ' + e.message) }
         }
         // Build track objects — prefer server metadata for clean titles/artist/format
-        const bucket = b2Lib?.bucketName || 'aharveyGoogleDriveBackup'
+        const bucket = b2Lib?.bucketName || 'SpAtomify'
         tracks = playlists.liked.map(filePath => {
           const meta = serverFavsMeta.get(filePath)
           if (filePath.startsWith('Music/') && b2DlUrl) {
@@ -990,7 +1022,6 @@
               path:      signedUrl,
               ext,
               coverPath: coverUrl,
-              artistArtPath: getArtistCoverUrl(meta?.artist || '', b2Lib, b2DlUrl, b2DlToken, bucket),
             }
           }
           // Local track — look up in musicLibrary
@@ -1008,19 +1039,20 @@
               '<h2 style="color:#fff">Liked Songs</h2>' +
               '<div class="lib-sub">' + tracks.length + ' track' + (tracks.length !== 1 ? 's' : '') + '</div>' +
               '<button class="lib-play-btn" id="fav-play-all">▶ Play All</button>' +
+              '<button class="lib-play-btn" id="fav-shuffle-all" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
             '</div>' +
           '</div>' +
           '<div class="fav-list" id="fav-list"></div>'
 
         c.querySelector('#fav-play-all')?.addEventListener('click', () => setQueue(tracks, 0))
+        c.querySelector('#fav-shuffle-all')?.addEventListener('click', () => { const shuffled = shuffleTracks(tracks); if (shuffled.length) setQueue(shuffled, 0) })
 
         const listEl = c.querySelector('#fav-list')
         listEl.innerHTML = tracks.map((t, i) => {
           const fmt = (t.format || t.ext?.replace('.','') || '').toUpperCase()
           const fmtCls = fmt === 'FLAC' ? 'fav-fmt' : 'fav-fmt mp3'
-          const artUrl = getTrackArtUrl(t)
-          const artHtml = artUrl
-            ? '<img src="' + artUrl + '" onerror="this.parentElement.innerHTML=\'♪\'">'
+          const artHtml = t.coverPath
+            ? '<img src="' + t.coverPath + '" onerror="this.parentElement.innerHTML=\'♪\'">'
             : '♪'
           return '<div class="fav-row" data-fav-i="' + i + '">' +
             '<div class="fav-art">' + artHtml + '</div>' +
@@ -1065,21 +1097,28 @@
             '<h2>' + esc(name) + '</h2>' +
             '<p class="meta-sub">' + tracks.length + ' track' + (tracks.length !== 1 ? 's' : '') + '</p>' +
             '<button class="play-all-btn">▶ Play All</button>' +
-            (plId !== 'liked' ? '<button class="play-all-btn" id="del-pl-btn" style="margin-left:8px;background:#0f1a0f;color:#c44;border:1px solid #3a1a1a">✕ Delete</button>' : '') +
+            '<button class="play-all-btn" id="pl-shuffle-btn" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
+            (plId !== 'liked' ? '<button class="play-all-btn" id="pl-delete-btn" style="margin-left:8px;background:#0f1a0f;color:#ff8d8d;border:1px solid #4a2323">✕ Delete Playlist</button>' : '') +
           '</div>' +
         '</div>' +
         '<div class="music-tracks-list">' +
           '<div class="music-track-header"><span>#</span><span>Title</span><span></span><span>Duration</span><span>Format</span></div>' +
-          tracks.map((t, i) => trackRowHtml(t, i)).join('') +
+          tracks.map((t, i) => plId !== 'liked' ? playlistTrackRowHtml(t, i) : trackRowHtml(t, i)).join('') +
         '</div>'
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(tracks, 0))
-      el('del-pl-btn')?.addEventListener('click', () => {
+      c.querySelector('#pl-shuffle-btn')?.addEventListener('click', () => { const shuffled = shuffleTracks(tracks); if (shuffled.length) setQueue(shuffled, 0) })
+      c.querySelector('#pl-delete-btn')?.addEventListener('click', () => {
+        const pl = playlists.playlists.find(p => p.id === plId)
+        if (!pl) return
+        if (!confirm('Delete playlist "' + pl.name + '"?')) return
         playlists.playlists = playlists.playlists.filter(p => p.id !== plId)
         savePlaylists()
         if (el('music-tree')) renderMusicTree(musicLibrary)
+        setStatus('Deleted playlist: ' + pl.name)
         showAllTracks()
       })
-      wireTrackRows(c, tracks)
+      if (plId !== 'liked') wirePlaylistTrackRows(c, tracks, plId)
+      else wireTrackRows(c, tracks)
     }
 
     // ── Context menu ───────────────────────────────────────────────────────
@@ -1094,7 +1133,7 @@
       sub.querySelectorAll('[data-pl-id]').forEach(item => item.addEventListener('click', () => {
         addTrackToPlaylist(ctxTrack, item.dataset.plId); hideCtxMenu()
       }))
-      sub.querySelector('#ctx-new-pl')?.addEventListener('click', () => { createPlaylist(ctxTrack); hideCtxMenu() })
+      sub.querySelector('#ctx-new-pl')?.addEventListener('click', () => { const track = ctxTrack; hideCtxMenu(); createPlaylist(track) })
       const W = window.innerWidth
       const x = e.clientX + 190 > W ? e.clientX - 190 : e.clientX
       const y = e.clientY + 280 > window.innerHeight ? e.clientY - 280 : e.clientY
@@ -1107,11 +1146,20 @@
       el('ctx-play-next')?.addEventListener('click',  () => { if (ctxTrack) { playNext(ctxTrack); setStatus('Playing next: ' + (ctxTrack.title || '')); hideCtxMenu() } })
       el('ctx-add-queue')?.addEventListener('click',  () => { if (ctxTrack) { addToQueue(ctxTrack); setStatus('Added to queue'); hideCtxMenu() } })
       el('ctx-like')?.addEventListener('click',       () => { if (ctxTrack) { toggleLike(ctxTrack); hideCtxMenu() } })
+      el('ctx-add-playlist')?.addEventListener('click', e => {
+        if (!ctxTrack) return
+        if (_isTouchDevice) {
+          e.stopPropagation()
+          hideCtxMenu()
+          showPlaylistPicker(ctxTrack)
+        }
+      })
       el('ctx-artist-radio')?.addEventListener('click', () => {
         if (ctxTrack) { doArtistRadio(ctxTrack.albumArtist || ctxTrack.artist); hideCtxMenu() }
       })
       el('ctx-go-album')?.addEventListener('click', () => {
         if (!ctxTrack) return; hideCtxMenu()
+        // B2 track: id is original B2 file path
         if (b2Lib && ctxTrack.id) {
           for (const a of b2Lib.artists) {
             const al = a.albums.find(al => al.tracks.some(t => t.path === ctxTrack.id))
@@ -1171,12 +1219,12 @@
       c.style.padding = '0'
       c.innerHTML = '<div class="loading"><div class="spinner"></div><span>Scanning library...</span></div>'
 
-      const cfgPromise = ipcRenderer.invoke('get-config')
-      const localLibPromise = musicLibrary ? Promise.resolve(musicLibrary) : ipcRenderer.invoke('scan-music').then(lib => {
-        musicLibrary = lib
-        return lib
-      }).catch(() => ({ artists: [], allTracks: [] }))
+      const cfg = await ipcRenderer.invoke('get-config')
+      cloudSources = cfg.cloudSources || []
 
+      if (!musicLibrary) musicLibrary = await ipcRenderer.invoke('scan-music')
+
+      const hasContent = musicLibrary.artists?.length || musicLibrary.allTracks?.length
       c.innerHTML =
         '<div class="music-layout">' +
           '<div class="music-lib-panel">' +
@@ -1190,13 +1238,8 @@
           '<div class="music-content" id="music-content-inner"></div>' +
         '</div>'
 
-      cloudSources = (await cfgPromise).cloudSources || []
-      renderMusicTree(musicLibrary || { artists: [], allTracks: [] })
-      renderLibraryLoadingState('Loading your cloud library…')
-      localLibPromise.then(lib => {
-        musicLibrary = lib
-        renderMusicTree(musicLibrary || { artists: [], allTracks: [] })
-      })
+      bindSidebarPanel()
+      renderMusicTree(musicLibrary)
       showB2Library()
 
       el('music-search').addEventListener('input', e => filterMusicTree(e.target.value.toLowerCase()))
@@ -1207,15 +1250,13 @@
 
     function renderMusicTree(lib) {
       const tree = el('music-tree'); if (!tree) return
-      const b2Count = b2Lib ? b2TrackCount : ''
-      const albCount = b2Lib ? b2AlbumCount : ''
-      const artCount = b2Lib ? b2ArtistCount : ''
+      const b2Count = b2Lib ? b2Lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0) : ''
+      const albCount = b2Lib ? b2Lib.artists.reduce((s, a) => s + a.albums.length, 0) : ''
+      const artCount = b2Lib ? b2Lib.artists.length : ''
 
       let html = '<div class="music-tree-section">Library</div>'
-      html += '<div class="music-tree-item" data-tree="recently-played">🕐 Recently Played</div>'
       html += '<div class="music-tree-item" data-tree="b2-artists">🎤 Artists' + (artCount !== '' ? ' <span style="color:#2a3e2a">(' + artCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-albums">💿 Albums' + (albCount !== '' ? ' <span style="color:#2a3e2a">(' + albCount + ')</span>' : '') + '</div>'
-      html += '<div class="music-tree-item" data-tree="b2-genres">🎸 Genres</div>'
       html += '<div class="music-tree-item" data-tree="b2-all">♪ All Tracks' + (b2Count !== '' ? ' <span style="color:#2a3e2a">(' + b2Count + ')</span>' : '') + '</div>'
 
       html += '<div class="music-tree-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Playlists <span id="tree-new-pl" style="cursor:pointer;color:#4ade80;font-size:15px;line-height:1;padding:2px 4px" title="New Playlist">+</span></div>'
@@ -1231,19 +1272,13 @@
         item.addEventListener('click', async () => {
           tree.querySelectorAll('.music-tree-item').forEach(i => i.classList.remove('active'))
           item.classList.add('active')
-          document.body.classList.remove('sidebar-open') // close drawer on mobile
-          navHistory = []; updateMobileBackBtn()
           const t = item.dataset.tree
           if (t === 'b2-artists') {
-            if (await ensureB2Lib()) showB2Artists(b2Lib, b2DlUrl, b2DlToken)
+            await ensureB2Lib(); showB2Artists(b2Lib, b2DlUrl, b2DlToken); renderMusicTree(musicLibrary)
           } else if (t === 'b2-albums') {
-            if (await ensureB2Lib()) showB2AllAlbums()
-          } else if (t === 'b2-genres') {
-            if (await ensureB2Lib()) showB2Genres()
+            await ensureB2Lib(); showB2AllAlbums(); renderMusicTree(musicLibrary)
           } else if (t === 'b2-all') {
-            if (await ensureB2Lib()) showB2AllTracks()
-          } else if (t === 'recently-played') {
-            showRecentlyPlayed()
+            await ensureB2Lib(); showB2AllTracks(); renderMusicTree(musicLibrary)
           } else if (t === 'playlist') {
             showPlaylist(item.dataset.plId)
           }
@@ -1253,78 +1288,26 @@
 
     async function ensureB2Lib() {
       if (b2Lib) return true
-      renderLibraryLoadingState('Loading library…')
+      const inner = el('music-content-inner')
+      if (inner) inner.innerHTML = '<div class="lib-loading"><div class="spinner"></div><span>Loading library…</span></div>'
       try {
-        await loadB2Lib()
+        const lib = await ipcRenderer.invoke('scan-b2-music')
+        b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
         return true
       } catch (e) { setStatus('B2 error: ' + e.message); return false }
     }
 
-    // ── Navigation history (swipe back) ───────────────────────────────────
-    function pushNav(label, fn) { navHistory.push({ label, fn }); updateMobileBackBtn() }
-    function updateMobileBackBtn() {
-      const btn = el('mobile-back-btn'); if (!btn) return
-      if (navHistory.length > 0) {
-        btn.classList.add('visible')
-        const top = navHistory[navHistory.length - 1]
-        btn.textContent = '← ' + (top.label || 'Back')
-      } else {
-        btn.classList.remove('visible')
-      }
-    }
-    function goBack() {
-      if (navHistory.length === 0) return false
-      const { fn } = navHistory.pop()
-      updateMobileBackBtn()
-      fn()
-      return true
-    }
-
-    function initGestures() {
-      let txStart = 0, tyStart = 0
-      const content = el('main-content')
-      if (!content) return
-      content.addEventListener('touchstart', e => {
-        txStart = e.touches[0].clientX
-        tyStart = e.touches[0].clientY
-      }, { passive: true })
-      content.addEventListener('touchend', e => {
-        const dx = e.changedTouches[0].clientX - txStart
-        const dy = e.changedTouches[0].clientY - tyStart
-        // Right swipe from near left edge → go back
-        if (dx > 55 && Math.abs(dy) < 100 && txStart < 50) goBack()
-      }, { passive: true })
-    }
-
-    function initSidebar() {
-      el('topnav-hamburger')?.addEventListener('click', () => {
-        if (currentView !== 'media') {
-          // Not in music view — navigate back to it
-          document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-          document.querySelector('.nav-item[data-view="media"]')?.classList.add('active')
-          currentView = 'media'
-          renderView()
-          return
-        }
-        document.body.classList.toggle('sidebar-open')
-      })
-      el('sidebar-overlay')?.addEventListener('click', () => {
-        document.body.classList.remove('sidebar-open')
-      })
-    }
-
     function showB2AllAlbums() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-      navHistory = []; updateMobileBackBtn()
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       let html = '<div class="lib-breadcrumb"><span class="crumb active">All Albums</span></div>'
       html += '<div class="lib-grid">'
       for (const artist of b2Lib.artists) {
         for (const album of artist.albums) {
           const initial = (album.name || '?').charAt(0).toUpperCase()
-          const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket) || getArtistCoverUrl(artist.name, b2Lib, b2DlUrl, b2DlToken, bucket)
+          const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>'
           html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
@@ -1338,25 +1321,22 @@
         card.addEventListener('click', () => {
           const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
           const album  = artist?.albums.find(a => a.name === card.dataset.b2Album)
-          if (album) {
-            pushNav('All Albums', () => showB2AllAlbums())
-            showB2Album(artist, album, b2Lib, b2DlUrl, b2DlToken)
-          }
+          if (album) showB2Album(artist, album, b2Lib, b2DlUrl, b2DlToken)
         })
-      })
-      deferArtworkLoad(inner.querySelectorAll('[data-b2-album]'), async card => {
         const artEl = card.querySelector('.lib-card-art')
-        if (!artEl?.querySelector('.lib-card-initial')) return
-        const albumName = card.dataset.b2Album || ''
-        const url = await fetchItunesArt(card.dataset.b2Artist, albumName)
-        applyItunesArt(artEl, url, albumName.charAt(0).toUpperCase())
+        if (artEl?.querySelector('.lib-card-initial')) {
+          fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album)
+            .then(url => applyItunesArt(artEl, url, card.dataset.b2Album.charAt(0).toUpperCase()))
+        }
       })
     }
 
     function showB2AllTracks() {
       const inner = el('music-content-inner'); if (!inner || !b2Lib) return
-      navHistory = []; updateMobileBackBtn()
-      const allTracks = b2AllTracks
+      const bucket = b2Lib.bucketName || 'SpAtomify'
+      const allTracks = b2Lib.artists.flatMap(artist =>
+        artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
+      )
       let html = '<div class="lib-header" style="padding:16px 24px 12px;min-height:auto">' +
         '<div class="lib-header-art" style="width:60px;height:60px;font-size:28px;color:#2a3e2a">♪</div>' +
         '<div class="lib-header-info">' +
@@ -1381,141 +1361,6 @@
       })
       inner.querySelectorAll('.lib-track-row[data-b2-ti]').forEach(row => {
         row.addEventListener('click', () => { setQueue(allTracks, parseInt(row.dataset.b2Ti)) })
-      })
-    }
-
-    // ── Genre browser ──────────────────────────────────────────────────────
-    async function showB2Genres() {
-      const inner = el('music-content-inner'); if (!inner) return
-      navHistory = []; updateMobileBackBtn()
-      inner.innerHTML = '<div class="lib-loading"><div class="spinner"></div><span>Loading genres…</span></div>'
-      let genreData
-      try {
-        genreData = await ipcRenderer.invoke('get-genres')
-      } catch (e) {
-        inner.innerHTML = '<div class="music-empty"><span class="me-icon">🎸</span><span class="me-text">Could not load genres:<br>' + esc(e.message) + '</span></div>'
-        return
-      }
-      const { genreMap } = genreData
-      const sorted = Object.entries(genreMap).sort((a, b) => b[1].length - a[1].length)
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-
-      let html = '<div class="lib-breadcrumb"><span class="crumb active">Genres</span></div>'
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 24px 12px;flex-wrap:wrap;gap:8px">'
-      html += '<div style="color:#555;font-size:12px">' + sorted.length + ' genres</div>'
-      html += '<button class="lib-play-btn" id="genres-shuffle-all" style="margin-top:0;padding:6px 16px">⇄ Shuffle All</button>'
-      html += '</div>'
-      html += '<div class="lib-grid">'
-
-      for (const [genre, artistNames] of sorted) {
-        // Pick cover art from first artist in genre that has a cover
-        let coverHtml = ''
-        for (const aName of artistNames) {
-          const a = b2Lib.artists.find(x => x.name === aName)
-          const cover = getArtistCoverPath(aName, b2Lib)
-          if (cover) {
-            const url = b2CoverUrl(cover, b2DlUrl, b2DlToken, bucket)
-            coverHtml = '<img src="' + url + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">🎸</span>\'">'
-            break
-          }
-        }
-        if (!coverHtml) coverHtml = '<span class="lib-card-initial">🎸</span>'
-        const trackCount = artistNames.reduce((s, n) => {
-          const a = b2Lib.artists.find(x => x.name === n)
-          return s + (a ? a.albums.reduce((ss, al) => ss + al.tracks.length, 0) : 0)
-        }, 0)
-        html += '<div class="lib-card" data-genre="' + esc(genre) + '">' +
-          '<div class="lib-card-art">' + coverHtml + '</div>' +
-          '<div class="lib-card-info"><div class="lib-card-name">' + esc(genre) + '</div>' +
-          '<div class="lib-card-sub">' + artistNames.length + ' artist' + (artistNames.length !== 1 ? 's' : '') + ' · ' + trackCount + ' tracks</div>' +
-          '</div></div>'
-      }
-      html += '</div>'
-      inner.innerHTML = html
-
-      inner.querySelector('#genres-shuffle-all')?.addEventListener('click', () => {
-        const allTracks = b2Lib.artists.flatMap(artist =>
-          artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
-        )
-        const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-
-      inner.querySelectorAll('[data-genre]').forEach(card => {
-        card.addEventListener('click', () => {
-          const genre = card.dataset.genre
-          const artistNames = genreMap[genre] || []
-          pushNav('Genres', () => showB2Genres())
-          showB2Genre(genre, artistNames, genreMap)
-        })
-      })
-    }
-
-    function showB2Genre(genre, artistNames, genreMap) {
-      const inner = el('music-content-inner'); if (!inner) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
-
-      const artists = artistNames.map(n => b2Lib.artists.find(a => a.name === n)).filter(Boolean)
-      const totalTracks = artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
-
-      let html = '<div class="lib-breadcrumb">' +
-        '<span class="crumb" id="genre-crumb-root">Genres</span>' +
-        '<span class="sep">›</span>' +
-        '<span class="crumb active">' + esc(genre) + '</span></div>'
-
-      html += '<div class="lib-header" style="padding:16px 24px 12px">' +
-        '<div class="lib-header-art" style="font-size:40px;display:flex;align-items:center;justify-content:center">🎸</div>' +
-        '<div class="lib-header-info">' +
-          '<h2>' + esc(genre) + '</h2>' +
-          '<div class="lib-sub">' + artists.length + ' artist' + (artists.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div>' +
-          '<button class="lib-play-btn" id="genre-play-btn" style="margin-top:10px">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="genre-shuffle-btn" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
-        '</div></div>'
-
-      html += '<div class="lib-section-header">Artists</div><div class="lib-grid">'
-      for (const artist of artists) {
-        const initial = (artist.name || '?').charAt(0).toUpperCase()
-        const coverUrl = getArtistCoverUrl(artist.name, b2Lib, b2DlUrl, b2DlToken, bucket)
-        const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
-        const tCount = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
-        html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
-          '<div class="lib-card-art">' + artHtml + '</div>' +
-          '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
-          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + tCount + ' tracks</div></div>' +
-          '</div>'
-      }
-      html += '</div>'
-      inner.innerHTML = html
-
-      inner.querySelector('#genre-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Genres() })
-
-      const genreTracks = () => artists.flatMap(artist =>
-        artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
-      )
-      inner.querySelector('#genre-play-btn')?.addEventListener('click', () => setQueue(genreTracks(), 0))
-      inner.querySelector('#genre-shuffle-btn')?.addEventListener('click', () => {
-        const shuffled = genreTracks()
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-
-      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
-        card.addEventListener('click', () => {
-          const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (artist) {
-            pushNav(genre, () => showB2Genre(genre, artistNames, genreMap))
-            showB2Artist(artist, b2Lib, b2DlUrl, b2DlToken)
-          }
-        })
-        const artEl = card.querySelector('.lib-card-art')
-        if (artEl?.querySelector('.lib-card-initial')) {
-          const name = card.dataset.b2Artist
-          const ini = name.charAt(0).toUpperCase()
-          fetchItunesArt(name, '').then(url => { if (url) applyItunesArt(artEl, url, ini) })
-        }
       })
     }
 
@@ -1547,7 +1392,7 @@
 
     function showB2Search(q) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       const lq = q.toLowerCase()
 
       const matchArtists = b2Lib.artists.filter(a => a.name.toLowerCase().includes(lq))
@@ -1578,7 +1423,7 @@
         html += '<div class="lib-section-header">Artists</div><div class="lib-grid">'
         for (const artist of matchArtists) {
           const initial = (artist.name || '?').charAt(0).toUpperCase()
-          const coverUrl = getArtistCoverUrl(artist.name, b2Lib, b2DlUrl, b2DlToken, bucket)
+          const coverUrl = b2CoverUrl(artist.albums.find(a => a.coverPath)?.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
             ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>'
@@ -1595,7 +1440,7 @@
         html += '<div class="lib-section-header">Albums</div><div class="lib-grid">'
         for (const { artist, album } of matchAlbums) {
           const initial = (album.name || '?').charAt(0).toUpperCase()
-          const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket) || getArtistCoverUrl(artist.name, b2Lib, b2DlUrl, b2DlToken, bucket)
+          const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
             ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>'
@@ -1722,19 +1567,18 @@
     // ── Track list views ───────────────────────────────────────────────────
     function showAlbum(album) {
       const c = el('music-content-inner'); if (!c) return
-      const albumArtist = album.tracks[0]?.albumArtist || album.tracks[0]?.artist || ''
-      const albumArtUrl = album.coverPath || getArtistCoverUrl(albumArtist)
-      const artHtml = albumArtUrl
-        ? '<img class="music-album-art" src="' + albumArtUrl + '" onerror="this.outerHTML=\'<div class=\\\"music-album-art placeholder\\\">♪</div>\'">'
+      const artHtml = album.coverPath
+        ? '<img class="music-album-art" src="' + album.coverPath + '" onerror="this.outerHTML=\'<div class=\\\"music-album-art placeholder\\\">♪</div>\'">'
         : '<div class="music-album-art placeholder">♪</div>'
       c.innerHTML =
         '<div class="music-album-header">' + artHtml +
           '<div class="music-album-meta">' +
             '<h2>' + esc(album.name) + '</h2>' +
-            '<p class="meta-sub">' + esc(albumArtist) + '</p>' +
+            '<p class="meta-sub">' + esc(album.tracks[0]?.albumArtist || album.tracks[0]?.artist || '') + '</p>' +
             (album.year ? '<p class="meta-sub">' + album.year + '</p>' : '') +
             '<p class="meta-sub">' + album.tracks.length + ' track' + (album.tracks.length !== 1 ? 's' : '') + '</p>' +
             '<button class="play-all-btn">▶ Play All</button>' +
+            '<button class="play-all-btn" id="album-shuffle-btn" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
             '<button class="play-all-btn" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px" data-radio="' + esc(album.tracks[0]?.albumArtist || album.tracks[0]?.artist || '') + '">📻 Radio</button>' +
           '</div>' +
         '</div>' +
@@ -1743,13 +1587,14 @@
           album.tracks.map((t, i) => trackRowHtml(t, i)).join('') +
         '</div>'
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(album.tracks, 0))
+      c.querySelector('#album-shuffle-btn')?.addEventListener('click', () => { const shuffled = shuffleTracks(album.tracks); if (shuffled.length) setQueue(shuffled, 0) })
       c.querySelector('[data-radio]')?.addEventListener('click', e => doArtistRadio(e.target.dataset.radio))
       wireTrackRows(c, album.tracks)
     }
 
     function showArtistTracks(artist) {
       const allTracks = artist.albums.flatMap(a => a.tracks)
-      const coverPath = getArtistCoverPath(artist.name, musicLibrary)
+      const coverPath = artist.albums[0]?.coverPath
       const c = el('music-content-inner'); if (!c) return
       const artHtml = coverPath
         ? '<img class="music-album-art" src="' + coverPath + '" onerror="this.outerHTML=\'<div class=\\\"music-album-art placeholder\\\">♪</div>\'">'
@@ -1807,35 +1652,108 @@
         '<span class="music-track-fmt">' + (t.ext || '').replace('.', '') + '</span>' +
       '</div>'
     }
+    function playlistTrackRowHtml(t, i) {
+      const num = t.trackNo || (i + 1)
+      return '<div class="music-track-row" data-qi="' + i + '">' +
+        '<span class="music-track-num">' + num + '</span>' +
+        '<div class="music-track-info">' +
+          '<div class="music-track-title">' + esc(t.title || t.path.split(/[\\/]/).pop()) + '</div>' +
+          ((t.artist || t.album) ? '<div class="music-track-artist">' + esc(t.artist || t.album || '') + '</div>' : '') +
+        '</div>' +
+        '<button class="track-remove-btn" data-remove-i="' + i + '" title="Remove from playlist">✕</button>' +
+        '<span class="music-track-dur">' + fmtTime(t.duration) + '</span>' +
+        '<span class="music-track-fmt">' + (t.ext || '').replace('.', '') + '</span>' +
+      '</div>'
+    }
+
+    const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
     function wireTrackRows(container, tracks) {
       container.querySelectorAll('.music-track-row').forEach(row => {
         const i = parseInt(row.dataset.qi)
-        row.addEventListener('dblclick', () => setQueue(tracks, i))
         row.addEventListener('click', e => {
           if (e.target.classList.contains('track-like-btn')) { toggleLike(tracks[i]); return }
-          if (activeTrackRow && activeTrackRow !== row) activeTrackRow.classList.remove('active')
+          container.querySelectorAll('.music-track-row').forEach(r => r.classList.remove('active'))
           row.classList.add('active')
-          activeTrackRow = row
+          setQueue(tracks, i)
         })
+        row.addEventListener('dblclick', e => { e.preventDefault() })
         row.addEventListener('contextmenu', e => showCtxMenu(e, tracks[i]))
+        let _lp = null, _lpFired = false
+        row.addEventListener('touchstart', e => {
+          _lpFired = false
+          _lp = setTimeout(() => {
+            _lpFired = true
+            const t = e.touches[0]
+            showCtxMenu({ preventDefault: function(){}, clientX: t.clientX, clientY: t.clientY }, tracks[i])
+          }, 500)
+        }, { passive: true })
+        row.addEventListener('touchend',  () => clearTimeout(_lp))
+        row.addEventListener('touchmove', () => clearTimeout(_lp))
+      })
+    }
+    function wirePlaylistTrackRows(container, tracks, plId) {
+      container.querySelectorAll('.music-track-row').forEach(row => {
+        const i = parseInt(row.dataset.qi)
+        row.addEventListener('click', e => {
+          if (e.target.classList.contains('track-remove-btn')) return
+          container.querySelectorAll('.music-track-row').forEach(r => r.classList.remove('active'))
+          row.classList.add('active')
+          setQueue(tracks, i)
+        })
+        row.addEventListener('dblclick', e => { e.preventDefault() })
+        row.addEventListener('contextmenu', e => showCtxMenu(e, tracks[i]))
+      })
+      container.querySelectorAll('.track-remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault()
+          e.stopPropagation()
+          const idx = parseInt(btn.dataset.removeI)
+          const pl = playlists.playlists.find(p => p.id === plId)
+          if (!pl || Number.isNaN(idx)) return
+          const removed = pl.tracks[idx]
+          pl.tracks.splice(idx, 1)
+          savePlaylists()
+          if (el('music-tree')) renderMusicTree(musicLibrary)
+          setStatus('Removed from ' + pl.name + ': ' + (removed?.title || 'Track'))
+          showPlaylist(plId)
+        })
       })
     }
 
+    function toggleSidebar() {
+      const panel = document.querySelector('.music-lib-panel')
+      const overlay = el('sidebar-overlay')
+      if (!panel) return
+      const open = panel.classList.toggle('sidebar-open')
+      document.body.classList.toggle('sidebar-open', open)
+      if (overlay) overlay.classList.toggle('active', open)
+    }
+    function closeSidebar() {
+      const panel = document.querySelector('.music-lib-panel')
+      const overlay = el('sidebar-overlay')
+      if (panel) panel.classList.remove('sidebar-open')
+      document.body.classList.remove('sidebar-open')
+      if (overlay) overlay.classList.remove('active')
+    }
+    function bindSidebarPanel() {
+      const panel = document.querySelector('.music-lib-panel')
+      if (!panel || panel.dataset.sidebarBound === '1') return
+      panel.dataset.sidebarBound = '1'
+      panel.addEventListener('click', e => e.stopPropagation())
+      panel.addEventListener('pointerdown', e => e.stopPropagation())
+      panel.addEventListener('touchstart', e => e.stopPropagation(), { passive: true })
+      panel.addEventListener('touchend', e => e.stopPropagation(), { passive: true })
+    }
+
     function markPlayingRow(queueIndex) {
-      if (playingTrackRow) playingTrackRow.classList.remove('playing')
+      document.querySelectorAll('.music-track-row').forEach(r => r.classList.remove('playing'))
       const row = document.querySelector('.music-track-row[data-qi="' + queueIndex + '"]')
-      if (row) {
-        row.classList.add('playing')
-        playingTrackRow = row
-        row.scrollIntoView({ block: 'nearest' })
-      } else {
-        playingTrackRow = null
-      }
+      if (row) { row.classList.add('playing'); row.scrollIntoView({ block: 'nearest' }) }
     }
 
     // ── Queue & Playback ───────────────────────────────────────────────────
-    function setQueue(tracks, startIdx) { playQueue = [...tracks]; queueIdx = startIdx; shuffleHistory = []; playTrack(playQueue[queueIdx], queueIdx) }
+    function setQueue(tracks, startIdx) { playQueue = [...tracks]; queueIdx = startIdx; playTrack(playQueue[queueIdx], queueIdx) }
 
     function playTrack(track, idx) {
       if (!track) return
@@ -1843,7 +1761,7 @@
       if (currentHls) { currentHls.destroy(); currentHls = null }
       musicVideoPlaying = track.isVideo || false
       const audio = el('music-audio')
-      const isHttp = track.path.startsWith('http')
+      const isHttp = track.path.startsWith('http') || track.path.startsWith('/')
       const src = isHttp ? track.path : 'file:///' + track.path.replace(/\\/g, '/')
 
       if (musicVideoPlaying) {
@@ -1868,6 +1786,7 @@
             audio.play().catch(() => {})
           } else {
             audio.src = src
+            audio.preload = 'auto'
             audio.addEventListener('canplay', function seekOnce() {
               audio.removeEventListener('canplay', seekOnce)
               audio.currentTime = track.cueStartMs / 1000
@@ -1875,14 +1794,8 @@
             }, { once: true })
           }
         } else {
-          // Use gapless preload buffer if available for this src
-          if (gaplessBuffer?.src === src && gaplessBuffer.audio.readyState >= 2) {
-            const buf = gaplessBuffer.audio
-            gaplessBuffer = null
-            audio.src = buf.src   // same src, browser reuses cached data
-          } else {
-            audio.src = src
-          }
+          audio.preload = 'auto'
+          audio.src = src
           audio.play().catch(() => {})
         }
       }
@@ -1890,7 +1803,8 @@
       updatePlayerBar(track)
       showPlayerBar()
       if (idx !== undefined) markPlayingRow(idx)
-      updateQueueBadge(); updateQueuePanel()
+      updateQueueBadge()
+      if (document.body.classList.contains('queue-open')) updateQueuePanel()
       const pLike = el('p-like')
       if (pLike) { pLike.textContent = isLiked(track) ? '♥' : '♡'; pLike.classList.toggle('liked', isLiked(track)) }
       const pos = el('p-queue-pos')
@@ -1909,11 +1823,6 @@
     function showVideoPlayer(track, src) {
       const c = el('music-content-inner'); if (!c) return
       c.innerHTML = '<div class="music-video-wrap"><video id="music-video-el" controls autoplay src="' + src + '"></video></div>'
-      const v = el('music-video-el')
-      if (v) {
-        v.volume = (parseInt(el('p-vol')?.value || '80', 10) || 80) / 100
-        applyCurrentPlaybackSpeed()
-      }
       el('music-video-el').addEventListener('ended', onTrackEnded)
       el('music-video-el').addEventListener('timeupdate', () => {
         const v = el('music-video-el'); if (!v) return
@@ -1923,194 +1832,144 @@
 
     function hideVideoPlayer() { const v = el('music-video-el'); if (v) { v.pause(); v.src = '' } }
     function showPlayerBar()   { el('player-bar').style.display = ''; document.body.classList.add('player-bar-active') }
-    function getPrimaryMedia() {
-      return musicVideoPlaying ? el('music-video-el') : el('music-audio')
-    }
-    function applyCurrentPlaybackSpeed() {
-      const speed = SPEEDS[currentSpeedIdx]
+    function skipToPrevTrack(forceTrackSkip) {
+      if (!playQueue.length) return
       const audio = el('music-audio')
-      const video = el('music-video-el')
-      if (audio) audio.playbackRate = speed
-      if (video) video.playbackRate = speed
-      el('np-speed-btn')?.classList.toggle('np-active', speed !== 1)
-      if (el('np-speed-btn')) el('np-speed-btn').title = speed === 1 ? 'Playback speed' : 'Playback speed (' + speed + '×)'
-    }
-
-    // ── Playback Speed ────────────────────────────────────
-    const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-    let currentSpeedIdx = 2   // default 1×
-
-    function initSpeedControl() {
-      const btn = el('np-speed-btn')
-      btn.addEventListener('click', () => {
-        document.getElementById('speed-menu')?.remove()
-        const menu = document.createElement('div')
-        menu.id = 'speed-menu'
-        menu.style.cssText = [
-          'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
-          'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
-          'overflow:hidden','z-index:600','min-width:180px',
-          'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-        ].join(';')
-        menu.innerHTML =
-          '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">PLAYBACK SPEED</div>' +
-          SPEEDS.map((s, i) =>
-            `<div class="speed-opt" data-idx="${i}" style="padding:12px 20px;font-size:14px;color:${i === currentSpeedIdx ? '#4ade80' : '#ccc'};cursor:pointer;border-top:1px solid #1a2e1a${i === currentSpeedIdx ? ';font-weight:700' : ''}">${s === 1 ? '1× Normal' : s + '×'}</div>`
-          ).join('')
-        document.body.appendChild(menu)
-        menu.querySelectorAll('.speed-opt').forEach(opt => {
-          opt.addEventListener('click', () => {
-            menu.remove()
-            currentSpeedIdx = +opt.dataset.idx
-            const speed = SPEEDS[currentSpeedIdx]
-            btn.textContent = speed === 1 ? '1×' : speed + '×'
-            applyCurrentPlaybackSpeed()
-          })
-        })
-        setTimeout(() => {
-          document.addEventListener('click', function dismiss(e) {
-            if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
-          })
-        }, 0)
-      })
-      // Preserve speed across track changes
-      el('music-audio').addEventListener('play', () => {
-        applyCurrentPlaybackSpeed()
-      })
-    }
-
-    // ── Lyrics ────────────────────────────────────────────
-    let lyricsFor = null   // "artist||title" — avoid duplicate fetches
-
-    async function fetchLyrics(artist, title) {
-      const key = (artist || '') + '||' + (title || '')
-      if (!artist || !title || key === lyricsFor) return
-      lyricsFor = key
-      const lyricsEl = el('np-lyrics'); if (!lyricsEl) return
-      lyricsEl.textContent = ''
-      try {
-        const a = encodeURIComponent(artist.trim())
-        const t = encodeURIComponent(title.trim())
-        const res = await fetch(`https://api.lyrics.ovh/v1/${a}/${t}`)
-        if (lyricsFor !== key) return   // track changed while fetching
-        if (!res.ok) { lyricsEl.style.color = ''; return }
-        const data = await res.json()
-        if (data.lyrics) {
-          lyricsEl.style.color = '#555'
-          lyricsEl.innerHTML = data.lyrics.replace(/\n/g, '<br>')
+      const med = musicVideoPlaying ? el('music-video-el') : audio
+      const cur = playQueue[queueIdx]
+      if (!forceTrackSkip && med) {
+        if (cur?.cueStartMs != null) {
+          const chOffset = med.currentTime - cur.cueStartMs / 1000
+          if (chOffset > 3) { med.currentTime = cur.cueStartMs / 1000; return }
+        } else if (med.currentTime > 3) {
+          med.currentTime = 0
+          return
         }
-      } catch { /* silently fail — lyrics are a nice-to-have */ }
-    }
-
-    function extractDominantColor(imgSrc, callback) {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = canvas.height = 24   // tiny sample for speed
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0, 24, 24)
-          const data = ctx.getImageData(0, 0, 24, 24).data
-          let r = 0, g = 0, b = 0, count = 0
-          for (let i = 0; i < data.length; i += 16) {
-            r += data[i]; g += data[i+1]; b += data[i+2]; count++
-          }
-          r = Math.round(r / count * 0.35)   // darken so text stays readable
-          g = Math.round(g / count * 0.35)
-          b = Math.round(b / count * 0.35)
-          callback(`rgb(${r},${g},${b})`)
-        } catch { callback(null) }
       }
-      img.onerror = () => callback(null)
-      img.src = imgSrc
+      queueIdx = Math.max(0, queueIdx - 1)
+      playTrack(playQueue[queueIdx], queueIdx)
+    }
+    function skipToNextTrack() {
+      if (!playQueue.length) return
+      queueIdx = pShuffle ? Math.floor(Math.random() * playQueue.length) : Math.min(playQueue.length - 1, queueIdx + 1)
+      playTrack(playQueue[queueIdx], queueIdx)
+    }
+    function updateMediaSession(track) {
+      if (!('mediaSession' in navigator) || !track) return
+      try {
+        const title = track.title || track.path.split(/[\\/]/).pop()
+        const artist = track.artist || ''
+        const album = track.album || ''
+        const artwork = track.coverPath ? [
+          { src: track.coverPath, sizes: '96x96', type: 'image/png' },
+          { src: track.coverPath, sizes: '192x192', type: 'image/png' },
+          { src: track.coverPath, sizes: '512x512', type: 'image/png' }
+        ] : []
+        navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album, artwork })
+      } catch (e) {}
+      try {
+        navigator.mediaSession.setActionHandler('play', () => el('p-play')?.click())
+        navigator.mediaSession.setActionHandler('pause', () => el('p-play')?.click())
+        navigator.mediaSession.setActionHandler('previoustrack', () => skipToPrevTrack(true))
+        navigator.mediaSession.setActionHandler('nexttrack', () => skipToNextTrack())
+        navigator.mediaSession.setActionHandler('seekbackward', null)
+        navigator.mediaSession.setActionHandler('seekforward', null)
+        navigator.mediaSession.setActionHandler('seekto', details => {
+          if (details && typeof details.seekTime === 'number') seekToPct(details.seekTime / ((musicVideoPlaying ? el('music-video-el') : el('music-audio'))?.duration || 1))
+        })
+      } catch (e) {}
+    }
+    function updateMediaSessionState(playing) {
+      if (!('mediaSession' in navigator)) return
+      try { navigator.mediaSession.playbackState = playing ? 'playing' : 'paused' } catch (e) {}
+    }
+    function updateMediaSessionPosition(cur, dur) {
+      if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState || !isFinite(dur) || dur <= 0) return
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: dur,
+          playbackRate: 1,
+          position: Math.max(0, Math.min(cur, dur))
+        })
+      } catch (e) {}
     }
 
     function updatePlayerBar(track) {
-      pushRecentlyPlayed(track)
-      const title  = track.title  || track.path.split(/[\\/]/).pop()
-      const artist = track.artist || (track.album ? track.album : 'Unknown')
-      const artUrl = getTrackArtUrl(track)
-      el('p-title').textContent  = title
-      el('p-artist').textContent = artist
+      el('p-title').textContent  = track.title  || track.path.split(/[\\/]/).pop()
+      el('p-artist').textContent = track.artist || (track.album ? track.album : 'Unknown')
       const art = el('player-art')
-      if (artUrl) art.innerHTML = '<img src="' + artUrl + '" onerror="this.parentElement.textContent=\'♪\'">'
+      if (track.coverPath) art.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.textContent=\'♪\'">'
       else art.innerHTML = track.isVideo ? '🎬' : '♪'
-      // Sync Now Playing screen
-      const npTitle = el('np-title'); if (npTitle) npTitle.textContent = title
-      const npArtist = el('np-artist'); if (npArtist) npArtist.textContent = artist
-      const npArtWrap = el('np-art-wrap')
-      if (npArtWrap) {
-        if (artUrl) {
-          npArtWrap.innerHTML = '<img src="' + artUrl + '" onerror="this.outerHTML=\'<span class=\\\"np-art-placeholder\\\">♪</span>\'">'
-          extractDominantColor(artUrl, color => {
-            const np = el('np-screen')
-            if (np) np.style.background = color || '#080c08'
-          })
-        } else {
-          npArtWrap.innerHTML = '<span class="np-art-placeholder">' + (track.isVideo ? '🎬' : '♪') + '</span>'
-          const np = el('np-screen'); if (np) np.style.background = '#080c08'
-        }
-      }
-      const npLike = el('np-like-btn'); if (npLike) { npLike.textContent = isLiked(track) ? '♥' : '♡'; npLike.classList.toggle('liked', isLiked(track)) }
-      updateNowPlayingControlHints()
-      // Clear old lyrics and fetch new ones
-      const lyricsEl = el('np-lyrics'); if (lyricsEl) lyricsEl.innerHTML = ''
-      fetchLyrics(track.artist, track.title)
-      // ── Media Session metadata (lock screen / Control Center) ────────────
-      if ('mediaSession' in navigator) {
-        const artwork = artUrl
-          ? [{ src: artUrl, sizes: '600x600', type: artUrl.endsWith('.png') ? 'image/png' : 'image/jpeg' }]
-          : []
-        navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album: track.album || '', artwork })
-      }
+      applyPlayerBackdrop(track.coverPath)
+      syncNowPlaying(track)
+      updateMediaSession(track)
     }
 
     function updateSeekBar(cur, dur) {
-      const now = performance.now()
-      if (now - lastSeekUiMs < (IS_IOS_WEBKIT ? 250 : 120)) return
-      lastSeekUiMs = now
-      const pct = (dur > 0 ? (cur / dur * 100) : 0) + '%'
       el('p-cur').textContent = fmtTime(cur)
       el('p-dur').textContent = fmtTime(dur)
-      el('seek-fill').style.width = pct
-      const npFill = el('np-seek-fill'); if (npFill) npFill.style.width = pct
-      const npCur = el('np-cur'); if (npCur) npCur.textContent = fmtTime(cur)
-      const npDur = el('np-dur'); if (npDur) npDur.textContent = fmtTime(dur)
-      // Keep lock screen scrubber in sync
-      if ('mediaSession' in navigator && isFinite(dur) && dur > 0 && now - lastMediaSessionPositionMs > 1000) {
-        lastMediaSessionPositionMs = now
-        try { navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: Math.min(cur, dur) }) } catch (_) {}
-      }
+      el('seek-fill').style.width = (dur > 0 ? (cur / dur * 100) : 0) + '%'
+      updateNowPlayingSeek(cur, dur)
+      updateMediaSessionPosition(cur, dur)
     }
 
-    function smartShuffleNext() {
-      // Weight unplayed tracks higher; avoid last 10 played in this session
-      const recentPaths = new Set(getRecentlyPlayed().slice(0, 10).map(t => t.path))
-      shuffleHistory.push(queueIdx)
-      const sessionPlayed = new Set(shuffleHistory)
-      // Candidates: not in session history if possible
-      let pool = playQueue.map((_, i) => i).filter(i => !sessionPlayed.has(i))
-      if (!pool.length) { shuffleHistory = []; pool = playQueue.map((_, i) => i).filter(i => i !== queueIdx) }
-      if (!pool.length) return queueIdx
-      // Within pool, weight unrecently-played tracks 4x
-      const weighted = pool.flatMap(i => {
-        const path = playQueue[i]?.path || playQueue[i]?.filePath || ''
-        return recentPaths.has(path) ? [i] : [i, i, i, i]
-      })
-      return weighted[Math.floor(Math.random() * weighted.length)]
+    // ── Now Playing full panel ─────────────────────────────────────────────
+    function openNowPlaying() {
+      if (!playQueue[queueIdx]) return
+      syncNowPlaying(playQueue[queueIdx])
+      document.body.classList.add('np-open')
+    }
+    function closeNowPlaying() { document.body.classList.remove('np-open') }
+    function applyPlayerBackdrop(coverPath) {
+      const bg = coverPath ? 'url("' + String(coverPath).replace(/"/g, '\\"') + '")' : 'none'
+      el('player-bar')?.style.setProperty('--player-cover-image', bg)
+      el('np-panel')?.style.setProperty('--player-cover-image', bg)
+    }
+    function syncNowPlaying(track) {
+      const inner = el('np-art-inner'); if (!inner) return
+      el('np-title').textContent = track.title || track.path.split(/[\\/]/).pop()
+      el('np-sub').textContent   = track.artist || track.album || 'Unknown'
+      applyPlayerBackdrop(track.coverPath)
+      if (track.coverPath) {
+        inner.className = ''
+        inner.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.className=\'np-art-ph\';this.parentElement.textContent=\'♪\'">'
+      } else {
+        inner.className = 'np-art-ph'
+        inner.textContent = '♪'
+      }
+      const liked = isLiked(track)
+      const lb = el('np-like-btn'); if (lb) { lb.textContent = liked ? '♥' : '♡'; lb.classList.toggle('liked', liked) }
+      const audio = el('music-audio')
+      const pb = el('np-play-btn'); if (pb) pb.textContent = (audio && !audio.paused) ? '⏸' : '▶'
+      const sb = el('np-shuf-btn'); if (sb) sb.classList.toggle('np-active', pShuffle)
+      const rb = el('np-rep-btn')
+      if (rb) { rb.textContent = repeatMode === 'one' ? '↺¹' : '↺'; rb.classList.toggle('np-active', repeatMode !== 'none') }
+    }
+    function updateNowPlayingSeek(cur, dur) {
+      const fill = el('np-seek-fill'); if (!fill) return
+      fill.style.width = (dur > 0 ? (cur / dur * 100) : 0) + '%'
+      el('np-cur').textContent = fmtTime(cur)
+      el('np-dur').textContent = fmtTime(dur)
+    }
+    function seekToPct(pct) {
+      const med = musicVideoPlaying ? el('music-video-el') : el('music-audio')
+      const cur = playQueue[queueIdx]
+      if (!med || !isFinite(med.duration)) return
+      if (cur && cur.cueStartMs != null) {
+        const s = cur.cueStartMs / 1000
+        const e2 = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
+        med.currentTime = s + pct * (e2 - s)
+      } else {
+        med.currentTime = pct * med.duration
+      }
     }
 
     function onTrackEnded() {
       cueAdvancing = false
       if (repeatMode === 'one') { playTrack(playQueue[queueIdx], queueIdx); return }
-      let next
-      if (pShuffle) {
-        next = smartShuffleNext()
-      } else {
-        next = queueIdx + 1
-        if (next >= playQueue.length) { if (repeatMode === 'all') next = 0; else return }
-      }
+      let next = queueIdx + 1
+      if (pShuffle) next = Math.floor(Math.random() * playQueue.length)
+      if (next >= playQueue.length) { if (repeatMode === 'all') next = 0; else return }
       queueIdx = next; playTrack(playQueue[queueIdx], queueIdx)
     }
 
@@ -2135,76 +1994,100 @@
     // B2 LIBRARY BROWSER (Spotify/Plex-style)
     // =====================================================
     async function showB2Library() {
-      renderLibraryLoadingState('Scanning B2 library…')
-      try {
-        const lib = await loadB2Lib()
-        showB2Artists(lib, lib.dlUrl, lib.dlToken)
-        renderJumpBackIn()
-      } catch (e) {
-        const inner = el('music-content-inner'); if (!inner) return
-        inner.innerHTML = '<div class="music-empty"><span class="me-icon">☁</span><span class="me-text">Error loading B2 library:<br>' + esc(e.message) + '</span></div>'
-      }
-    }
-
-    function renderJumpBackIn() {
       const inner = el('music-content-inner'); if (!inner) return
-      inner.querySelector('#jump-back-in')?.remove()
-      const recent = getRecentlyPlayed().slice(0, 6)
-      if (!recent.length) return
-      const section = document.createElement('div')
-      section.id = 'jump-back-in'
-      section.style.cssText = 'padding:0 12px 4px'
-      let html = '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#3a4e3a;padding:16px 0 10px">JUMP BACK IN</div>'
-      html += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none">'
-      recent.forEach((t, i) => {
-        const title  = esc(t.title  || t.path?.split(/[\\/]/).pop() || '')
-        const artist = esc(t.artist || t.album || '')
-        const cover  = artImgHtml(getTrackArtUrl(t), '80px')
-        html += `<div data-jbi="${i}" style="flex-shrink:0;width:80px;cursor:pointer">
-          ${cover}
-          <div style="font-size:11px;color:#ccc;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</div>
-          <div style="font-size:10px;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${artist}</div>
-        </div>`
-      })
-      html += '</div>'
-      section.innerHTML = html
-      // Insert before the main artist grid
-      const firstChild = inner.firstElementChild
-      inner.insertBefore(section, firstChild)
-      section.querySelectorAll('[data-jbi]').forEach(card => {
-        card.addEventListener('click', async () => {
-          const t = recent[+card.dataset.jbi]
-          if (!t) return
-          const resolved = await resolveRecentTrack(t)
-          if (resolved) setQueue([resolved], 0)
-        })
-      })
+      inner.innerHTML = '<div class="lib-loading"><div class="spinner"></div><span>Scanning B2 library…</span></div>'
+      let lib
+      try {
+        lib = await ipcRenderer.invoke('scan-b2-music')
+      } catch (e) {
+        inner.innerHTML = '<div class="music-empty"><span class="me-icon">☁</span><span class="me-text">Error loading B2 library:<br>' + esc(e.message) + '</span></div>'
+        return
+      }
+      b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
+      showB2Artists(lib, lib.dlUrl, lib.dlToken)
     }
 
     function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
       if (!filePath) return null
       const encoded = filePath.split('/').map(encodeURIComponent).join('/')
-      return dlUrl + '/file/' + (bucketName || 'aharveyGoogleDriveBackup') + '/' + encoded + '?Authorization=' + dlToken
+      return dlUrl + '/file/' + (bucketName || 'SpAtomify') + '/' + encoded + '?Authorization=' + dlToken
     }
 
     function showB2Artists(lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
-      navHistory = []; updateMobileBackBtn()
+      const bucket = lib.bucketName || 'SpAtomify'
 
-      const totalTracks = b2TrackCount
-      let html = '<div class="lib-breadcrumb"><span class="crumb active">Music</span></div>'
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 24px 12px;flex-wrap:wrap;gap:8px">'
-      html += '<div style="color:#555;font-size:12px">' + lib.artists.length + ' artists · ' + totalTracks + ' tracks</div>'
-      html += '<button class="lib-play-btn" id="b2-shuffle-all-btn" style="margin-top:0;padding:6px 16px">⇄ Shuffle All</button>'
-      html += '</div>'
+      const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
+      const totalAlbums = lib.artists.reduce((s, a) => s + a.albums.length, 0)
+      const topArtists = [...lib.artists].sort((a, b) => {
+        const at = a.albums.reduce((s, al) => s + al.tracks.length, 0)
+        const bt = b.albums.reduce((s, al) => s + al.tracks.length, 0)
+        return bt - at || a.name.localeCompare(b.name)
+      }).slice(0, 10)
+      const albumPool = lib.artists.flatMap(artist => artist.albums.map(album => ({ artist, album })))
+      const featuredAlbums = albumPool
+        .filter(x => x.album.coverPath)
+        .sort((a, b) => (b.album.tracks?.length || 0) - (a.album.tracks?.length || 0))
+        .slice(0, 8)
+      const heroCovers = featuredAlbums.slice(0, 4)
+
+      let html = '<div class="b2-home">' +
+        '<section class="b2-hero">' +
+          '<div>' +
+            '<div class="b2-eyebrow">AtomicBlast Radio</div>' +
+            '<h1>Your whole library, dialed in.</h1>' +
+            '<div class="b2-hero-sub">Browse artists, jump into albums, or shuffle the full SpAtomify vault with a darker streaming-room feel.</div>' +
+            '<div class="b2-hero-actions">' +
+              '<button id="b2-shuffle-all-btn" class="b2-primary-btn">&#x21C4; Shuffle All</button>' +
+              '<button id="b2-view-albums-btn" class="b2-ghost-btn">Browse Albums</button>' +
+              '<button id="b2-view-tracks-btn" class="b2-ghost-btn">All Tracks</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="b2-hero-stack">'
+      for (const { artist, album } of heroCovers) {
+        const initial = (album.name || artist.name || '?').charAt(0).toUpperCase()
+        const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+        html += '<div class="b2-cover-tile">' +
+          (coverUrl ? '<img src="' + coverUrl + '" onerror="this.outerHTML=\'<div class=\\\"b2-cover-ph\\\">' + esc(initial) + '</div>\'">' : '<div class="b2-cover-ph">' + esc(initial) + '</div>') +
+          '</div>'
+      }
+      while (heroCovers.length < 4) {
+        html += '<div class="b2-cover-tile"><div class="b2-cover-ph">♪</div></div>'
+        heroCovers.push({})
+      }
+      html += '</div></section>' +
+        '<div class="b2-stats-row">' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + lib.artists.length + '</div><div class="b2-stat-label">Artists</div></div>' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + totalAlbums + '</div><div class="b2-stat-label">Albums</div></div>' +
+          '<div class="b2-stat-card"><div class="b2-stat-num">' + totalTracks + '</div><div class="b2-stat-label">Tracks</div></div>' +
+        '</div>'
+
+      if (featuredAlbums.length) {
+        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Plex-style shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
+          '<div class="b2-shelf">'
+        for (const { artist, album } of featuredAlbums) {
+          const initial = (album.name || '?').charAt(0).toUpperCase()
+          const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+          const artHtml = coverUrl
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+          html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+            '<div class="lib-card-art">' + artHtml + '</div>' +
+            '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
+            '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
+        }
+        html += '</div>'
+      }
+
+      html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Jellyfin wall</div><h2>Artists</h2></div><button id="b2-all-artists-top" class="b2-pill-btn">' + lib.artists.length + ' total</button></div>'
       html += '<div class="lib-grid">'
-      for (const artist of lib.artists) {
+      for (const artist of topArtists) {
         const initial = (artist.name || '?').charAt(0).toUpperCase()
-        const coverUrl = getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
+        const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
+        const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
         const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
         html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
           '<div class="lib-card-art">' + artHtml + '</div>' +
@@ -2212,38 +2095,45 @@
           '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div></div>' +
           '</div>'
       }
-      html += '</div>'
+      html += '</div></div>'
       inner.innerHTML = html
 
-      // Shuffle All button
-      inner.querySelector('#b2-shuffle-all-btn')?.addEventListener('click', () => {
-        const shuffled = [...b2AllTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
+      el('b2-shuffle-all-btn')?.addEventListener('click', () => {
+        const all = lib.artists.flatMap(a => a.albums.flatMap(al => al.tracks.map(t => b2TrackObj(t, a.name, al, dlUrl, dlToken, lib.bucketName))))
+        for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]] }
+        setQueue(all, 0)
       })
+      el('b2-view-albums-btn')?.addEventListener('click', () => showB2AllAlbums())
+      el('b2-view-tracks-btn')?.addEventListener('click', () => showB2AllTracks())
+      el('b2-all-albums-top')?.addEventListener('click', () => showB2AllAlbums())
 
       inner.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (artist) {
-            pushNav('Music', () => showB2Artists(lib, dlUrl, dlToken))
+          if (!artist) return
+          if (card.dataset.b2Album) {
+            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
+            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
+          } else {
             showB2Artist(artist, lib, dlUrl, dlToken)
           }
         })
-      })
-      deferArtworkLoad(inner.querySelectorAll('[data-b2-artist]'), async card => {
         const artEl = card.querySelector('.lib-card-art')
-        if (!artEl?.querySelector('.lib-card-initial')) return
-        const name = card.dataset.b2Artist
-        const ini = name.charAt(0).toUpperCase()
-        const url = await fetchItunesArt(name, '')
-        if (url) { applyItunesArt(artEl, url, ini); return }
-        try {
-          const meta = await ipcRenderer.invoke('fetch-artist-meta', { artistName: name })
-          if (meta?.image && artEl.querySelector('.lib-card-initial')) {
-            artEl.innerHTML = '<img src="' + meta.image + '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(ini) + '</span>\'">'
-          }
-        } catch (e) {}
+        if (artEl?.querySelector('.lib-card-initial')) {
+          const name = card.dataset.b2Album || card.dataset.b2Artist
+          const ini = name.charAt(0).toUpperCase()
+          fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album || '').then(async url => {
+            if (url) { applyItunesArt(artEl, url, ini); return }
+            try {
+              const meta = card.dataset.b2Album
+                ? await ipcRenderer.invoke('fetch-album-meta', { artistName: card.dataset.b2Artist, albumName: card.dataset.b2Album })
+                : await ipcRenderer.invoke('fetch-artist-meta', { artistName: card.dataset.b2Artist })
+              const image = meta?.coverArt || meta?.image
+              if (image && artEl.querySelector('.lib-card-initial'))
+                artEl.innerHTML = '<img src="' + image + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(ini) + '</span>\'">'
+            } catch(e) {}
+          })
+        }
       })
     }
 
@@ -2260,9 +2150,10 @@
 
     function showB2Artist(artist, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const initial = (artist.name || '?').charAt(0).toUpperCase()
-      const coverUrl = getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
+      const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
+      const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
       const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
 
       const artHtml = coverUrl
@@ -2280,8 +2171,7 @@
           '<h2>' + esc(artist.name) + '</h2>' +
           '<div class="lib-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div>' +
           '<div id="b2-artist-stats" class="lib-meta-stats"></div>' +
-          '<button class="lib-play-btn" id="b2-artist-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-artist-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-artist-play">▶ Play All</button>' +
         '</div></div>' +
         '<div id="b2-artist-bio" class="lib-artist-bio"></div>' +
         '<div id="b2-artist-tags" class="lib-tags"></div>' +
@@ -2301,8 +2191,8 @@
         const primary = albums.reduce((best, a) => a.tracks.length >= best.tracks.length ? a : best, albums[0])
         const secondary = albums.length > 1 ? albums.find(a => a !== primary && a.coverPath) : null
         const albInitial = (primary.name || '?').charAt(0).toUpperCase()
-        const frontUrl = b2CoverUrl(primary.coverPath, dlUrl, dlToken, bucket) || getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
-        const backUrl  = secondary ? (b2CoverUrl(secondary.coverPath, dlUrl, dlToken, bucket) || getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)) : null
+        const frontUrl = b2CoverUrl(primary.coverPath, dlUrl, dlToken, bucket)
+        const backUrl  = secondary ? b2CoverUrl(secondary.coverPath, dlUrl, dlToken, bucket) : null
         const totalTracks = albums.reduce((s, a) => s + a.tracks.length, 0)
         const subText = albums.length > 1
           ? albums.length + ' versions · ' + totalTracks + ' tracks'
@@ -2336,15 +2226,14 @@
       html += '</div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
       inner.querySelector('#b2-artist-play')?.addEventListener('click', () => {
         const allTracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, dlUrl, dlToken, bucket)))
-        setQueue(allTracks, 0)
-      })
-      inner.querySelector('#b2-artist-shuffle')?.addEventListener('click', () => {
-        const allTracks = artist.albums.flatMap(a => a.tracks.map(t => b2TrackObj(t, artist.name, a, dlUrl, dlToken, bucket)))
         const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+        }
         setQueue(shuffled, 0)
       })
       // Art + metadata: try iTunes first, then multi-source aggregator
@@ -2409,7 +2298,6 @@
         const gKey = card.dataset.groupKey
         const gAlbums = groupMap.get(gKey) || []
         card.addEventListener('click', () => {
-          pushNav(artist.name, () => showB2Artist(artist, lib, dlUrl, dlToken))
           if (gAlbums.length === 1) {
             showB2Album(artist, gAlbums[0], lib, dlUrl, dlToken)
           } else {
@@ -2434,11 +2322,11 @@
 
     async function showB2AlbumGroup(artist, albums, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const primary = albums.reduce((best, a) => a.tracks.length >= best.tracks.length ? a : best, albums[0])
       const groupTitle = normalizeAlbumName(primary.name).replace(/\b\w/g, c => c.toUpperCase()) || primary.name
       const initial = groupTitle.charAt(0).toUpperCase()
-      const coverUrl = b2CoverUrl(primary.coverPath, dlUrl, dlToken, bucket) || getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
+      const coverUrl = b2CoverUrl(primary.coverPath, dlUrl, dlToken, bucket)
       const artHtml = coverUrl
         ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
         : '<span class="lib-card-initial">' + esc(initial) + '</span>'
@@ -2456,18 +2344,15 @@
         '<div class="lib-header-info">' +
           '<h2>' + esc(groupTitle) + '</h2>' +
           '<div class="lib-sub">' + esc(artist.name) + ' · ' + albums.length + ' versions · ' + totalTracks + ' tracks</div>' +
-          '<button class="lib-play-btn" id="b2-group-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-group-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-group-play">▶ Play All</button>' +
+          '<button class="lib-play-btn" id="b2-group-shuffle" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
         '</div></div>'
 
       html += '<div id="b2-group-sections"></div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
-      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => {
-        navHistory = [{ label: 'Music', fn: () => showB2Artists(lib, dlUrl, dlToken) }]; updateMobileBackBtn()
-        showB2Artist(artist, lib, dlUrl, dlToken)
-      })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
+      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => showB2Artist(artist, lib, dlUrl, dlToken))
 
       // Sort versions: most tracks first, then alphabetically
       const sorted = [...albums].sort((a, b) => b.tracks.length - a.tracks.length || a.name.localeCompare(b.name))
@@ -2476,7 +2361,7 @@
       const sectionsEl = inner.querySelector('#b2-group-sections')
 
       for (const album of sorted) {
-        const albCoverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket) || getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
+        const albCoverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
         const albInitial = (album.name || '?').charAt(0).toUpperCase()
         const artImg = albCoverUrl
           ? '<img src="' + albCoverUrl + '">'
@@ -2545,13 +2430,9 @@
         sectionsEl.appendChild(section)
       }
 
-      // Wire up play/shuffle buttons and track rows after all sections rendered
+      // Wire up play buttons and track rows after all sections rendered
       inner.querySelector('#b2-group-play')?.addEventListener('click', () => setQueue(allQueued, 0))
-      inner.querySelector('#b2-group-shuffle')?.addEventListener('click', () => {
-        const shuffled = [...allQueued]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
+      inner.querySelector('#b2-group-shuffle')?.addEventListener('click', () => { const shuffled = shuffleTracks(allQueued); if (shuffled.length) setQueue(shuffled, 0) })
       inner.querySelectorAll('[data-ver-play]').forEach(btn => {
         const off = parseInt(btn.dataset.verPlay)
         btn.addEventListener('click', e => { e.stopPropagation(); setQueue(allQueued, off) })
@@ -2570,7 +2451,6 @@
       const encodedPath = track.path.split('/').map(encodeURIComponent).join('/')
       const signedUrl   = dlUrl + '/file/' + bucket + '/' + encodedPath + '?Authorization=' + dlToken
       const coverUrl    = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
-      const artistArtUrl = getArtistCoverUrl(artistName, b2Lib, dlUrl, dlToken, bucket)
       return {
         id:         track.path,
         title:      track.title,
@@ -2579,15 +2459,14 @@
         path:       signedUrl,
         ext:        track.ext,
         coverPath:  coverUrl,
-        artistArtPath: artistArtUrl,
       }
     }
 
     async function showB2Album(artist, album, lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
-      const bucket = lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = lib.bucketName || 'SpAtomify'
       const initial = (album.name || '?').charAt(0).toUpperCase()
-      const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket) || getArtistCoverUrl(artist.name, lib, dlUrl, dlToken, bucket)
+      const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
 
       const artHtml = coverUrl
         ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
@@ -2605,8 +2484,8 @@
         '<div class="lib-header-info">' +
           '<h2>' + esc(album.name) + '</h2>' +
           '<div class="lib-sub" id="b2-album-sub">' + esc(artist.name) + '</div>' +
-          '<button class="lib-play-btn" id="b2-album-play">&#9654; Play All</button>' +
-          '<button class="lib-play-btn" id="b2-album-shuffle" style="background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80;margin-left:8px">⇄ Shuffle</button>' +
+          '<button class="lib-play-btn" id="b2-album-play">▶ Play All</button>' +
+          '<button class="lib-play-btn" id="b2-album-shuffle" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
         '</div></div>' +
         '<div id="b2-album-wiki" class="lib-album-wiki"></div>'
 
@@ -2615,11 +2494,8 @@
       html += '</div>'
       inner.innerHTML = html
 
-      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => { navHistory = []; updateMobileBackBtn(); showB2Artists(lib, dlUrl, dlToken) })
-      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => {
-        navHistory = [{ label: 'Music', fn: () => showB2Artists(lib, dlUrl, dlToken) }]; updateMobileBackBtn()
-        showB2Artist(artist, lib, dlUrl, dlToken)
-      })
+      inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
+      inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => showB2Artist(artist, lib, dlUrl, dlToken))
 
       // Cover art + wiki from aggregator
       ;(async () => {
@@ -2709,11 +2585,7 @@
 
       listEl.innerHTML = trackHtml
       inner.querySelector('#b2-album-play')?.addEventListener('click', () => setQueue(queuedTracks, 0))
-      inner.querySelector('#b2-album-shuffle')?.addEventListener('click', () => {
-        const shuffled = [...queuedTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
+      inner.querySelector('#b2-album-shuffle')?.addEventListener('click', () => { const shuffled = shuffleTracks(queuedTracks); if (shuffled.length) setQueue(shuffled, 0) })
 
       inner.querySelectorAll('.lib-track-row').forEach(row => {
         const i = parseInt(row.dataset.b2Ti)
@@ -2746,71 +2618,27 @@
           updateSeekBar(audio.currentTime - startSec, durSec)
         } else {
           updateSeekBar(audio.currentTime, audio.duration)
-          // Gapless: start preloading next track when 20s remain
-          if (isFinite(audio.duration) && audio.duration - audio.currentTime < 20) preloadNextTrack()
         }
       })
       audio.addEventListener('ended', () => { if (!cueAdvancing) onTrackEnded() })
-      audio.addEventListener('play',  () => {
-        el('p-play').textContent = '⏸'; const np = el('np-play-btn'); if (np) np.textContent = '⏸'
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'
-        ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle })
-        updateNowPlayingControlHints()
-      })
-      audio.addEventListener('pause', () => {
-        el('p-play').textContent = '▶'; const np = el('np-play-btn'); if (np) np.textContent = '▶'
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'
-        ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle })
-        updateNowPlayingControlHints()
-      })
+      audio.addEventListener('play',  () => { el('p-play').textContent = '⏸'; const n = el('np-play-btn'); if (n) n.textContent = '⏸'; updateMediaSessionState(true); ipcRenderer.send('player-state-update', { playing: true,  shuffle: pShuffle }) })
+      audio.addEventListener('pause', () => { el('p-play').textContent = '▶'; const n = el('np-play-btn'); if (n) n.textContent = '▶'; updateMediaSessionState(false); ipcRenderer.send('player-state-update', { playing: false, shuffle: pShuffle }) })
 
       el('p-play').addEventListener('click', () => {
         if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
         else audio.paused ? audio.play().catch(() => {}) : audio.pause()
       })
-      el('p-prev').addEventListener('click', () => {
-        if (!playQueue.length) return
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med) {
-          if (cur?.cueStartMs != null) {
-            const chOffset = med.currentTime - cur.cueStartMs / 1000
-            if (chOffset > 3) { med.currentTime = cur.cueStartMs / 1000; return }
-          } else if (med.currentTime > 3) { med.currentTime = 0; return }
-        }
-        if (pShuffle && shuffleHistory.length > 0) {
-          queueIdx = shuffleHistory.pop()
-        } else {
-          queueIdx = Math.max(0, queueIdx - 1)
-        }
-        playTrack(playQueue[queueIdx], queueIdx)
-      })
-      el('p-next').addEventListener('click', () => {
-        if (!playQueue.length) return
-        if (pShuffle) {
-          shuffleHistory.push(queueIdx)
-          queueIdx = Math.floor(Math.random() * playQueue.length)
-        } else {
-          queueIdx = Math.min(playQueue.length - 1, queueIdx + 1)
-        }
-        playTrack(playQueue[queueIdx], queueIdx)
-      })
-      el('p-shuffle').addEventListener('click', () => {
-        pShuffle = !pShuffle
-        if (!pShuffle) shuffleHistory = []
-        el('p-shuffle').classList.toggle('p-active', pShuffle)
-        updateNowPlayingControlHints()
-      })
+      el('p-prev').addEventListener('click', () => skipToPrevTrack(false))
+      el('p-next').addEventListener('click', () => skipToNextTrack())
+      el('p-shuffle').addEventListener('click', () => { pShuffle = !pShuffle; el('p-shuffle').classList.toggle('p-active', pShuffle) })
       el('p-repeat').addEventListener('click', () => {
         repeatMode = repeatMode === 'none' ? 'all' : repeatMode === 'all' ? 'one' : 'none'
         el('p-repeat').textContent = repeatMode === 'one' ? '↺¹' : '↺'
         el('p-repeat').classList.toggle('p-active', repeatMode !== 'none')
-        updateNowPlayingControlHints()
       })
       el('p-vol').addEventListener('input', e => {
         const v = parseInt(e.target.value) / 100; audio.volume = v
         const vid = el('music-video-el'); if (vid) vid.volume = v
-        const npVol = el('np-vol-slider'); if (npVol) npVol.value = e.target.value
         el('vol-icon').textContent = v === 0 ? '🔇' : v < 0.4 ? '🔉' : '🔊'
       })
       el('vol-icon').addEventListener('click', () => {
@@ -2820,122 +2648,77 @@
       })
       el('seek-bar').addEventListener('click', e => {
         const r = el('seek-bar').getBoundingClientRect()
-        const pct = (e.clientX - r.left) / r.width
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med && isFinite(med.duration)) {
-          if (cur?.cueStartMs != null) {
-            const startSec = cur.cueStartMs / 1000
-            const endSec   = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
-            med.currentTime = startSec + pct * (endSec - startSec)
-          } else {
-            med.currentTime = pct * med.duration
-          }
-        }
+        seekToPct((e.clientX - r.left) / r.width)
       })
       el('p-fullscreen').addEventListener('click', () => { const v = el('music-video-el'); if (v) v.requestFullscreen?.() })
-      el('p-like')?.addEventListener('click', () => {
-        if (playQueue[queueIdx]) {
-          toggleLike(playQueue[queueIdx])
-          el('p-like').textContent = isLiked(playQueue[queueIdx]) ? '♥' : '♡'
-          updateNowPlayingControlHints()
-        }
-      })
-      el('p-add-playlist')?.addEventListener('click', () => {
-        if (playQueue[queueIdx]) showPlaylistPicker(playQueue[queueIdx])
-      })
+      el('p-like')?.addEventListener('click', () => { if (playQueue[queueIdx]) toggleLike(playQueue[queueIdx]) })
       el('p-queue-btn')?.addEventListener('click', () => { document.body.classList.toggle('queue-open'); updateQueuePanel() })
       el('queue-close')?.addEventListener('click', () => { document.body.classList.remove('queue-open') })
+      el('pl-picker-cancel')?.addEventListener('click', e => { e.stopPropagation(); hidePlaylistPicker() })
+      el('pl-picker-new')?.addEventListener('click', openNewPlaylistFromPicker)
+      el('pl-picker-new')?.addEventListener('touchend', openNewPlaylistFromPicker)
+      el('pl-picker-modal')?.addEventListener('click', e => { if (e.target?.id === 'pl-picker-modal') hidePlaylistPicker() })
+      bindSidebarPanel()
+      el('sidebar-toggle-btn')?.addEventListener('click', e => e.stopPropagation())
 
-      // ── Media Session action handlers (lock screen / AirPods / CarPlay) ─
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play',          () => audio.play().catch(() => {}))
-        navigator.mediaSession.setActionHandler('pause',         () => audio.pause())
-        navigator.mediaSession.setActionHandler('stop',          () => { audio.pause(); audio.currentTime = 0 })
-        navigator.mediaSession.setActionHandler('previoustrack', () => el('p-prev')?.click())
-        navigator.mediaSession.setActionHandler('nexttrack',     () => el('p-next')?.click())
-        navigator.mediaSession.setActionHandler('seekto', details => {
-          if (details.seekTime != null && isFinite(audio.duration)) audio.currentTime = details.seekTime
-        })
-      }
+      // ── Now Playing panel wiring ──────────────────────────────────────────
+      el('player-art').style.cursor = 'pointer'
+      el('player-art').addEventListener('click', openNowPlaying)
+      const _playerMeta = document.querySelector('.player-meta')
+      if (_playerMeta) { _playerMeta.style.cursor = 'pointer'; _playerMeta.addEventListener('click', openNowPlaying) }
 
-      // ── Now Playing screen (mobile full-screen player) ─────────────────
-      function openNpScreen() {
-        // sync volume slider
-        const npVol = el('np-vol-slider'); if (npVol) npVol.value = el('p-vol').value
-        // sync play state
-        const npPlay = el('np-play-btn'); if (npPlay) npPlay.textContent = audio.paused ? '▶' : '⏸'
-        // sync shuffle/repeat state
-        el('np-shuffle-btn')?.classList.toggle('np-active', pShuffle)
-        el('np-shuffle-btn').textContent = '⇄'
-        el('np-repeat-btn')?.classList.toggle('np-active', repeatMode !== 'none')
-        el('np-repeat-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
-        updateNowPlayingControlHints()
-        document.body.classList.add('np-open')
-      }
-      function closeNpScreen() { document.body.classList.remove('np-open') }
-
-      // Tap mini bar (anywhere except buttons) to open NP screen
-      el('player-bar')?.addEventListener('click', e => {
-        if (e.target.closest('.p-btn') || e.target.closest('#p-like')) return
-        if (window.innerWidth <= 900 && playQueue.length) openNpScreen()
+      el('np-handle').addEventListener('click', closeNowPlaying)
+      el('np-like-btn').addEventListener('click', () => {
+        const t = playQueue[queueIdx]; if (!t) return
+        toggleLike(t); syncNowPlaying(t)
       })
-
-      // NP screen controls
-      el('np-down')?.addEventListener('click', closeNpScreen)
-      el('np-queue-open2')?.addEventListener('click', () => { closeNpScreen(); document.body.classList.toggle('queue-open'); updateQueuePanel() })
-
-      el('np-play-btn')?.addEventListener('click', () => {
-        if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
-        else audio.paused ? audio.play().catch(() => {}) : audio.pause()
+      el('np-play-btn').addEventListener('click', () => el('p-play').click())
+      el('np-prev-btn').addEventListener('click', () => el('p-prev').click())
+      el('np-next-btn').addEventListener('click', () => el('p-next').click())
+      el('np-shuf-btn').addEventListener('click', () => {
+        el('p-shuffle').click()
+        el('np-shuf-btn').classList.toggle('np-active', pShuffle)
       })
-      el('np-prev-btn')?.addEventListener('click', () => el('p-prev')?.click())
-      el('np-next-btn')?.addEventListener('click', () => el('p-next')?.click())
-      el('np-add-pl-btn')?.addEventListener('click', () => {
-        if (playQueue[queueIdx]) showPlaylistPicker(playQueue[queueIdx])
+      el('np-rep-btn').addEventListener('click', () => {
+        el('p-repeat').click()
+        el('np-rep-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
+        el('np-rep-btn').classList.toggle('np-active', repeatMode !== 'none')
       })
-
-      el('np-shuffle-btn')?.addEventListener('click', () => {
-        el('p-shuffle')?.click()
-        el('np-shuffle-btn').classList.toggle('np-active', pShuffle)
-        updateNowPlayingControlHints()
+      el('np-addpl-btn').addEventListener('click', () => {
+        const t = playQueue[queueIdx]; if (!t) return
+        showPlaylistPicker(t)
       })
-      el('np-repeat-btn')?.addEventListener('click', () => {
-        el('p-repeat')?.click()
-        el('np-repeat-btn').classList.toggle('np-active', repeatMode !== 'none')
-        el('np-repeat-btn').textContent = repeatMode === 'one' ? '↺¹' : '↺'
-        updateNowPlayingControlHints()
-      })
-      el('np-like-btn')?.addEventListener('click', () => {
-        if (playQueue[queueIdx]) {
-          toggleLike(playQueue[queueIdx])
-          const liked = isLiked(playQueue[queueIdx])
-          el('np-like-btn').textContent = liked ? '♥' : '♡'
-          el('np-like-btn').classList.toggle('liked', liked)
-          el('p-like').textContent = liked ? '♥' : '♡'
-          updateNowPlayingControlHints()
-        }
-      })
-      el('np-vol-slider')?.addEventListener('input', e => {
-        const v = parseInt(e.target.value) / 100; audio.volume = v
-        const vid = el('music-video-el'); if (vid) vid.volume = v
-        el('p-vol').value = e.target.value
-        el('vol-icon').textContent = v === 0 ? '🔇' : v < 0.4 ? '🔉' : '🔊'
-      })
-      el('np-seek-bar')?.addEventListener('click', e => {
+      // NP seek bar — click and touch scrubbing
+      el('np-seek-bar').addEventListener('click', e => {
         const r = el('np-seek-bar').getBoundingClientRect()
-        const pct = (e.clientX - r.left) / r.width
-        const med = musicVideoPlaying ? el('music-video-el') : audio
-        const cur = playQueue[queueIdx]
-        if (med && isFinite(med.duration)) {
-          if (cur?.cueStartMs != null) {
-            const startSec = cur.cueStartMs / 1000
-            const endSec   = cur.cueEndMs != null ? cur.cueEndMs / 1000 : med.duration
-            med.currentTime = startSec + pct * (endSec - startSec)
-          } else {
-            med.currentTime = pct * med.duration
-          }
-        }
+        seekToPct(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)))
+      })
+      el('np-seek-bar').addEventListener('touchstart', e => {
+        const r = el('np-seek-bar').getBoundingClientRect()
+        seekToPct(Math.max(0, Math.min(1, (e.touches[0].clientX - r.left) / r.width)))
+      }, { passive: true })
+      el('np-seek-bar').addEventListener('touchmove', e => {
+        const r = el('np-seek-bar').getBoundingClientRect()
+        seekToPct(Math.max(0, Math.min(1, (e.touches[0].clientX - r.left) / r.width)))
+      }, { passive: true })
+      // Swipe-down to close
+      let _npY0 = 0, _npSwiping = false
+      const _npPanel = el('np-panel')
+      _npPanel.addEventListener('touchstart', e => {
+        if (e.target.closest('button') || e.target.id === 'np-seek-bar' || e.target.closest('#np-seek-bar')) return
+        _npY0 = e.touches[0].clientY; _npSwiping = true
+        _npPanel.style.transition = 'none'
+      }, { passive: true })
+      _npPanel.addEventListener('touchmove', e => {
+        if (!_npSwiping) return
+        const dy = e.touches[0].clientY - _npY0
+        if (dy > 0) _npPanel.style.transform = 'translateY(' + dy + 'px)'
+      }, { passive: true })
+      _npPanel.addEventListener('touchend', e => {
+        if (!_npSwiping) return
+        _npSwiping = false; _npPanel.style.transition = ''
+        if ((e.changedTouches[0].clientY - _npY0) > 80) { _npPanel.style.transform = ''; closeNowPlaying() }
+        else _npPanel.style.transform = ''
       })
     }
 
@@ -2959,7 +2742,7 @@
         '<p style="color:#333;font-size:11px;margin:0">Used for resolving YouTube links and radio streams. Ensure <code style="color:#4ade80">yt-dlp</code> is in your PATH or provide the full path.</p>' +
         '</div>' +
         '<div style="margin-top:16px;background:#0a150a;border:1px solid #1a2e1a;border-radius:6px;padding:12px 16px;font-size:12px;color:#555">' +
-        '☁ <span style="color:#4ade80">aharveyGoogleDriveBackup</span> — Backblaze B2 (hard-coded)' +
+        '☁ <span style="color:#4ade80">SpAtomify</span> — Backblaze B2 (hard-coded)' +
         '</div>' +
         '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">' +
         '<button class="back-btn" id="save-settings-btn" style="background:#4ade80;color:#000;border-color:#4ade80">Save Settings</button>' +
@@ -3154,41 +2937,6 @@
           if (musicVideoPlaying) { const v = el('music-video-el'); if (v) v.paused ? v.play() : v.pause() }
           else { const a = el('music-audio'); if (a?.src) a.paused ? a.play().catch(() => {}) : a.pause() }
           break
-        case 'ArrowLeft': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a?.src) a.currentTime = Math.max(0, a.currentTime - 10)
-          break
-        }
-        case 'ArrowRight': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a?.src) a.currentTime = Math.min(a.duration || 0, a.currentTime + 10)
-          break
-        }
-        case 'ArrowUp': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a) { a.volume = Math.min(1, a.volume + 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
-          break
-        }
-        case 'ArrowDown': {
-          e.preventDefault()
-          const a = el('music-audio'); if (a) { a.volume = Math.max(0, a.volume - 0.05); const s = el('p-vol'); if (s) s.value = Math.round(a.volume * 100) }
-          break
-        }
-        case 'l': case 'L':
-          if (playQueue[queueIdx]) { toggleLike(playQueue[queueIdx]); e.preventDefault() }
-          break
-        case 's': case 'S':
-          el('p-shuffle')?.click(); e.preventDefault()
-          break
-        case 'r': case 'R':
-          el('p-repeat')?.click(); e.preventDefault()
-          break
-        case 'n': case 'N':
-          el('p-next')?.click(); e.preventDefault()
-          break
-        case 'p': case 'P':
-          el('p-prev')?.click(); e.preventDefault()
-          break
       }
     })
 
@@ -3196,11 +2944,6 @@
     // INIT
     // =====================================================
     async function init() {
-      syncResponsiveLayout()
-      window.addEventListener('resize', () => queueResponsiveLayoutSync(40), { passive: true })
-      window.addEventListener('orientationchange', () => queueResponsiveLayoutSync(120))
-      window.addEventListener('pageshow', () => queueResponsiveLayoutSync(40))
-      window.visualViewport?.addEventListener('resize', () => queueResponsiveLayoutSync(20))
       playlists = await ipcRenderer.invoke('get-playlists')
       // Pull server-side favorites and merge into liked list
       try {
@@ -3217,496 +2960,98 @@
         }
       } catch (e) { console.warn('Could not load server favorites:', e) }
       await renderView()
-      if (!b2Lib && !b2LibLoadingPromise) {
-        setTimeout(() => { loadB2Lib().catch(() => {}) }, 0)
-      }
-      updateNowPlayingControlHints()
       setStatus('Ready')
-    }
-
-    // ── Pause-on-disconnect / cross-device resume ──────────────────────────
-    let _heartbeatFails = 0
-
-    async function savePlaybackState() {
-      const audio = el('music-audio')
-      const cur = playQueue[queueIdx]
-      if (!audio || !cur) return
-      try {
-        await fetch('/api/playback-state', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trackPath:  cur.filePath || cur.path || '',
-            title:      cur.title  || '',
-            artist:     cur.artist || '',
-            album:      cur.album  || '',
-            position:   audio.currentTime,
-            duration:   audio.duration || 0,
-            queuePaths: playQueue.map(t => t.filePath || t.path || ''),
-            queueIndex: queueIdx,
-            isPlaying:  !audio.paused,
-            savedAt:    Date.now(),
-          }),
-        })
-      } catch (_) {}
-    }
-
-    function initConnectivityWatch() {
-      const audio = el('music-audio')
-      if (!audio) return
-
-      // Save position on every pause (covers manual pause + auto-pause below)
-      audio.addEventListener('pause', savePlaybackState)
-
-      // Save every 15s while playing so position is always fresh
-      setInterval(() => {
-        if (!audio.paused) savePlaybackState()
-      }, 15000)
-
-      // Heartbeat: ping /health every 5s while audio is playing
-      setInterval(async () => {
-        if (audio.paused) { _heartbeatFails = 0; return }
-        try {
-          const r = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(3000) })
-          _heartbeatFails = r.ok ? 0 : _heartbeatFails + 1
-        } catch (_) { _heartbeatFails++ }
-        if (_heartbeatFails >= 2) {
-          audio.pause() // triggers savePlaybackState via the listener above
-          setStatus('Server unreachable — playback paused')
-          _heartbeatFails = 0
-        }
-      }, 5000)
-
-      // Immediate pause on OS-level network drop (no latency)
-      window.addEventListener('offline', () => {
-        if (!audio.paused) {
-          audio.pause()
-          setStatus('Disconnected — playback paused')
-        }
-      })
-    }
-
-    // Spotify-style: silently restore last state into the player bar (paused).
-    // No prompt — the player just shows up ready. Press play to resume.
-    async function restorePlaybackState() {
-      try {
-        const r = await fetch('/api/playback-state')
-        if (!r.ok) return
-        const state = await r.json()
-        if (!state.trackPath || !state.queuePaths?.length) return
-
-        // Don't overwrite something the user is already listening to
-        if (!el('music-audio')?.paused) return
-
-        await ensureB2Lib()
-        const allTracks = b2Lib
-          ? b2Lib.artists.flatMap(a => a.albums.flatMap(al => al.tracks))
-          : []
-
-        const queue = state.queuePaths
-          .map(p => allTracks.find(t => (t.filePath || t.path || '') === p))
-          .filter(Boolean)
-        if (!queue.length) return
-
-        playQueue = queue
-        queueIdx  = Math.min(state.queueIndex || 0, queue.length - 1)
-        const track = playQueue[queueIdx]
-        const audio = el('music-audio')
-        const resumePos = state.position || 0
-
-        // Register BEFORE playTrack sets audio.src so we never miss the event
-        audio.addEventListener('canplay', () => {
-          audio.pause()
-          audio.currentTime = resumePos
-        }, { once: true })
-
-        // Load the track — playTrack will call play(), our listener immediately pauses it
-        playTrack(track, queueIdx)
-      } catch (_) {}
-    }
-
-    // ── Sleep timer ────────────────────────────────────────────────────────
-    let sleepTimerId   = null
-    let sleepTickId    = null
-    let sleepEndsAt    = 0
-
-    function setSleepTimer(minutes) {
-      clearSleepTimer()
-      if (!minutes) return
-
-      sleepEndsAt = Date.now() + minutes * 60 * 1000
-      sleepTimerId = setTimeout(() => {
-        const audio = el('music-audio')
-        if (audio) audio.pause()
-        clearSleepTimer()
-        setStatus('Sleep timer — playback stopped')
-      }, minutes * 60 * 1000)
-
-      // Countdown tick every 30s — updates the badge on the player bar
-      sleepTickId = setInterval(updateSleepBadge, 30000)
-      updateSleepBadge()
-    }
-
-    function clearSleepTimer() {
-      clearTimeout(sleepTimerId);  sleepTimerId = null
-      clearInterval(sleepTickId);  sleepTickId  = null
-      sleepEndsAt = 0
-      el('p-sleep-btn').style.display = 'none'
-      el('np-sleep-btn')?.classList.remove('np-active')
-      el('np-sleep-btn').title = 'Sleep timer'
-    }
-
-    function updateSleepBadge() {
-      if (!sleepEndsAt) return
-      const minLeft = Math.max(0, Math.round((sleepEndsAt - Date.now()) / 60000))
-      el('p-sleep-badge').textContent = ' ' + minLeft + 'm'
-      el('p-sleep-btn').style.display = ''
-      el('np-sleep-btn').classList.add('np-active')
-      el('np-sleep-btn').title = 'Sleep: ' + minLeft + 'm left (tap to cancel)'
-    }
-
-    function showSleepMenu() {
-      // Remove any existing menu
-      document.getElementById('sleep-menu')?.remove()
-
-      const active = !!sleepTimerId
-      const options = active
-        ? [{ label: 'Cancel sleep timer', mins: 0 }]
-        : [
-            { label: '15 minutes',  mins: 15 },
-            { label: '30 minutes',  mins: 30 },
-            { label: '45 minutes',  mins: 45 },
-            { label: '1 hour',      mins: 60 },
-            { label: 'End of track', mins: -1 },
-          ]
-
-      const menu = document.createElement('div')
-      menu.id = 'sleep-menu'
-      menu.style.cssText = [
-        'position:fixed', 'bottom:160px', 'left:50%', 'transform:translateX(-50%)',
-        'background:#0d1a0d', 'border:1px solid #2a4a2a', 'border-radius:14px',
-        'overflow:hidden', 'z-index:600', 'min-width:220px',
-        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-      ].join(';')
-
-      menu.innerHTML =
-        '<div style="padding:12px 16px 8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">SLEEP TIMER</div>' +
-        options.map(o =>
-          '<div class="sleep-opt" data-mins="' + o.mins + '" style="padding:13px 20px;font-size:14px;color:#ccc;cursor:pointer;border-top:1px solid #1a2e1a">' +
-          (o.mins === 0 ? '<span style="color:#f87171">' + o.label + '</span>' : o.label) +
-          '</div>'
-        ).join('')
-
-      document.body.appendChild(menu)
-
-      menu.querySelectorAll('.sleep-opt').forEach(opt => {
-        opt.addEventListener('click', () => {
-          menu.remove()
-          const mins = +opt.dataset.mins
-          if (mins === -1) {
-            // End of track — set timer for remaining duration
-            const audio = el('music-audio')
-            const rem = audio ? Math.ceil(audio.duration - audio.currentTime) : 60
-            setSleepTimer(rem / 60)
-          } else {
-            setSleepTimer(mins)
-          }
-        })
-      })
-
-      // Tap outside to dismiss
-      setTimeout(() => {
-        document.addEventListener('click', function dismiss(e) {
-          if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', dismiss) }
-        })
-      }, 0)
-    }
-
-    function initSleepTimer() {
-      el('np-sleep-btn')?.addEventListener('click', showSleepMenu)
-      el('p-sleep-btn')?.addEventListener('click',  showSleepMenu)
-    }
-
-    // ── Equalizer ─────────────────────────────────────────
-    const EQ_BANDS = [
-      { label: '60',   freq: 60,   type: 'lowshelf'  },
-      { label: '250',  freq: 250,  type: 'peaking'   },
-      { label: '1k',   freq: 1000, type: 'peaking'   },
-      { label: '4k',   freq: 4000, type: 'peaking'   },
-      { label: '16k',  freq: 16000,type: 'highshelf' },
-    ]
-    let eqFilters  = []
-    let eqEnabled  = false
-    let audioGraphCtx = null, audioGraphSrc = null
-    let normEnabled = false
-    let normGain = null, normComp = null
-
-    function ensureAudioGraph() {
-      if (audioGraphCtx) return audioGraphCtx
-      const audio = el('music-audio')
-      audioGraphCtx = new (window.AudioContext || window.webkitAudioContext)()
-      audioGraphSrc = audioGraphCtx.createMediaElementSource(audio)
-      eqFilters = EQ_BANDS.map(b => {
-        const f = audioGraphCtx.createBiquadFilter()
-        f.type      = b.type
-        f.frequency.value = b.freq
-        f.gain.value      = 0
-        f.Q.value         = 1
-        return f
-      })
-      normComp = audioGraphCtx.createDynamicsCompressor()
-      normComp.threshold.value = -24
-      normComp.knee.value      = 10
-      normComp.ratio.value     = 4
-      normComp.attack.value    = 0.003
-      normComp.release.value   = 0.25
-      normGain = audioGraphCtx.createGain()
-      normGain.gain.value = 1.4
-      rebuildAudioGraph()
-      return audioGraphCtx
-    }
-    function disconnectNode(node) {
-      try { node?.disconnect() } catch (_) {}
-    }
-    function rebuildAudioGraph() {
-      if (!audioGraphCtx || !audioGraphSrc) return
-      disconnectNode(audioGraphSrc)
-      eqFilters.forEach(disconnectNode)
-      disconnectNode(normComp)
-      disconnectNode(normGain)
-      let node = audioGraphSrc
-      if (eqEnabled) {
-        eqFilters.forEach(filter => {
-          node.connect(filter)
-          node = filter
-        })
-      }
-      if (normEnabled) {
-        node.connect(normComp)
-        normComp.connect(normGain)
-        node = normGain
-      }
-      node.connect(audioGraphCtx.destination)
-    }
-    function resumeAudioGraph() {
-      ensureAudioGraph()
-      if (audioGraphCtx?.state === 'suspended') audioGraphCtx.resume()
-    }
-
-    function showEqPanel() {
-      document.getElementById('eq-panel')?.remove()
-      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-      const panel = document.createElement('div')
-      panel.id = 'eq-panel'
-      panel.style.cssText = [
-        'position:fixed','bottom:160px','left:50%','transform:translateX(-50%)',
-        'background:#0d1a0d','border:1px solid #2a4a2a','border-radius:14px',
-        'padding:16px 20px','z-index:600','min-width:280px',
-        'box-shadow:0 8px 32px rgba(0,0,0,0.7)',
-      ].join(';')
-
-      panel.innerHTML =
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
-        '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:#555">EQUALIZER</span>' +
-        '<button id="eq-reset" style="background:none;border:none;color:#3a5e3a;font-size:11px;cursor:pointer">Reset</button>' +
-        '</div>' +
-        '<div style="display:flex;gap:14px;align-items:flex-end;justify-content:center">' +
-        EQ_BANDS.map((b, i) => `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-            <span id="eq-val-${i}" style="font-size:10px;color:#4ade80;min-width:28px;text-align:center">${saved[i] >= 0 ? '+' : ''}${saved[i]}dB</span>
-            <input type="range" id="eq-slider-${i}" min="-12" max="12" step="1" value="${saved[i]}"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100px;accent-color:#4ade80;cursor:pointer">
-            <span style="font-size:10px;color:#444">${b.label}</span>
-          </div>`).join('') +
-        '</div>'
-
-      document.body.appendChild(panel)
-      resumeAudioGraph()
-
-      // Apply saved gains
-      saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
-
-      EQ_BANDS.forEach((_, i) => {
-        const slider = panel.querySelector(`#eq-slider-${i}`)
-        slider.addEventListener('input', () => {
-          const gain = +slider.value
-          panel.querySelector(`#eq-val-${i}`).textContent = (gain >= 0 ? '+' : '') + gain + 'dB'
-          if (eqFilters[i]) eqFilters[i].gain.value = gain
-          const gains = EQ_BANDS.map((_, j) => +panel.querySelector(`#eq-slider-${j}`).value)
-          localStorage.setItem('eqGains', JSON.stringify(gains))
-          const anyActive = gains.some(g => g !== 0)
-          eqEnabled = anyActive
-          rebuildAudioGraph()
-          el('np-eq-btn').classList.toggle('np-active', anyActive)
-        })
-      })
-
-      panel.querySelector('#eq-reset').addEventListener('click', () => {
-        EQ_BANDS.forEach((_, i) => {
-          const s = panel.querySelector(`#eq-slider-${i}`)
-          s.value = 0
-          panel.querySelector(`#eq-val-${i}`).textContent = '+0dB'
-          if (eqFilters[i]) eqFilters[i].gain.value = 0
-        })
-        localStorage.setItem('eqGains', JSON.stringify([0,0,0,0,0]))
-        eqEnabled = false
-        rebuildAudioGraph()
-        el('np-eq-btn').classList.remove('np-active')
-      })
-
-      setTimeout(() => {
-        document.addEventListener('click', function dismiss(e) {
-          if (!panel.contains(e.target) && e.target !== el('np-eq-btn')) {
-            panel.remove(); document.removeEventListener('click', dismiss)
-          }
-        })
-      }, 0)
-    }
-
-    function initEqualizer() {
-      const btn = el('np-eq-btn')
-      // Restore active state from saved gains
-      const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-      eqEnabled = saved.some(g => g !== 0)
-      btn.classList.toggle('np-active', eqEnabled)
-      btn.addEventListener('click', showEqPanel)
-      // Apply saved EQ once audio starts (AudioContext needs user gesture first)
-      el('music-audio').addEventListener('play', () => {
-        if (!eqEnabled) return
-        resumeAudioGraph()
-        const saved = JSON.parse(localStorage.getItem('eqGains') || '[0,0,0,0,0]')
-        saved.forEach((g, i) => { if (eqFilters[i]) eqFilters[i].gain.value = g })
-        rebuildAudioGraph()
-      }, { once: true })
-    }
-
-    // ── Volume Normalization ──────────────────────────────
-
-    function initNormalization() {
-      const btn   = el('np-norm-btn')
-
-      btn.addEventListener('click', () => {
-        normEnabled = !normEnabled
-        resumeAudioGraph()
-        rebuildAudioGraph()
-        btn.classList.toggle('np-active', normEnabled)
-        btn.title = normEnabled ? 'Volume normalization ON' : 'Volume normalization'
-      })
-
-      // Re-apply after each new track starts (src swap resets the element)
-      el('music-audio').addEventListener('play', () => {
-        if (!normEnabled) return
-        resumeAudioGraph()
-        rebuildAudioGraph()
-      })
-    }
-
-    // ── Gapless Playback ──────────────────────────────────
-    let gaplessBuffer = null   // { src, audio }
-
-    function preloadNextTrack() {
-      if (xfadeEnabled) return   // crossfade handles its own preload
-      const nextIdx = pShuffle ? null : queueIdx + 1
-      if (nextIdx === null || nextIdx >= playQueue.length) return
-      const next = playQueue[nextIdx]; if (!next || next.path?.startsWith('http')) return
-      const src = 'file:///' + next.path.replace(/\\/g, '/')
-      if (gaplessBuffer?.src === src) return   // already buffered
-      if (gaplessBuffer) { gaplessBuffer.audio.src = ''; gaplessBuffer = null }
-      const a = new Audio()
-      a.preload = 'auto'
-      a.src = src
-      gaplessBuffer = { src, audio: a }
-    }
-
-    // ── Crossfade ─────────────────────────────────────────
-    let xfadeEnabled  = false
-    let xfadeSecs     = 5          // crossfade duration in seconds
-    let xfading       = false      // guard — only one crossfade at a time
-    let ghostAudio    = null       // the fading-out clone
-
-    function initCrossfade() {
-      const btn = el('np-xfade-btn')
-      btn.addEventListener('click', () => {
-        xfadeEnabled = !xfadeEnabled
-        btn.classList.toggle('np-active', xfadeEnabled)
-        btn.title = xfadeEnabled ? `Crossfade ON (${xfadeSecs}s — tap to disable)` : 'Crossfade'
-      })
-
-      // Hook into timeupdate on the main audio element
-      el('music-audio').addEventListener('timeupdate', handleCrossfadeTick)
-    }
-
-    function handleCrossfadeTick() {
-      if (!xfadeEnabled || xfading || repeatMode === 'one') return
-      const audio = el('music-audio')
-      if (!audio || !isFinite(audio.duration) || audio.paused) return
-      const remaining = audio.duration - audio.currentTime
-      if (remaining > xfadeSecs || remaining <= 0) return
-
-      // Figure out the next track index
-      let nextIdx
-      if (pShuffle) {
-        nextIdx = Math.floor(Math.random() * playQueue.length)
-      } else {
-        nextIdx = queueIdx + 1
-        if (nextIdx >= playQueue.length) {
-          if (repeatMode === 'all') nextIdx = 0
-          else return   // nothing after last track
-        }
-      }
-      const nextTrack = playQueue[nextIdx]
-      if (!nextTrack) return
-
-      xfading = true
-
-      // Clone current audio → ghost for fade-out
-      ghostAudio = new Audio(audio.src)
-      ghostAudio.currentTime = audio.currentTime
-      ghostAudio.volume      = audio.volume
-      ghostAudio.play().catch(() => {})
-
-      // Silence & swap the main element to next track immediately
-      const targetVol = audio.volume
-      audio.volume = 0
-      queueIdx = nextIdx
-      playTrack(nextTrack, nextIdx)
-
-      // Fade ghost out, main in over xfadeSecs
-      const steps    = 40
-      const interval = (xfadeSecs * 1000) / steps
-      let   step     = 0
-      const fade = setInterval(() => {
-        step++
-        const t = step / steps
-        audio.volume      = Math.min(targetVol, t * targetVol)
-        ghostAudio.volume = Math.max(0, (1 - t) * targetVol)
-        if (step >= steps) {
-          clearInterval(fade)
-          ghostAudio.pause()
-          ghostAudio.src = ''
-          ghostAudio     = null
-          xfading        = false
-        }
-      }, interval)
-    }
-
-    function formatTime(s) {
-      const m = Math.floor(s / 60)
-      return m + ':' + String(Math.floor(s % 60)).padStart(2, '0')
     }
 
     initPlayerBar()
     initCtxMenu()
-    initGestures()
-    initSidebar()
-    initConnectivityWatch()
-    initSleepTimer()
-    initEqualizer()
-    initNormalization()
-    initCrossfade()
-    initSpeedControl()
     init()
-    setTimeout(restorePlaybackState, 2000) // restore after library loads
+    el('sidebar-toggle-btn')?.addEventListener('click', toggleSidebar)
+    el('sidebar-overlay')?.addEventListener('click', closeSidebar)
+
+    // =====================================================
+    // GAMEPAD NAVIGATION
+    // =====================================================
+    ;(function() {
+      const DEAD_ZONE = 0.4, REPEAT_DELAY = 380, REPEAT_INTERVAL = 140
+      let prevButtons = {}, repeatDir = null, repeatTimer = null, gpConnected = false, rafId = null
+
+      function getFocusables() {
+        return Array.from(document.querySelectorAll(
+          '.lib-card, .music-tree-item, .lib-track-row, .music-track-row, .lib-play-btn, .play-all-btn, .nav-item[data-view], .fav-row, .queue-item'
+        )).filter(e => e.offsetParent !== null)
+      }
+      function getFocused() { return document.querySelector('.gp-focus') }
+      function setFocus(e) {
+        document.querySelectorAll('.gp-focus').forEach(x => x.classList.remove('gp-focus'))
+        if (e) { e.classList.add('gp-focus'); e.scrollIntoView({ block: 'nearest' }) }
+      }
+      function moveFocus(dir) {
+        const items = getFocusables(); if (!items.length) return
+        const cur = getFocused()
+        let idx = cur ? items.indexOf(cur) : -1
+        if (dir === 'down' || dir === 'right') idx = Math.min(items.length - 1, idx < 0 ? 0 : idx + 1)
+        else idx = Math.max(0, idx < 0 ? 0 : idx - 1)
+        setFocus(items[idx])
+      }
+      function pressButton(i) {
+        switch (i) {
+          case 0: { const f = getFocused(); if (f) f.click(); break }
+          case 1: {
+            if (document.body.classList.contains('queue-open')) { document.body.classList.remove('queue-open'); break }
+            const crumb = document.querySelector('.lib-breadcrumb .crumb:not(.active)')
+            if (crumb) crumb.click()
+            break
+          }
+          case 4:  el('p-prev')?.click(); break
+          case 5:  el('p-next')?.click(); break
+          case 9:  el('p-play')?.click(); break
+          case 12: moveFocus('up');    break
+          case 13: moveFocus('down'); break
+          case 14: moveFocus('left'); break
+          case 15: moveFocus('right'); break
+        }
+      }
+      function poll() {
+        const gps = navigator.getGamepads ? navigator.getGamepads() : []
+        let any = false
+        for (const gp of gps) {
+          if (!gp) continue
+          any = true
+          const prev = prevButtons[gp.index] || []
+          gp.buttons.forEach((btn, i) => { if (btn.pressed && !prev[i]) pressButton(i) })
+          prevButtons[gp.index] = gp.buttons.map(b => b.pressed)
+
+          const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0
+          let dir = null
+          if      (ay >  DEAD_ZONE) dir = 'down'
+          else if (ay < -DEAD_ZONE) dir = 'up'
+          else if (ax >  DEAD_ZONE) dir = 'right'
+          else if (ax < -DEAD_ZONE) dir = 'left'
+
+          if (dir !== repeatDir) {
+            clearTimeout(repeatTimer); repeatDir = dir
+            if (dir) {
+              moveFocus(dir)
+              repeatTimer = setTimeout(function repeat() {
+                moveFocus(repeatDir)
+                repeatTimer = setTimeout(repeat, REPEAT_INTERVAL)
+              }, REPEAT_DELAY)
+            }
+          }
+        }
+        if (any !== gpConnected) {
+          gpConnected = any
+          const ind = el('gp-indicator')
+          if (ind) { ind.textContent = any ? 'GAMEPAD' : ''; ind.style.display = any ? '' : 'none' }
+          if (!any) { document.querySelectorAll('.gp-focus').forEach(x => x.classList.remove('gp-focus')); clearTimeout(repeatTimer) }
+        }
+        rafId = requestAnimationFrame(poll)
+      }
+      window.addEventListener('gamepadconnected',    () => { if (!rafId) rafId = requestAnimationFrame(poll) })
+      window.addEventListener('gamepaddisconnected', () => {})
+      rafId = requestAnimationFrame(poll)
+    })()
 
     // =====================================================
     // ATOMICBLAST REMOTE CONTROL (Firefox extension API)
@@ -3756,7 +3101,7 @@
           b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
         } catch (e) { return }
       }
-      const bucket = b2Lib.bucketName || 'aharveyGoogleDriveBackup'
+      const bucket = b2Lib.bucketName || 'SpAtomify'
       for (const artist of b2Lib.artists) {
         for (const album of artist.albums) {
           const track = album.tracks.find(t => t.path === trackPath)
@@ -3768,6 +3113,20 @@
         }
       }
     }
+  </script>
+
+  <script>
+  // AtomicBlast-Server: route all B2 audio + images through the local proxy (CORS fix for Safari)
+  function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
+    if (!filePath) return '';
+    return '/img?file=' + encodeURIComponent(filePath);
+  }
+  function b2TrackObj(track, artistName, album, dlUrl, dlToken, bucket) {
+    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=flac';
+    var coverUrl  = b2CoverUrl(album.coverPath);
+    return { id: track.path, title: track.title, artist: artistName, album: album.name,
+             path: signedUrl, ext: track.ext, coverPath: coverUrl };
+  }
   </script>
 </body>
 </html>
