@@ -2122,7 +2122,7 @@
         .sort((a, b) => (b.album.tracks?.length || 0) - (a.album.tracks?.length || 0))
         .slice(0, 8)
       const sourceAlbums = albumPool
-        .map(x => ({ ...x, sourceFormat: detectAlbumSourceFormat(x.album.name) }))
+        .map(x => ({ ...x, sourceFormat: detectAlbumSourceFormat(albumSourceText(x.album)) }))
         .filter(x => x.sourceFormat)
       const heroCovers = featuredAlbums.slice(0, 4)
 
@@ -2232,6 +2232,11 @@
       { kind: 'dvd', badge: 'DVD-A', kicker: 'Hi-res disc', title: 'DVD audio editions', subtitle: 'DVD-A and DVD-sourced FLAC editions' },
       { kind: 'cd', badge: 'CD FLAC', kicker: 'Silver shelf', title: 'CD masters', subtitle: 'Disc-sourced FLAC editions' }
     ]
+
+    function albumSourceText(album) {
+      const paths = (album.tracks || []).slice(0, 3).map(t => t.path || '').join(' ')
+      return [album.name || '', album.coverPath || '', album.cuePath || '', paths].join(' ')
+    }
 
     function detectAlbumSourceFormat(albumName) {
       const name = String(albumName || '').toLowerCase()
