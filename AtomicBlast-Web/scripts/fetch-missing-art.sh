@@ -15,7 +15,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MUSIC="crowbox:aharveyGoogleDriveBackup/Music"
+MUSIC="crowbox:SpAtomify/Music"
 LASTFM_API_KEY="${LASTFM_API_KEY:-d67dea9be32d3f2510ef5cde2db140fb}"
 LOG="${FETCH_ART_LOG:-/var/log/fetch-missing-art.log}"
 

@@ -9,10 +9,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // B2 config
-const B2_BUCKET_URL = process.env.B2_BUCKET_URL || 'https://s3.us-east-005.backblazeb2.com/aharveyGoogleDriveBackup';
+const B2_BUCKET_URL = process.env.B2_BUCKET_URL || 'https://s3.us-east-005.backblazeb2.com/SpAtomify';
 const B2_KEY_ID     = process.env.B2_KEY_ID  || '0055a9c537f296d0000000014';
 const B2_APP_KEY    = process.env.B2_APP_KEY || 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc';
-const B2_BUCKET     = process.env.B2_BUCKET  || 'aharveyGoogleDriveBackup';
+const B2_BUCKET     = process.env.B2_BUCKET  || 'SpAtomify';
 const B2_PREFIX     = process.env.B2_PREFIX  || 'Music/';
 
 // Quality presets

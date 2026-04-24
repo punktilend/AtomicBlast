@@ -1,9 +1,9 @@
 'use strict'
 
-// ── B2 Config (from Pulse Android local.properties) ───────────────────────────
+// ── B2 Config (from AtomicBlast Android local.properties) ─────────────────────
 const B2_KEY_ID  = '0055a9c537f296d0000000014'
 const B2_APP_KEY = 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc'
-const B2_BUCKET  = 'aharveyGoogleDriveBackup'
+const B2_BUCKET  = 'SpAtomify'
 const B2_PREFIX  = 'Music/'
 const PROXY_URL  = 'http://23.95.216.131:3000'
 

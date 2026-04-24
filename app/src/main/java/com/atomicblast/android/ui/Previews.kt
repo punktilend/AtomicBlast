@@ -186,7 +186,7 @@ fun PreviewDashboard() {
 
             Text("SOURCE", color = c.textDim, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.08.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf("B2 Bucket" to "aharveyGoogleDriveBackup", "Prefix" to "Music/").forEach { (label, value) ->
+                listOf("B2 Bucket" to "SpAtomify", "Prefix" to "Music/").forEach { (label, value) ->
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
@@ -379,4 +379,3 @@ fun PreviewNowPlaying() {
         }
     }
 }
-

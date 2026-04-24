@@ -1,7 +1,7 @@
 #!/bin/bash
 # Music library cleanup: fix top-level folder mess, merge duplicates
 # Usage: ./music-cleanup.sh [--dry-run]
-MUSIC="crowbox:aharveyGoogleDriveBackup/Music"
+MUSIC="crowbox:SpAtomify/Music"
 DRY=${1:-}
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 move() {

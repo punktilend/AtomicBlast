@@ -1,6 +1,6 @@
 #!/bin/bash
 # organize-music.sh
-# Organizes music from crowbox/seedbox/ into aharveyGoogleDriveBackup/Music/
+# Organizes music from crowbox/seedbox/ into SpAtomify/Music/
 # with Artist/Year - Album/ structure, fetches art from Last.fm
 #
 # Usage:
@@ -8,7 +8,7 @@
 #   ./organize-music.sh                                            # scan all seedbox
 
 SEEDBOX="crowbox:crowbox/seedbox"
-MUSIC="crowbox:aharveyGoogleDriveBackup/Music"
+MUSIC="crowbox:SpAtomify/Music"
 LASTFM_API_KEY="d67dea9be32d3f2510ef5cde2db140fb"
 LOG="/var/log/organize-music.log"
 

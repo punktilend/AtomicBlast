@@ -10,7 +10,6 @@
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/assets/icon-192.png">
-  <script src="/ipc-shim.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
@@ -575,7 +574,7 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260421-source-format-walls">
+  <link rel="stylesheet" href="web-deploy/public/mobile.css?v=20260421-source-format-walls">
 </head>
 <body>
   <!-- TOP NAV BAR -->
@@ -714,7 +713,7 @@
   <div class="status-bar"><span><span class="status-dot"></span></span><span id="status-text">Loading...</span><span id="gp-indicator"></span></div>
 
   <script>
-    // ipcRenderer provided by /ipc-shim.js (web mode)
+    const { ipcRenderer } = require('electron')
 
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'http://23.95.216.131:3000'
@@ -2065,11 +2064,13 @@
           '<div class="b2-stat-card"><div class="b2-stat-num">' + totalTracks + '</div><div class="b2-stat-label">Tracks</div></div>' +
         '</div>'
 
-      // Render Physical Media hub (compact category cards instead of all shelves)
-      inner.insertAdjacentHTML('beforeend', html)
-      renderPhysicalMediaHub(lib, sourceAlbums, dlUrl, dlToken, bucket)
-
-      html = ''
+      for (const source of sourceFormatShowcases) {
+        const sourceItems = sourceAlbums
+          .filter(x => x.sourceFormat === source.kind)
+          .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
+          .slice(0, 10)
+        html += renderSourceFormatWall(source, sourceItems, dlUrl, dlToken, bucket)
+      }
 
       if (featuredAlbums.length) {
         html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
@@ -2147,102 +2148,15 @@
     }
 
     const sourceFormatShowcases = [
-      { kind: 'vinyl', badge: 'VINYL', kicker: 'Analog shelf', title: 'Vinyl pressings', subtitle: 'Needle drops and LP rips', category: 'analog' },
-      { kind: 'cassette', badge: 'CASSETTE', kicker: 'Tape shelf', title: 'Cassette transfers', subtitle: 'Analog tape editions preserved in FLAC', category: 'tape' },
-      { kind: 'dat', badge: 'DAT', kicker: 'Digital tape', title: 'DAT masters', subtitle: 'Digital Audio Tape sources and transfers', category: 'digitaltape' },
-      { kind: 'minidisc', badge: 'MINIDISC', kicker: 'Disc shelf', title: 'MiniDisc captures', subtitle: 'MiniDisc sources archived as FLAC', category: 'disc' },
-      { kind: 'reel', badge: 'REEL', kicker: 'Open reel', title: 'Reel transfers', subtitle: 'Open-reel and reel-to-reel sources', category: 'analog' },
-      { kind: 'sacd', badge: 'SACD', kicker: 'Hi-res disc', title: 'SACD editions', subtitle: 'Super Audio CD sourced FLAC editions', category: 'hiresdisc' },
-      { kind: 'dvd', badge: 'DVD-A', kicker: 'Hi-res disc', title: 'DVD audio editions', subtitle: 'DVD-A and DVD-sourced FLAC editions', category: 'hiresdisc' },
-      { kind: 'cd', badge: 'CD FLAC', kicker: 'Silver shelf', title: 'CD masters', subtitle: 'Disc-sourced FLAC editions', category: 'silver' }
+      { kind: 'vinyl', badge: 'VINYL', kicker: 'Analog shelf', title: 'Vinyl pressings', subtitle: 'Needle drops and LP rips' },
+      { kind: 'cassette', badge: 'CASSETTE', kicker: 'Tape shelf', title: 'Cassette transfers', subtitle: 'Analog tape editions preserved in FLAC' },
+      { kind: 'dat', badge: 'DAT', kicker: 'Digital tape', title: 'DAT masters', subtitle: 'Digital Audio Tape sources and transfers' },
+      { kind: 'minidisc', badge: 'MINIDISC', kicker: 'Disc shelf', title: 'MiniDisc captures', subtitle: 'MiniDisc sources archived as FLAC' },
+      { kind: 'reel', badge: 'REEL', kicker: 'Open reel', title: 'Reel transfers', subtitle: 'Open-reel and reel-to-reel sources' },
+      { kind: 'sacd', badge: 'SACD', kicker: 'Hi-res disc', title: 'SACD editions', subtitle: 'Super Audio CD sourced FLAC editions' },
+      { kind: 'dvd', badge: 'DVD-A', kicker: 'Hi-res disc', title: 'DVD audio editions', subtitle: 'DVD-A and DVD-sourced FLAC editions' },
+      { kind: 'cd', badge: 'CD FLAC', kicker: 'Silver shelf', title: 'CD masters', subtitle: 'Disc-sourced FLAC editions' }
     ]
-
-    const physicalMediaCategories = [
-      { id: 'analog', title: 'Analog', subtitle: 'Vinyl & open-reel tape', icon: 'V', color: '#ffb256', kinds: ['vinyl', 'reel'] },
-      { id: 'tape', title: 'Tape', subtitle: 'Cassette transfers', icon: 'C', color: '#ffd27a', kinds: ['cassette'] },
-      { id: 'digitaltape', title: 'Digital Tape', subtitle: 'DAT masters', icon: 'D', color: '#74d6ff', kinds: ['dat'] },
-      { id: 'disc', title: 'Disc', subtitle: 'MiniDisc captures', icon: 'M', color: '#74d6ff', kinds: ['minidisc'] },
-      { id: 'hiresdisc', title: 'Hi-Res Disc', subtitle: 'SACD & DVD-Audio', icon: 'H', color: '#bff1ff', kinds: ['sacd', 'dvd'] },
-      { id: 'silver', title: 'Silver', subtitle: 'CD-sourced editions', icon: 'S', color: '#aadeff', kinds: ['cd'] }
-    ]
-
-    function renderPhysicalMediaHub(lib, sourceAlbums, dlUrl, dlToken, bucket) {
-      const inner = el('music-content-inner'); if (!inner) return
-      const counts = {}
-      for (const cat of physicalMediaCategories) {
-        counts[cat.id] = sourceAlbums.filter(x => cat.kinds.includes(x.sourceFormat)).length
-      }
-      const totalPhysical = Object.values(counts).reduce((a, b) => a + b, 0)
-      if (totalPhysical === 0) return
-
-      let html = '<div class="b2-section-title"><div><div class="b2-section-kicker">Physical Media</div><h2>Source Formats</h2></div><span class="b2-pill-btn">' + totalPhysical + ' albums</span></div>' +
-        '<div class="b2-hub-grid">'
-      for (const cat of physicalMediaCategories) {
-        const count = counts[cat.id]
-        if (count === 0) continue
-        const sampleAlbum = sourceAlbums.find(x => cat.kinds.includes(x.sourceFormat) && x.album.coverPath)
-        const coverUrl = sampleAlbum ? b2CoverUrl(sampleAlbum.album.coverPath, dlUrl, dlToken, bucket) : ''
-        const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" alt="">'
-          : '<span class="b2-hub-icon" style="background:' + cat.color + '">' + cat.icon + '</span>'
-        html += '<div class="b2-hub-card" data-pm-category="' + cat.id + '">' +
-          '<div class="b2-hub-art">' + artHtml + '</div>' +
-          '<div class="b2-hub-info">' +
-          '<div class="b2-hub-title">' + esc(cat.title) + '</div>' +
-          '<div class="b2-hub-subtitle">' + esc(cat.subtitle) + '</div>' +
-          '<div class="b2-hub-count">' + count + ' album' + (count !== 1 ? 's' : '') + '</div>' +
-          '</div></div>'
-      }
-      html += '</div>'
-      inner.insertAdjacentHTML('beforeend', html)
-
-      inner.querySelectorAll('[data-pm-category]').forEach(card => {
-        card.addEventListener('click', () => showPhysicalMediaCategory(card.dataset.pmCategory, lib, sourceAlbums, dlUrl, dlToken, bucket))
-      })
-    }
-
-    function showPhysicalMediaCategory(catId, lib, sourceAlbums, dlUrl, dlToken, bucket) {
-      const inner = el('music-content-inner'); if (!inner) return
-      const cat = physicalMediaCategories.find(c => c.id === catId)
-      if (!cat) return
-
-      const catSources = sourceFormatShowcases.filter(s => cat.kinds.includes(s.kind))
-      let html = '<div class="lib-breadcrumb">' +
-        '<span class="crumb" id="pm-crumb-root">Music</span><span class="sep">›</span>' +
-        '<span class="crumb" id="pm-crumb-physical">Physical Media</span><span class="sep">›</span>' +
-        '<span class="crumb active">' + esc(cat.title) + '</span></div>' +
-        '<div class="b2-category-view">'
-      for (const source of catSources) {
-        const items = sourceAlbums
-          .filter(x => x.sourceFormat === source.kind)
-          .sort((a, b) => Number(!!b.album.coverPath) - Number(!!a.album.coverPath) || a.album.name.localeCompare(b.album.name))
-        html += renderSourceFormatWall(source, items, dlUrl, dlToken, bucket)
-      }
-      html += '</div>'
-      inner.innerHTML = html
-
-      el('pm-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
-      el('pm-crumb-physical')?.addEventListener('click', () => {
-        showB2Artists(lib, dlUrl, dlToken)
-        setTimeout(() => {
-          const hub = inner.querySelector('.b2-hub-grid')
-          if (hub) hub.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 50)
-      })
-
-      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
-        card.addEventListener('click', () => {
-          const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (!artist) return
-          if (card.dataset.b2Album) {
-            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
-            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
-          } else {
-            showB2Artist(artist, lib, dlUrl, dlToken)
-          }
-        })
-      })
-    }
 
     function detectAlbumSourceFormat(albumName) {
       const name = String(albumName || '').toLowerCase()
@@ -3258,20 +3172,5 @@
       }
     }
   </script>
-
-  <script>
-  // AtomicBlast-Server: route all B2 audio + images through the local proxy (CORS fix for Safari)
-  function b2CoverUrl(filePath, dlUrl, dlToken, bucketName) {
-    if (!filePath) return '';
-    return '/img?file=' + encodeURIComponent(filePath);
-  }
-  function b2TrackObj(track, artistName, album, dlUrl, dlToken, bucket) {
-    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=flac';
-    var coverUrl  = b2CoverUrl(album.coverPath);
-    return { id: track.path, title: track.title, artist: artistName, album: album.name,
-             path: signedUrl, ext: track.ext, coverPath: coverUrl };
-  }
-  </script>
 </body>
 </html>
-

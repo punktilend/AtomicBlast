@@ -20,6 +20,11 @@ lessons learned the hard way so we don't repeat them.
 
 **PM2 process:** `pulse-proxy` → `/opt/pulse-proxy/server.js`
 
+**Default web/iOS deploy rule:** When working on AtomicBlast Web, iPhone/iOS Web,
+or the hosted PWA, ship the finished change to `root@23.95.216.131` using the
+`racknerd-atomicblast` SSH alias and push the git branch, unless the user
+explicitly says the change is local-only.
+
 ---
 
 ## AtomicBlast-Server (web-deploy)

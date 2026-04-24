@@ -15,8 +15,8 @@ window.ipcRenderer = {
 
         case 'get-config':
           return {
-            cloudSources: [{ id: 'b2-aharvey', name: 'aharveyGoogleDriveBackup', provider: 'b2',
-                             b2Bucket: 'aharveyGoogleDriveBackup', b2Prefix: 'Music/' }],
+            cloudSources: [{ id: 'b2-spatomify', name: 'SpAtomify', provider: 'b2',
+                             b2Bucket: 'SpAtomify', b2Prefix: 'Music/' }],
             musicPaths: [],
           };
 

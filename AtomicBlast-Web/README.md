@@ -36,7 +36,7 @@ AtomicBlast-Server/
 ```
 Torrent completes
   → upload-to-b2.sh      copies to crowbox:crowbox/seedbox/, calls organize-music.sh
-  → organize-music.sh    parses name, copies audio to crowbox:aharveyGoogleDriveBackup/Music/
+  → organize-music.sh    parses name, copies audio to crowbox:SpAtomify/Music/
                          fetches artist.jpg + cover.jpg from Last.fm API
   → pulse-proxy          scans B2, caches library in-memory, streams on demand
 ```
@@ -46,7 +46,7 @@ Torrent completes
 ```
 crowbox: (rclone remote, type=b2)
   crowbox/seedbox/                                         ← raw torrents (kept for seeding)
-  aharveyGoogleDriveBackup/Music/<Artist>/<Year - Album>/  ← organized library
+  SpAtomify/Music/<Artist>/<Year - Album>/                 ← organized library
 ```
 
 The `rclone-crowbox` systemd service FUSE-mounts all of `crowbox:` at `/crowbox`.
@@ -60,8 +60,8 @@ Set in PM2 env or `.env`:
 | Variable | Default | Purpose |
 |---|---|---|
 | `B2_KEY_ID` / `B2_APP_KEY` | hardcoded in server.js | B2 native API credentials |
-| `B2_BUCKET` | `aharveyGoogleDriveBackup` | Bucket name |
-| `B2_BUCKET_URL` | `https://s3.us-east-005.backblazeb2.com/aharveyGoogleDriveBackup` | S3-compat URL for /stream |
+| `B2_BUCKET` | `SpAtomify` | Bucket name |
+| `B2_BUCKET_URL` | `https://s3.us-east-005.backblazeb2.com/SpAtomify` | S3-compat URL for /stream |
 | `B2_PREFIX` | `Music/` | Library prefix for B2 scanning |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | — | Spotify metadata (optional) |
 | `LASTFM_API_KEY` | — | Last.fm bio/tags/artwork (optional) |

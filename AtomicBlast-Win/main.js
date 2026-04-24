@@ -25,12 +25,12 @@ function saveUserConfig(config) {
 const userConfig = loadUserConfig()
 
 const B2_SOURCE = {
-  id:        'b2-aharvey',
-  name:      'aharveyGoogleDriveBackup',
+  id:        'b2-spatomify',
+  name:      'SpAtomify',
   provider:  'b2',
   b2KeyId:   '0055a9c537f296d0000000014',
   b2AppKey:  'K005XUecoGa52VpCS6Hb2qx45iGZ/jc',
-  b2Bucket:  'aharveyGoogleDriveBackup',
+  b2Bucket:  'SpAtomify',
   b2Prefix:  'Music/',
 }
 
