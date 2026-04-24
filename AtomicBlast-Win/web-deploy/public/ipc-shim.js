@@ -13,6 +13,12 @@ window.ipcRenderer = {
           return r.json();
         }
 
+        case 'get-collection-popularity': {
+          const r = await fetch('/api/collection-popularity');
+          if (!r.ok) throw new Error('collection-popularity: HTTP ' + r.status);
+          return r.json();
+        }
+
         case 'get-config':
           return {
             cloudSources: [{ id: 'b2-atomicblast', name: 'SpAtomify', provider: 'b2',
@@ -57,8 +63,12 @@ window.ipcRenderer = {
           return { folders: [], files: [] };
         }
 
-        // Artist / album metadata — stubbed (no bios in web mode)
-        case 'fetch-artist-meta':
+        case 'fetch-artist-meta': {
+          const r = await fetch('/api/artist-meta?artist=' + encodeURIComponent(args.artistName || ''));
+          return r.ok ? r.json() : null;
+        }
+
+        // Album metadata — stubbed in web mode for now
         case 'fetch-album-meta':
           return null;
 

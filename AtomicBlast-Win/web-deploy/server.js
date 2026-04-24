@@ -33,6 +33,7 @@ const B2_KEY_ID     = process.env.B2_KEY_ID  || '';
 const B2_APP_KEY    = process.env.B2_APP_KEY || '';
 const B2_BUCKET     = process.env.B2_BUCKET  || 'SpAtomify';
 const B2_PREFIX     = process.env.B2_PREFIX  || 'Music/';
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY || 'd67dea9be32d3f2510ef5cde2db140fb';
 
 // Quality presets
 const QUALITY_PRESETS = {
@@ -95,6 +96,65 @@ app.post('/api/playlists', (req, res) => {
 });
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// ── Popularity / metadata cache ──────────────────────────────────────────────
+const POPULARITY_FILE = path.join(__dirname, 'collection-popularity.json');
+const POPULARITY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function readJsonFile(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+}
+
+function writeJsonFile(file, value) {
+  fs.writeFileSync(file, JSON.stringify(value, null, 2), 'utf8');
+}
+
+function httpsGetJSON(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0', ...headers } }, res => {
+      let d = '';
+      res.on('data', c => { d += c; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(d)); }
+        catch (e) { reject(new Error(d.slice(0, 300))); }
+      });
+    }).on('error', reject);
+  });
+}
+
+function cleanLastfmSummary(summary) {
+  return String(summary || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/Read more on Last\.fm\.?/gi, '')
+    .trim();
+}
+
+async function fetchLastfmArtistMeta(artistName) {
+  if (!artistName || !LASTFM_API_KEY) return null;
+  const url = 'https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=' +
+    encodeURIComponent(artistName) + '&api_key=' + encodeURIComponent(LASTFM_API_KEY) +
+    '&format=json&autocorrect=1';
+  const data = await httpsGetJSON(url);
+  const a = data && data.artist;
+  if (!a) return null;
+  const image = (a.image || []).find(i => i.size === 'extralarge')?.['#text'] ||
+                (a.image || []).find(i => i.size === 'large')?.['#text'] || null;
+  const listenersRaw = Number(a.stats?.listeners || 0);
+  const playcountRaw = Number(a.stats?.playcount || 0);
+  return {
+    name: a.name || artistName,
+    image,
+    listenersRaw,
+    playcountRaw,
+    listeners: listenersRaw ? listenersRaw.toLocaleString() : null,
+    playcount: playcountRaw ? playcountRaw.toLocaleString() : null,
+    tags: (a.tags?.tag || []).slice(0, 8).map(t => t.name).filter(Boolean),
+    similar: (a.similar?.artist || []).slice(0, 6).map(s => s.name).filter(Boolean),
+    bio: cleanLastfmSummary(a.bio?.summary || ''),
+    url: a.url || null,
+    fetchedAt: Date.now(),
+  };
+}
 
 // ── B2 native API helpers ─────────────────────────────────────────────────────
 function b2Get(url, headers = {}) {
@@ -370,6 +430,71 @@ app.post('/api/scan-b2-music/refresh', async (req, res) => {
     const lib = await scanB2Music();
     res.json({ ok: true, artists: lib.artists.length });
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/artist-meta', async (req, res) => {
+  const artistName = String(req.query.artist || '').trim();
+  if (!artistName) return res.status(400).json({ error: 'artist required' });
+  try {
+    const cache = readJsonFile(POPULARITY_FILE, { artists: {}, updatedAt: 0 });
+    const cached = cache.artists?.[artistName];
+    if (cached && Date.now() - (cached.fetchedAt || 0) < POPULARITY_TTL_MS) return res.json(cached);
+    const meta = await fetchLastfmArtistMeta(artistName);
+    if (!meta) return res.status(404).json({ error: 'metadata not found' });
+    cache.artists = cache.artists || {};
+    cache.artists[artistName] = meta;
+    cache.updatedAt = Date.now();
+    writeJsonFile(POPULARITY_FILE, cache);
+    res.json(meta);
+  } catch (e) {
+    console.error('[api/artist-meta]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/collection-popularity', async (req, res) => {
+  try {
+    const lib = await scanB2Music();
+    const cache = readJsonFile(POPULARITY_FILE, { artists: {}, updatedAt: 0 });
+    cache.artists = cache.artists || {};
+
+    const candidates = lib.artists.map(artist => {
+      const albums = artist.albums.length;
+      const tracks = artist.albums.reduce((s, album) => s + album.tracks.length, 0);
+      return { name: artist.name, albums, tracks, localScore: tracks + albums * 6 };
+    }).sort((a, b) => b.localScore - a.localScore || a.name.localeCompare(b.name));
+
+    const missing = candidates
+      .filter(a => !cache.artists[a.name] || Date.now() - (cache.artists[a.name].fetchedAt || 0) >= POPULARITY_TTL_MS)
+      .slice(0, 40);
+
+    for (const artist of missing) {
+      try {
+        const meta = await fetchLastfmArtistMeta(artist.name);
+        cache.artists[artist.name] = meta || { name: artist.name, listenersRaw: 0, playcountRaw: 0, fetchedAt: Date.now() };
+      } catch (e) {
+        cache.artists[artist.name] = { name: artist.name, listenersRaw: 0, playcountRaw: 0, fetchedAt: Date.now(), error: e.message };
+      }
+    }
+
+    cache.updatedAt = Date.now();
+    writeJsonFile(POPULARITY_FILE, cache);
+
+    const artists = candidates.map(artist => {
+      const meta = cache.artists[artist.name] || {};
+      const popularityScore = (Number(meta.listenersRaw) || 0) + Math.sqrt(Number(meta.playcountRaw) || 0);
+      return { ...artist, ...meta, popularityScore };
+    }).sort((a, b) =>
+      (b.popularityScore - a.popularityScore) ||
+      (b.localScore - a.localScore) ||
+      a.name.localeCompare(b.name)
+    );
+
+    res.json({ updatedAt: cache.updatedAt, artists });
+  } catch (e) {
+    console.error('[api/collection-popularity]', e.message);
     res.status(500).json({ error: e.message });
   }
 });

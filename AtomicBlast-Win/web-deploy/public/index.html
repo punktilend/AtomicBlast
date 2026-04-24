@@ -735,6 +735,7 @@
     let musicVideoPlaying = false
     let cloudSources = []
     let b2Lib = null, b2DlUrl = null, b2DlToken = null
+    let b2Popularity = null, b2PopularityLoading = false
     const VIDEO_EXTS_CLIENT = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv'])
     let playlists = { liked: [], playlists: [] }
     let ctxTrack = null
@@ -1370,6 +1371,33 @@
       inner.querySelectorAll('.lib-track-row[data-b2-ti]').forEach(row => {
         row.addEventListener('click', () => { setQueue(allTracks, parseInt(row.dataset.b2Ti)) })
       })
+    }
+
+    function showB2AllArtists() {
+      const inner = el('music-content-inner'); if (!inner || !b2Lib) return
+      const bucket = b2Lib.bucketName || 'SpAtomify'
+      const artists = rankB2Artists(b2Lib, b2Popularity)
+      let html = '<div class="lib-breadcrumb"><span class="crumb active">All Artists</span></div>'
+      html += '<div class="lib-grid">'
+      for (const artist of artists) {
+        const initial = (artist.name || '?').charAt(0).toUpperCase()
+        const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
+        const coverUrl = b2CoverUrl(firstCover, b2DlUrl, b2DlToken, bucket)
+        const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
+        const meta = getPopularityMeta(artist.name)
+        const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
+        const artHtml = coverUrl
+          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
+          '<div class="lib-card-art">' + artHtml + '</div>' +
+          '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
+          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks' + stats + '</div></div>' +
+          '</div>'
+      }
+      html += '</div>'
+      inner.innerHTML = html
+      bindB2Cards(inner, b2Lib, b2DlUrl, b2DlToken)
     }
 
     function filterMusicTree(q) {
@@ -2021,17 +2049,73 @@
       return dlUrl + '/file/' + (bucketName || 'SpAtomify') + '/' + encoded + '?Authorization=' + dlToken
     }
 
+    function getPopularityMeta(artistName) {
+      return b2Popularity?.artists?.find(a => a.name === artistName) || null
+    }
+
+    function b2ArtistLocalScore(artist) {
+      const tracks = artist.albums.reduce((s, album) => s + album.tracks.length, 0)
+      return tracks + artist.albums.length * 6
+    }
+
+    function rankB2Artists(lib, popularity) {
+      const popular = new Map((popularity?.artists || []).map(a => [a.name, a]))
+      return [...lib.artists].sort((a, b) => {
+        const ap = popular.get(a.name)?.popularityScore || popular.get(a.name)?.listenersRaw || 0
+        const bp = popular.get(b.name)?.popularityScore || popular.get(b.name)?.listenersRaw || 0
+        return (bp - ap) || (b2ArtistLocalScore(b) - b2ArtistLocalScore(a)) || a.name.localeCompare(b.name)
+      })
+    }
+
+    function loadB2Popularity(lib, dlUrl, dlToken) {
+      if (b2PopularityLoading) return
+      b2PopularityLoading = true
+      ipcRenderer.invoke('get-collection-popularity').then(data => {
+        b2Popularity = data
+        if (b2Lib === lib) showB2Artists(lib, dlUrl, dlToken)
+      }).catch(() => {}).finally(() => { b2PopularityLoading = false })
+    }
+
+    function bindB2Cards(container, lib, dlUrl, dlToken) {
+      container.querySelectorAll('[data-b2-artist]').forEach(card => {
+        card.addEventListener('click', () => {
+          const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
+          if (!artist) return
+          if (card.dataset.b2Album) {
+            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
+            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
+          } else {
+            showB2Artist(artist, lib, dlUrl, dlToken)
+          }
+        })
+        const artEl = card.querySelector('.lib-card-art')
+        if (artEl?.querySelector('.lib-card-initial')) {
+          const name = card.dataset.b2Album || card.dataset.b2Artist
+          const ini = name.charAt(0).toUpperCase()
+          fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album || '').then(async url => {
+            if (url) { applyItunesArt(artEl, url, ini); return }
+            try {
+              const meta = card.dataset.b2Album
+                ? await ipcRenderer.invoke('fetch-album-meta', { artistName: card.dataset.b2Artist, albumName: card.dataset.b2Album })
+                : await ipcRenderer.invoke('fetch-artist-meta', { artistName: card.dataset.b2Artist })
+              const image = meta?.coverArt || meta?.image
+              if (image && artEl.querySelector('.lib-card-initial'))
+                artEl.innerHTML = '<img src="' + image + '" alt="">'
+            } catch(e) {}
+          })
+        }
+      })
+    }
+
     function showB2Artists(lib, dlUrl, dlToken) {
       const inner = el('music-content-inner'); if (!inner) return
       const bucket = lib.bucketName || 'SpAtomify'
 
       const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
       const totalAlbums = lib.artists.reduce((s, a) => s + a.albums.length, 0)
-      const topArtists = [...lib.artists].sort((a, b) => {
-        const at = a.albums.reduce((s, al) => s + al.tracks.length, 0)
-        const bt = b.albums.reduce((s, al) => s + al.tracks.length, 0)
-        return bt - at || a.name.localeCompare(b.name)
-      }).slice(0, 10)
+      const rankedArtists = rankB2Artists(lib, b2Popularity)
+      const topArtists = rankedArtists.slice(0, 10)
+      const featuredArtists = rankedArtists.slice(0, 8)
       const albumPool = lib.artists.flatMap(artist => artist.albums.map(album => ({ artist, album })))
       const featuredAlbums = albumPool
         .filter(x => x.album.coverPath)
@@ -2081,19 +2165,23 @@
         html += renderSourceFormatWall(source, sourceItems, dlUrl, dlToken, bucket)
       }
 
-      if (featuredAlbums.length) {
-        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
+      if (featuredArtists.length) {
+        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Artists</h2></div><button id="b2-all-artists-featured" class="b2-pill-btn">See All</button></div>' +
           '<div class="b2-shelf">'
-        for (const { artist, album } of featuredAlbums) {
-          const initial = (album.name || '?').charAt(0).toUpperCase()
-          const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+        for (const artist of featuredArtists) {
+          const initial = (artist.name || '?').charAt(0).toUpperCase()
+          const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
+          const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
+          const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
+          const meta = getPopularityMeta(artist.name)
+          const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" alt="">'
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>'
-          html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+          html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
-            '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
-            '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
+            '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
+            '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks' + stats + '</div></div></div>'
         }
         html += '</div>'
       }
@@ -2105,13 +2193,15 @@
         const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
         const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
         const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
+        const meta = getPopularityMeta(artist.name)
+        const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" alt="">'
+          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
         html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
           '<div class="lib-card-art">' + artHtml + '</div>' +
           '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
-          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks</div></div>' +
+          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks' + stats + '</div></div>' +
           '</div>'
       }
       html += '</div></div>'
@@ -2125,35 +2215,11 @@
       el('b2-view-albums-btn')?.addEventListener('click', () => showB2AllAlbums())
       el('b2-view-tracks-btn')?.addEventListener('click', () => showB2AllTracks())
       el('b2-all-albums-top')?.addEventListener('click', () => showB2AllAlbums())
+      el('b2-all-artists-top')?.addEventListener('click', () => showB2AllArtists())
+      el('b2-all-artists-featured')?.addEventListener('click', () => showB2AllArtists())
 
-      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
-        card.addEventListener('click', () => {
-          const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
-          if (!artist) return
-          if (card.dataset.b2Album) {
-            const album = artist.albums.find(a => a.name === card.dataset.b2Album)
-            if (album) showB2Album(artist, album, lib, dlUrl, dlToken)
-          } else {
-            showB2Artist(artist, lib, dlUrl, dlToken)
-          }
-        })
-        const artEl = card.querySelector('.lib-card-art')
-        if (artEl?.querySelector('.lib-card-initial')) {
-          const name = card.dataset.b2Album || card.dataset.b2Artist
-          const ini = name.charAt(0).toUpperCase()
-          fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album || '').then(async url => {
-            if (url) { applyItunesArt(artEl, url, ini); return }
-            try {
-              const meta = card.dataset.b2Album
-                ? await ipcRenderer.invoke('fetch-album-meta', { artistName: card.dataset.b2Artist, albumName: card.dataset.b2Album })
-                : await ipcRenderer.invoke('fetch-artist-meta', { artistName: card.dataset.b2Artist })
-              const image = meta?.coverArt || meta?.image
-              if (image && artEl.querySelector('.lib-card-initial'))
-                artEl.innerHTML = '<img src="' + image + '" alt="">'
-            } catch(e) {}
-          })
-        }
-      })
+      bindB2Cards(inner, lib, dlUrl, dlToken)
+      if (!b2Popularity) loadB2Popularity(lib, dlUrl, dlToken)
     }
 
     const sourceFormatShowcases = [
@@ -2193,7 +2259,7 @@
         const initial = (album.name || '?').charAt(0).toUpperCase()
         const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" alt="">'
+          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
           : '<span class="lib-card-initial">' + esc(initial) + '</span>'
         html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
           '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
