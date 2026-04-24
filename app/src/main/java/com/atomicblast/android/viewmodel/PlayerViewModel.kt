@@ -17,6 +17,7 @@ import com.atomicblast.android.data.AtomicImportRepository
 import com.atomicblast.android.data.ArtistMeta
 import com.atomicblast.android.data.B2Config
 import com.atomicblast.android.data.B2Repository
+import com.atomicblast.android.data.CollectionArtistPopularity
 import com.atomicblast.android.data.Favorite
 import com.atomicblast.android.data.FavoritesRepository
 import com.atomicblast.android.data.ImportedPlaylistPreview
@@ -43,6 +44,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val artistMeta: StateFlow<Map<String, ArtistMeta>> = _artistMeta.asStateFlow()
     private val _albumMeta = MutableStateFlow<Map<String, AlbumMeta>>(emptyMap())
     val albumMeta: StateFlow<Map<String, AlbumMeta>> = _albumMeta.asStateFlow()
+    private val _collectionPopularity = MutableStateFlow<List<CollectionArtistPopularity>>(emptyList())
+    val collectionPopularity: StateFlow<List<CollectionArtistPopularity>> = _collectionPopularity.asStateFlow()
+    private var popularityRequested = false
 
     private val _favorites = MutableStateFlow<List<Favorite>>(emptyList())
     val favorites: StateFlow<List<Favorite>> = _favorites.asStateFlow()
@@ -263,6 +267,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val meta = metaRepo.fetchArtistMeta(name)
                 _artistMeta.update { it + (name to meta) }
             } catch (_: Exception) {}
+        }
+    }
+
+    fun loadCollectionPopularity() {
+        if (popularityRequested && _collectionPopularity.value.isNotEmpty()) return
+        popularityRequested = true
+        viewModelScope.launch {
+            try {
+                _collectionPopularity.value = metaRepo.fetchCollectionPopularity()
+            } catch (_: Exception) {
+                popularityRequested = false
+            }
         }
     }
 

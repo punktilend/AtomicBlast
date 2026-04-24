@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.atomicblast.android.data.B2File
+import com.atomicblast.android.data.CollectionArtistPopularity
 import com.atomicblast.android.data.Track
 import com.atomicblast.android.ui.theme.LocalAtomicBlastColors
 import com.atomicblast.android.viewmodel.PlayerViewModel
@@ -69,6 +72,8 @@ fun DashboardScreen(vm: PlayerViewModel, navController: NavController) {
     val colors = LocalAtomicBlastColors.current
     val isConnected by vm.isConnected.collectAsState()
     val scope = rememberCoroutineScope()
+    val artistMetaMap by vm.artistMeta.collectAsState()
+    val popularity by vm.collectionPopularity.collectAsState()
 
     var artists by remember { mutableStateOf<List<B2File>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -76,6 +81,7 @@ fun DashboardScreen(vm: PlayerViewModel, navController: NavController) {
     var isShuffleLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(isConnected) {
+        if (isConnected) vm.loadCollectionPopularity()
         if (isConnected && artists.isEmpty()) {
             scope.launch {
                 isLoading = true
@@ -90,11 +96,27 @@ fun DashboardScreen(vm: PlayerViewModel, navController: NavController) {
         }
     }
 
-    val artistMetaMap by vm.artistMeta.collectAsState()
+    val popularityByName = remember(popularity) {
+        popularity.associateBy { it.name.artistKey() }
+    }
+    val rankedArtists = remember(artists, popularityByName) {
+        artists.sortedWith(
+            compareByDescending<B2File> {
+                popularityByName[it.artistDisplayName().artistKey()]?.popularityScore ?: -1.0
+            }.thenBy { it.artistDisplayName().lowercase() }
+        )
+    }
+    val featuredArtists = remember(rankedArtists, popularityByName) {
+        val rankedWithScores = rankedArtists.filter {
+            val score = popularityByName[it.artistDisplayName().artistKey()]?.popularityScore ?: 0.0
+            score > 0.0
+        }
+        (rankedWithScores.ifEmpty { rankedArtists }).take(10)
+    }
 
     LaunchedEffect(artists) {
         artists.forEach { artist ->
-            val name = artist.name.removePrefix("Music/").trimEnd('/')
+            val name = artist.artistDisplayName()
             vm.loadArtistMeta(name)
         }
     }
@@ -198,27 +220,87 @@ fun DashboardScreen(vm: PlayerViewModel, navController: NavController) {
                     modifier = Modifier.padding(32.dp)
                 )
             }
-            else -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-
-                items(artists) { artist ->
-                    val name = artist.name.removePrefix("Music/").trimEnd('/')
-                    val artUrl = vm.b2.getStreamUrl("${artist.name}artist.jpg")
-                    val fallbackArtUrl = artistMetaMap[name]?.image
-                    ArtistCard(
-                        name = name,
-                        artUrl = artUrl,
-                        fallbackArtUrl = fallbackArtUrl,
-                        onClick = {
-                            val encoded = Uri.encode(artist.name)
-                            navController.navigate("cloud_prefix?p=$encoded")
+            else -> Column(Modifier.fillMaxSize()) {
+                if (featuredArtists.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 24.dp, top = 18.dp, end = 24.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "FEATURED ARTISTS",
+                            color = colors.textPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            "${artists.size} total",
+                            color = colors.textMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        lazyItems(featuredArtists) { artist ->
+                            val name = artist.artistDisplayName()
+                            val artistPopularity = popularityByName[name.artistKey()]
+                            val artUrl = vm.b2.getStreamUrl("${artist.name}artist.jpg")
+                            val fallbackArtUrl = artistPopularity?.image ?: artistMetaMap[name]?.image
+                            ArtistCard(
+                                name = name,
+                                subtitle = artistPopularity?.popularitySubtitle(),
+                                artUrl = artUrl,
+                                fallbackArtUrl = fallbackArtUrl,
+                                modifier = Modifier.width(126.dp),
+                                onClick = {
+                                    val encoded = Uri.encode(artist.name)
+                                    navController.navigate("cloud_prefix?p=$encoded")
+                                }
+                            )
                         }
-                    )
+                    }
+                }
+                Text(
+                    "ALL ARTISTS",
+                    color = colors.textPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 8.dp)
+                )
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+
+                    items(rankedArtists) { artist ->
+                        val name = artist.artistDisplayName()
+                        val artistPopularity = popularityByName[name.artistKey()]
+                        val artUrl = vm.b2.getStreamUrl("${artist.name}artist.jpg")
+                        val fallbackArtUrl = artistPopularity?.image ?: artistMetaMap[name]?.image
+                        ArtistCard(
+                            name = name,
+                            subtitle = artistPopularity?.popularitySubtitle(),
+                            artUrl = artUrl,
+                            fallbackArtUrl = fallbackArtUrl,
+                            onClick = {
+                                val encoded = Uri.encode(artist.name)
+                                navController.navigate("cloud_prefix?p=$encoded")
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -264,11 +346,18 @@ private fun StatusCard(
 }
 
 @Composable
-private fun ArtistCard(name: String, artUrl: String, fallbackArtUrl: String? = null, onClick: () -> Unit) {
+private fun ArtistCard(
+    name: String,
+    artUrl: String,
+    fallbackArtUrl: String? = null,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     val colors = LocalAtomicBlastColors.current
-    var currentUrl by remember(artUrl) { mutableStateOf<String?>(artUrl) }
+    var currentUrl by remember(artUrl, fallbackArtUrl) { mutableStateOf<String?>(artUrl) }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(6.dp),
@@ -312,7 +401,35 @@ private fun ArtistCard(name: String, artUrl: String, fallbackArtUrl: String? = n
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth()
         )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                color = colors.textMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
+private fun B2File.artistDisplayName(): String =
+    name.removePrefix("Music/").trimEnd('/')
+
+private fun String.artistKey(): String =
+    trim().lowercase()
+
+private fun CollectionArtistPopularity.popularitySubtitle(): String? {
+    val listenerText = listeners?.let { "$it listeners" }
+    val collectionText = when {
+        albums > 0 && tracks > 0 -> "$albums albums · $tracks tracks"
+        albums > 0 -> "$albums albums"
+        tracks > 0 -> "$tracks tracks"
+        else -> null
+    }
+    return listenerText ?: collectionText
+}
 

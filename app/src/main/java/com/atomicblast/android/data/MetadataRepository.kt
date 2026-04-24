@@ -1,5 +1,6 @@
 package com.atomicblast.android.data
 
+import com.atomicblast.android.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -60,6 +61,36 @@ class MetadataRepository(private val client: OkHttpClient = OkHttpClient()) {
                 coverArt = l?.coverArt ?: d?.coverArt,
                 wiki     = l?.wiki,
             ).also { albumCache[key] = it }
+        }
+    }
+
+    suspend fun fetchCollectionPopularity(): List<CollectionArtistPopularity> = withContext(Dispatchers.IO) {
+        try {
+            val proxyUrl = BuildConfig.PROXY_URL.trim().trimEnd('/')
+            if (proxyUrl.isBlank()) return@withContext emptyList()
+            val j = getJson("$proxyUrl/api/collection-popularity") ?: return@withContext emptyList()
+            val artists = j.optJSONArray("artists") ?: return@withContext emptyList()
+            val out = mutableListOf<CollectionArtistPopularity>()
+            for (i in 0 until artists.length()) {
+                val item = artists.optJSONObject(i) ?: continue
+                val name = item.optString("name").takeIf { it.isNotBlank() } ?: continue
+                out.add(
+                    CollectionArtistPopularity(
+                        name = name,
+                        albums = item.optInt("albums"),
+                        tracks = item.optInt("tracks"),
+                        localScore = item.optDouble("localScore", 0.0),
+                        listenersRaw = item.optLong("listenersRaw", 0L),
+                        playcountRaw = item.optLong("playcountRaw", 0L),
+                        listeners = item.optString("listeners").takeIf { it.isNotBlank() },
+                        image = item.optString("image").takeIf { it.isNotBlank() },
+                        popularityScore = item.optDouble("popularityScore", 0.0),
+                    )
+                )
+            }
+            out
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 

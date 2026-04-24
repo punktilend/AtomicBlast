@@ -34,6 +34,18 @@ data class Artist(
     val albums: List<Album>,
 )
 
+data class CollectionArtistPopularity(
+    val name: String,
+    val albums: Int = 0,
+    val tracks: Int = 0,
+    val localScore: Double = 0.0,
+    val listenersRaw: Long = 0L,
+    val playcountRaw: Long = 0L,
+    val listeners: String? = null,
+    val image: String? = null,
+    val popularityScore: Double = 0.0,
+)
+
 data class B2Config(
     val keyId: String  = com.atomicblast.android.BuildConfig.B2_KEY_ID,
     val appKey: String = com.atomicblast.android.BuildConfig.B2_APP_KEY,
