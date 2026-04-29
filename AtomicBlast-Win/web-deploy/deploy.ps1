@@ -2,10 +2,12 @@
 # Run from AtomicBlast-Win/web-deploy/
 # Usage: pwsh -File deploy.ps1
 
-$server  = "racknerd-atomicblast"   # SSH alias in ~/.ssh/config — uses atomicblast_id key (no password prompt)
-$srcDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$winDir  = Split-Path -Parent $srcDir   # AtomicBlast-Win/
-$pubDir  = "$srcDir\public"
+$server     = "racknerd-atomicblast"   # SSH alias in ~/.ssh/config — uses atomicblast_id key (no password prompt)
+$srcDir     = Split-Path -Parent $MyInvocation.MyCommand.Path
+$winDir     = Split-Path -Parent $srcDir              # AtomicBlast-Win/
+$repoRoot   = Split-Path -Parent $winDir              # repo root
+$serverDir  = Join-Path $repoRoot "AtomicBlast-Server"  # canonical server source
+$pubDir     = "$serverDir\public"
 
 Write-Host "=== Patching index.html for web ===" -ForegroundColor Cyan
 
@@ -53,7 +55,7 @@ $webOverrides = @'
 '@
 $html = $html -replace '</body>', "$webOverrides`n</body>"
 
-# Write patched index.html to public/
+# Write patched index.html to AtomicBlast-Server/public/
 $html | Set-Content "$pubDir\index.html" -Encoding UTF8
 Write-Host "  -> public/index.html written" -ForegroundColor Green
 
@@ -64,8 +66,8 @@ Write-Host "  -> assets copied" -ForegroundColor Green
 Write-Host ""
 Write-Host "=== Uploading to server ===" -ForegroundColor Cyan
 
-# Upload updated server.js
-scp "$srcDir\server.js" "${server}:/opt/pulse-proxy/server.js"
+# Upload server.js from AtomicBlast-Server/
+scp "$serverDir\server.js" "${server}:/opt/pulse-proxy/server.js"
 Write-Host "  -> server.js uploaded" -ForegroundColor Green
 
 # Upload public/ directory (static web app)

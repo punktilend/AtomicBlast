@@ -126,7 +126,10 @@
       "Bash(pwsh -Command \"Select-String -Path 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android\\\\AtomicBlast-Win\\\\web-deploy\\\\server.js' -Pattern 'Music/|prefix|scanB2|b2Music|bucket' | Select-Object LineNumber, Line | Select-Object -First 20\")",
       "Bash(pwsh -Command \"Get-ChildItem 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android' -File | Select-Object Name\")",
       "Bash(pwsh -Command \"Get-ChildItem 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android\\\\AtomicBlast-Win\\\\web-deploy' | Select-Object Name\")",
-      "Bash(pwsh -Command \"Get-ChildItem 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android' -Recurse -Filter 'CLAUDE.md' -ErrorAction SilentlyContinue | Select-Object FullName\")"
+      "Bash(pwsh -Command \"Get-ChildItem 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android' -Recurse -Filter 'CLAUDE.md' -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(echo \"---exit $?\")",
+      "Bash(git mv *)",
+      "Bash(git rm *)"
     ]
   },
   "hooks": {
@@ -136,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; echo \"$f\" | grep -qi 'web-deploy' && pwsh -File 'C:/Users/adamm/AndroidStudioProjects/AtomicBlast-Android/AtomicBlast-Win/web-deploy/deploy.ps1'; } 2>/dev/null || true",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; echo \"$f\" | grep -qi 'web-deploy\\|AtomicBlast-Server' && pwsh -File 'C:/Users/adamm/AndroidStudioProjects/AtomicBlast-Android/AtomicBlast-Win/web-deploy/deploy.ps1'; } 2>/dev/null || true",
             "timeout": 120,
             "statusMessage": "Deploying AtomicBlast-Server changes..."
           }

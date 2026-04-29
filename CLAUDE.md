@@ -9,10 +9,12 @@ lessons learned the hard way so we don't repeat them.
 
 | Folder | What it is |
 |---|---|
+| `app/` | Android app (Kotlin) — lives at repo root per Android Studio convention |
 | `AtomicBlast-Win/` | Electron desktop app (Windows). Source of truth for `index.html` / UI. |
-| `AtomicBlast-Win/web-deploy/` | **AtomicBlast-Server** — Node.js server + deploy script. Web/iPhone PWA. |
-| `AtomicBlast-Win/web-deploy/public/` | Static files served to the browser (ipc-shim.js, mobile.css, manifest.json) |
-| `AtomicBlast-Android/` | Android app (Kotlin) |
+| `AtomicBlast-Win/web-deploy/` | Deploy tooling only — `deploy.ps1` patches Win `index.html` for web and SCPs to server |
+| `AtomicBlast-Server/` | **Canonical Node.js server + web PWA source.** Deployed to `racknerd-atomicblast`. |
+| `AtomicBlast-Server/public/` | Static files served to the browser (ipc-shim.js, mobile.css, manifest.json, assets) |
+| `AtomicBlast-Server/scripts/` | Server-side scripts (organize-music, upload-to-b2, B2 normalizer) |
 | `AtomicBlast-Extension/` | Browser extension |
 
 **Live server:** `root@23.95.216.131` (alias: `racknerd-atomicblast`) port **3000**
@@ -27,7 +29,11 @@ explicitly says the change is local-only.
 
 ---
 
-## AtomicBlast-Server (web-deploy)
+## AtomicBlast-Server
+
+`AtomicBlast-Server/` is the canonical source for the live Node.js server and web PWA.
+`server.js` is what runs on `racknerd-atomicblast` as the `pulse-proxy` PM2 process.
+`public/` contains the static web app files.
 
 The Win Electron app is adapted as a hosted web PWA by the deploy script at
 `AtomicBlast-Win/web-deploy/deploy.ps1`. Run it from PowerShell on your local machine:
@@ -210,15 +216,12 @@ Extra hardening that also helps:
 
 ### 7. Live web fixes may be deployed directly, not via the normal web-deploy flow
 
-Normal source of truth for the hosted web PWA is still:
-- `AtomicBlast-Win/index.html`
-- `AtomicBlast-Win/web-deploy/`
+Normal source of truth for the hosted web PWA:
+- UI source → `AtomicBlast-Win/index.html`
+- Static web files → `AtomicBlast-Server/public/` (mobile.css, ipc-shim.js, etc.)
+- Server → `AtomicBlast-Server/server.js`
 
-But during live iPhone debugging, fixes may be applied directly to:
-- `AtomicBlast-Web/public/index.html`
-- `AtomicBlast-Web/public/mobile.css`
-
-and then SCP'd straight to:
+During live iPhone debugging, fixes may be SCP'd straight to:
 - `/opt/pulse-proxy/public/index.html`
 - `/opt/pulse-proxy/public/mobile.css`
 
@@ -227,17 +230,10 @@ edit, verify the server copies directly before assuming the change is live.
 
 ---
 
-## Node.js v10 Compatibility (server.js)
+## Node.js Version (server.js)
 
-The server runs Node **10**. Several modern JS features are unavailable:
-
-| Don't use | Use instead |
-|---|---|
-| `obj?.prop` (optional chaining) | `obj && obj.prop` |
-| `obj ?? fallback` (nullish coalescing) | `obj !== null && obj !== undefined ? obj : fallback` |
-| `str.matchAll(regex)` | `while loop + regex.exec(str)` |
-| `Array.flat()` | `.reduce((a, b) => a.concat(b), [])` |
-| `Object.fromEntries()` | manual loop |
+The server runs Node **20** (20.20.2). All modern JS features are available —
+optional chaining (`?.`), nullish coalescing (`??`), `Array.flat()`, `Object.fromEntries()`, etc.
 
 ---
 
@@ -245,7 +241,7 @@ The server runs Node **10**. Several modern JS features are unavailable:
 
 A Claude Code PostToolUse hook is configured in
 `.claude/settings.local.json` (project root). Any time Claude edits a file
-inside `web-deploy/`, the deploy script runs automatically.
+inside `web-deploy/` or `AtomicBlast-Server/`, the deploy script runs automatically.
 
 The hook uses the `racknerd-atomicblast` SSH alias for passwordless deploys.
 If you're running deploys manually make sure to use the alias too, not the bare IP.
