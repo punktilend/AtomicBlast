@@ -22,7 +22,9 @@ $html = $html -replace '(?im)^\s*<meta\s+name="apple-mobile-web-app-status-bar-s
 $html = $html -replace '(?im)^\s*<meta\s+name="apple-mobile-web-app-title"\s+content="[^"]*">\s*\r?\n', ''
 $html = $html -replace '(?im)^\s*<meta\s+name="theme-color"\s+content="[^"]*">\s*\r?\n', ''
 $html = $html -replace '(?im)^\s*<link\s+rel="manifest"\s+href="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<link\s+rel="icon"[^>]*>\s*\r?\n', ''
 $html = $html -replace '(?im)^\s*<link\s+rel="apple-touch-icon"\s+href="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<link\s+rel="apple-touch-icon"[^>]*>\s*\r?\n', ''
 $html = $html -replace '(?im)^\s*<script\s+src="/ipc-shim\.js"></script>\s*\r?\n', ''
 $html = $html -replace '(?im)^\s*<link\s+rel="stylesheet"\s+href="[^"]*mobile\.css[^"]*">\s*\r?\n', ''
 
@@ -35,7 +37,10 @@ $headTop = @'
   <meta name="apple-mobile-web-app-title" content="AtomicBlast">
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/web/favicon.svg?v=atomic-radius-2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png?v=atomic-radius-2">
+  <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png?v=atomic-radius-2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png?v=atomic-radius-2">
   <script>
     (function () {
       var ua = navigator.userAgent || '';
@@ -95,6 +100,11 @@ scp "$pubDir\index.html"    "${server}:/opt/pulse-proxy/public/index.html"
 scp "$pubDir\ipc-shim.js"   "${server}:/opt/pulse-proxy/public/ipc-shim.js"
 scp "$pubDir\mobile.css"    "${server}:/opt/pulse-proxy/public/mobile.css"
 scp "$pubDir\manifest.json" "${server}:/opt/pulse-proxy/public/manifest.json"
+ssh $server "mkdir -p /opt/pulse-proxy/public/web"
+scp "$pubDir\web\favicon.svg" "${server}:/opt/pulse-proxy/public/web/favicon.svg"
+scp "$pubDir\web\favicon-32x32.png" "${server}:/opt/pulse-proxy/public/web/favicon-32x32.png"
+scp "$pubDir\web\favicon-16x16.png" "${server}:/opt/pulse-proxy/public/web/favicon-16x16.png"
+scp "$pubDir\web\apple-touch-icon.png" "${server}:/opt/pulse-proxy/public/web/apple-touch-icon.png"
 scp "$winDir\assets\pulse-logo.svg" "${server}:/opt/pulse-proxy/public/assets/pulse-logo.svg"
 scp "$pubDir\assets\icon-192.png"  "${server}:/opt/pulse-proxy/public/assets/icon-192.png"
 scp "$pubDir\assets\icon-512.png"  "${server}:/opt/pulse-proxy/public/assets/icon-512.png"
