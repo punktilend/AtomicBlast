@@ -24,7 +24,7 @@ const QUALITY_PRESETS = {
 };
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -261,6 +261,20 @@ function b2Post(url, body, headers = {}) {
   });
 }
 
+// ── CUE disk cache — avoids re-downloading 800+ CUE files on every scan ──────
+const CUE_CACHE_FILE = path.join(__dirname, 'cue-cache.json');
+let _cueCache = null;
+function loadCueCache() {
+  if (_cueCache) return _cueCache;
+  try { _cueCache = JSON.parse(fs.readFileSync(CUE_CACHE_FILE, 'utf8')); }
+  catch { _cueCache = {}; }
+  return _cueCache;
+}
+function saveCueCache() {
+  try { fs.writeFileSync(CUE_CACHE_FILE, JSON.stringify(_cueCache)); }
+  catch (e) { console.error('[cue-cache] save failed:', e.message); }
+}
+
 async function b2Auth() {
   const auth = await b2Get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
     Authorization: 'Basic ' + Buffer.from(B2_KEY_ID + ':' + B2_APP_KEY).toString('base64')
@@ -492,26 +506,38 @@ async function scanB2Music() {
       if (!coverMap.has(key)) coverMap.set(key, filePath);
     } else if (ext === '.cue') {
       const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-      if (!cueMap.has(folderPath)) cueMap.set(folderPath, filePath);
+      if (!cueMap.has(folderPath)) cueMap.set(folderPath, { path: filePath, ts: f.uploadTimestamp });
     } else if (AUDIO_EXTS.has(ext)) {
       audioEntries.push({ ...f, _parsed: parsed });
     }
   }
 
-  // ── Download and parse all CUE files (in parallel, 8 at a time) ─────────────
+  // ── Download and parse CUE files — disk-cached by B2 upload timestamp ────────
   const cueDataMap = new Map(); // folderPath → ParsedCue
-  const cueEntries = [...cueMap.entries()]; // [folderPath, cuePath]
-  const CUE_BATCH  = 8;
+  const cueEntries = [...cueMap.entries()]; // [folderPath, { path, ts }]
+  const CUE_BATCH  = 20;
+  const diskCache  = loadCueCache();
+  let   cacheHits  = 0, cacheMisses = 0;
   for (let i = 0; i < cueEntries.length; i += CUE_BATCH) {
     const batch = cueEntries.slice(i, i + CUE_BATCH);
-    await Promise.all(batch.map(async ([folderPath, cuePath]) => {
-      const text = await fetchB2TextRaw(cuePath, dlUrl, dlToken);
+    await Promise.all(batch.map(async ([folderPath, { path: cuePath, ts }]) => {
+      const cached = diskCache[cuePath];
+      let text;
+      if (cached && cached.ts === ts) {
+        text = cached.content;
+        cacheHits++;
+      } else {
+        text = await fetchB2TextRaw(cuePath, dlUrl, dlToken);
+        if (text) { diskCache[cuePath] = { ts, content: text }; _cueCache = diskCache; }
+        cacheMisses++;
+      }
       if (!text) return;
       const parsed = parseCueSheet(text);
       if (parsed) cueDataMap.set(folderPath, parsed);
     }));
   }
-  console.log(`[scan-b2-music] parsed ${cueDataMap.size}/${cueEntries.length} CUE sheets`);
+  if (cacheMisses > 0) saveCueCache();
+  console.log(`[scan-b2-music] CUE sheets: ${cueDataMap.size} parsed, ${cacheHits} cached / ${cacheMisses} fetched`);
 
   const artistMap   = new Map();
   const artistNames = new Map();
@@ -556,7 +582,7 @@ async function scanB2Music() {
       const coverKey2 = artistKey  + '\x00' + albumName;
       const coverPath = coverMap.get(coverKey) || coverMap.get(coverKey2) || null;
       const folderPath = rawTracks[0] ? rawTracks[0].path.substring(0, rawTracks[0].path.lastIndexOf('/')) : '';
-      const cuePath    = cueMap.get(folderPath) || null;
+      const cuePath    = (cueMap.get(folderPath) || {}).path || null;
       const cueData    = cueDataMap.get(folderPath) || null;
 
       let tracks = rawTracks;
@@ -659,22 +685,43 @@ app.get('/api/b2-file-text', async (req, res) => {
 });
 
 // ── Stream endpoint ───────────────────────────────────────────────────────────
+// Build a B2 native download URL using the cached auth token
+function b2DownloadUrl(filePath, dlUrl, dlToken) {
+  const encoded = filePath.split('/').map(encodeURIComponent).join('/');
+  return `${dlUrl}/file/${B2_BUCKET}/${encoded}?Authorization=${dlToken}`;
+}
+
+async function b2CacheFetch() {
+  const lib = await scanB2Music();
+  return { dlUrl: lib.dlUrl, dlToken: lib.dlToken };
+}
+
 app.get('/stream', async (req, res) => {
   const { file, quality = 'high' } = req.query;
   if (!file) return res.status(400).json({ error: 'Missing file param' });
 
+  let dlUrl, dlToken;
+  try { ({ dlUrl, dlToken } = await b2CacheFetch()); }
+  catch (e) { return res.status(503).json({ error: 'B2 unavailable' }); }
+
+  const fileUrl = b2DownloadUrl(file, dlUrl, dlToken);
   const preset = QUALITY_PRESETS[quality];
-  const fileUrl = `${B2_BUCKET_URL}/${encodeURIComponent(file)}`;
-  const authString = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString('base64');
-  const headers = { Authorization: `Basic ${authString}` };
 
   if (quality === 'flac' || preset === null) {
-    res.setHeader('Content-Type', 'audio/flac');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    fetchStream(fileUrl, headers, (err, stream) => {
-      if (err) return res.status(500).json({ error: 'Failed to fetch from B2' });
-      stream.pipe(res);
-    });
+    const reqHeaders = { 'User-Agent': 'AtomicBlast/1.0' };
+    if (req.headers.range) reqHeaders['Range'] = req.headers.range;
+    https.get(fileUrl, { headers: reqHeaders }, (b2res) => {
+      if (b2res.statusCode !== 200 && b2res.statusCode !== 206) {
+        b2res.resume();
+        return res.status(502).json({ error: `B2 returned ${b2res.statusCode}` });
+      }
+      res.setHeader('Content-Type', 'audio/flac');
+      res.setHeader('Accept-Ranges', 'bytes');
+      if (b2res.headers['content-length']) res.setHeader('Content-Length', b2res.headers['content-length']);
+      if (b2res.headers['content-range']) res.setHeader('Content-Range', b2res.headers['content-range']);
+      res.status(b2res.statusCode);
+      b2res.pipe(res);
+    }).on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'Fetch failed' }); });
     return;
   }
 
@@ -684,7 +731,7 @@ app.get('/stream', async (req, res) => {
   res.setHeader('Content-Type', mimeType);
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  fetchStream(fileUrl, headers, (err, stream) => {
+  fetchStream(fileUrl, { 'User-Agent': 'AtomicBlast/1.0' }, (err, stream) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch from B2' });
     const ffmpeg = spawn('ffmpeg', ['-i','pipe:0','-vn','-acodec',codec,'-b:a',preset,'-f',isLow?'adts':'mp3','pipe:1']);
     stream.pipe(ffmpeg.stdin);
@@ -693,6 +740,24 @@ app.get('/stream', async (req, res) => {
     ffmpeg.on('error', err => { console.error('ffmpeg error:', err); if (!res.headersSent) res.status(500).end(); });
     req.on('close', () => ffmpeg.kill('SIGKILL'));
   });
+});
+
+app.get('/img', async (req, res) => {
+  const { file } = req.query;
+  if (!file) return res.status(400).json({ error: 'Missing file param' });
+
+  let dlUrl, dlToken;
+  try { ({ dlUrl, dlToken } = await b2CacheFetch()); }
+  catch (e) { return res.status(503).end(); }
+
+  const fileUrl = b2DownloadUrl(file, dlUrl, dlToken);
+  https.get(fileUrl, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
+    if (b2res.statusCode !== 200) { b2res.resume(); return res.status(b2res.statusCode).end(); }
+    res.setHeader('Content-Type', b2res.headers['content-type'] || 'image/jpeg');
+    if (b2res.headers['content-length']) res.setHeader('Content-Length', b2res.headers['content-length']);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    b2res.pipe(res);
+  }).on('error', () => { if (!res.headersSent) res.status(500).end(); });
 });
 
 function fetchStream(url, headers, cb) {

@@ -2,6 +2,24 @@
 /* NOTE: This file is injected LAST in <head>, after the inline <style> block,
    so same-specificity rules here win over the inline CSS. */
 
+html.is-ios-webkit,
+html.is-ios-webkit body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+html.is-ios-webkit body {
+  min-height: 100dvh;
+  overflow: hidden !important;
+  touch-action: manipulation;
+}
+
+html.is-ios-webkit .main,
+html.is-ios-webkit .music-layout {
+  min-height: 0 !important;
+}
+
 /* ── Sidebar toggle button — hidden on desktop ───────────────────────── */
 #sidebar-toggle-btn { display: none; }
 #sidebar-overlay    { display: none; }
@@ -11,13 +29,13 @@
 
 /* ── Mini player stays floating on iPhone ────────────────────────────── */
 #player-bar {
-  bottom: 10px !important;
+  bottom: max(10px, calc(env(safe-area-inset-bottom) + 8px)) !important;
   left: 10px !important;
   right: 10px !important;
   height: auto !important;
   min-height: 74px !important;
   padding: 10px 12px !important;
-  padding-bottom: max(env(safe-area-inset-bottom), 6px) !important;
+  padding-bottom: 10px !important;
   gap: 6px !important;
   border-radius: 22px !important;
   box-shadow: 0 16px 40px rgba(0,0,0,0.42) !important;
@@ -36,6 +54,12 @@
 .music-content, .main-body, #queue-list, .music-tree {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+html.is-ios-webkit body.player-bar-active #main-content,
+html.is-ios-webkit body.player-bar-active .music-content,
+html.is-ios-webkit body.player-bar-active #music-content-inner {
+  padding-bottom: calc(116px + env(safe-area-inset-bottom)) !important;
 }
 
 /* Safari/iOS can mis-measure cards and rows when content-visibility is used.
@@ -369,82 +393,143 @@ body.player-bar-active.queue-open #queue-panel {
   background: linear-gradient(135deg, #152117, #0b110c);
 }
 
+/* Sleeve — LP jacket showing artwork, positioned left */
 .edition-vinyl .b2-edition-art img,
 .edition-vinyl .b2-edition-art .lib-card-initial {
-  width: 76% !important;
-  height: 76% !important;
-  margin: 12% 23% 12% 1%;
-  border-radius: 6px;
+  width: 65% !important;
+  height: 90% !important;
+  margin: 5% 0 5% 4%;
+  border-radius: 2px;
   object-fit: cover;
-  box-shadow: 0 18px 34px rgba(0,0,0,.42), 5px 0 0 rgba(0,0,0,.28);
+  box-shadow: 0 20px 42px rgba(0,0,0,.55);
+  z-index: 2;
 }
 
+/* Vinyl record — half tucked inside sleeve, half emerging from right */
 .edition-vinyl .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 8% -3% 8% 31%;
+  /* inset chosen so element is ~82%×82% of container → perfect circle */
+  inset: 9% -10% 9% 28%;
   border-radius: 999px;
   background:
-    radial-gradient(circle, #d0a565 0 6%, #191919 7% 11%, transparent 12%),
-    repeating-radial-gradient(circle, #070707 0 3px, #161616 4px 6px, #070707 7px 9px);
-  box-shadow: inset 0 0 0 8px rgba(255,255,255,.025), 0 18px 34px rgba(0,0,0,.38);
+    /* highlight sheen — top-left */
+    radial-gradient(ellipse at 30% 34%, rgba(255,255,255,.10) 0%, transparent 52%),
+    /* label: spindle hole, inner ring, label body, label edge, lead-in groove */
+    radial-gradient(circle,
+      #080808 0 2.5%,
+      #c89040 2.5% 5%,
+      #d4a452 5%   22%,
+      #a86e28 22%  24%,
+      #1a1a1a 24%  26%,
+      transparent  26%
+    ),
+    repeating-radial-gradient(circle,
+      #060606 0 2px, #191919 2.5px 5px, #0a0a0a 5.5px 7.5px
+    );
+  box-shadow:
+    -7px 0 18px rgba(0,0,0,.6),   /* shadow cast onto the sleeve face */
+    0 18px 38px rgba(0,0,0,.52),
+    inset 0 0 0 1px rgba(255,255,255,.025);
   z-index: 0;
 }
 
+/* Sleeve gloss + right-edge shadow where record exits */
 .edition-vinyl .b2-edition-art::after {
   content: '';
   position: absolute;
-  inset: 12% 23% 12% 1%;
-  border-radius: 6px;
+  /* covers the same area as the sleeve artwork */
+  inset: 5% 31% 5% 4%;
+  border-radius: 2px;
   background:
-    linear-gradient(90deg, rgba(255,255,255,.18), transparent 18%),
-    linear-gradient(180deg, rgba(255,255,255,.08), transparent 42%, rgba(0,0,0,.22));
-  border: 1px solid rgba(255,255,255,.16);
-  box-shadow: inset 6px 0 0 rgba(0,0,0,.2);
+    /* top-left source light */
+    linear-gradient(128deg, rgba(255,255,255,.22) 0%, transparent 42%),
+    /* right-edge darkening — the opening where the record slides out */
+    linear-gradient(270deg, rgba(0,0,0,.32) 0%, transparent 22%),
+    /* bottom darkening */
+    linear-gradient(180deg, transparent 55%, rgba(0,0,0,.14));
+  border: 1px solid rgba(255,255,255,.13);
+  /* inner-right shadow — depth at the opening edge */
+  box-shadow: inset -4px 0 10px rgba(0,0,0,.30);
   pointer-events: none;
   z-index: 3;
 }
 
+/* Cassette tape body — square card = cassette face front-on */
 .edition-cassette .b2-edition-art {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.04)) !important;
-  border-radius: 18px !important;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.18), inset 0 0 0 8px rgba(0,0,0,.16), 0 16px 32px rgba(0,0,0,.34);
+  background: linear-gradient(160deg, #26272e 0%, #17181d 100%) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.14),
+    inset 0 -2px 0 rgba(0,0,0,.6),
+    inset 0 0 0 2px rgba(255,255,255,.06),
+    0 20px 40px rgba(0,0,0,.58) !important;
 }
 
+/* Artwork label — upper portion of cassette face */
 .edition-cassette .b2-edition-art img,
 .edition-cassette .b2-edition-art .lib-card-initial {
-  width: 76% !important;
-  height: 46% !important;
-  margin: 9% 12% 45%;
-  border-radius: 8px;
+  width: 80% !important;
+  height: 44% !important;
+  margin: 7% 10% 0;
+  border-radius: 3px;
   object-fit: cover;
-  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  box-shadow: 0 6px 16px rgba(0,0,0,.5);
+  z-index: 2;
 }
 
+/* Two reel windows — lower half of cassette face */
 .edition-cassette .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 53% 12% 14%;
-  border-radius: 12px 12px 18px 18px;
+  inset: 54% 6% 6%;
+  border-radius: 5px 5px 8px 8px;
   background:
-    radial-gradient(circle at 30% 48%, #101010 0 16%, #d7c087 17% 22%, #121212 23% 31%, transparent 32%),
-    radial-gradient(circle at 70% 48%, #101010 0 16%, #d7c087 17% 22%, #121212 23% 31%, transparent 32%),
-    linear-gradient(90deg, transparent 0 25%, rgba(255,255,255,.18) 26% 28%, transparent 29% 71%, rgba(255,255,255,.18) 72% 74%, transparent 75%),
-    linear-gradient(180deg, #d3bb84, #8a683d);
-  box-shadow: inset 0 0 0 3px rgba(0,0,0,.35), 0 12px 22px rgba(0,0,0,.28);
-  z-index: 0;
+    /* Left reel hub: spindle, hub ring, reel body */
+    radial-gradient(circle at 27% 50%,
+      #080808 0% 16%,
+      #c8a048 16% 25%,
+      #1a1a1a 25% 34%,
+      rgba(0,0,0,.55) 34% 52%,
+      #232323 52% 100%
+    ),
+    /* Right reel hub */
+    radial-gradient(circle at 73% 50%,
+      #080808 0% 16%,
+      #c8a048 16% 25%,
+      #1a1a1a 25% 34%,
+      rgba(0,0,0,.55) 34% 52%,
+      #232323 52% 100%
+    ),
+    /* Tape head window — center bridge */
+    linear-gradient(90deg,
+      transparent 0% 40%,
+      #0d0d0d 40% 60%,
+      transparent 60% 100%
+    ),
+    /* Side alignment post highlights */
+    linear-gradient(90deg,
+      rgba(255,255,255,.12) 0% 3%,
+      transparent 3% 97%,
+      rgba(255,255,255,.12) 97% 100%
+    ),
+    linear-gradient(180deg, #232328 0%, #151518 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 3px 10px rgba(0,0,0,.4);
+  z-index: 1;
 }
 
+/* Gloss + surface reflection across the whole cassette face */
 .edition-cassette .b2-edition-art::after {
   content: '';
   position: absolute;
-  inset: 6%;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.22);
-  background: linear-gradient(135deg, rgba(255,255,255,.16), transparent 28%, rgba(255,255,255,.08) 72%, transparent);
+  inset: 0;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 20% 18%, rgba(255,255,255,.18) 0%, transparent 48%),
+    linear-gradient(130deg, rgba(255,255,255,.10) 0%, transparent 45%);
+  border: 1px solid rgba(255,255,255,.09);
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
 }
 
 .edition-dat .b2-edition-art::before {
@@ -485,77 +570,104 @@ body.player-bar-active.queue-open #queue-panel {
   z-index: 0;
 }
 
+/* ── CD jewel case — closed front view ───────────────────────────────────────
+   Layout: thin spine on left, booklet artwork fills the front face,
+   clear polycarbonate panel sits over everything.                            */
+
 .edition-cd .b2-edition-art,
 .edition-sacd .b2-edition-art,
 .edition-dvd .b2-edition-art {
-  border-radius: 12px !important;
+  border-radius: 6px !important;
   background:
-    linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,.04) 46%, rgba(0,0,0,.2) 47% 49%, rgba(255,255,255,.07) 50%),
-    rgba(185, 220, 255, .08) !important;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.16), inset 10px 0 16px rgba(255,255,255,.05), 0 16px 32px rgba(0,0,0,.32);
+    /* Spine — dark plastic strip on left */
+    linear-gradient(90deg,
+      #0e0f13 0% 9%,
+      rgba(255,255,255,.10) 9% 10.5%,
+      transparent 10.5%
+    ),
+    /* Top locking ridge */
+    linear-gradient(180deg,
+      #191a20 0% 5%,
+      rgba(255,255,255,.08) 5% 6.5%,
+      transparent 7%
+    ),
+    /* Bottom locking ridge */
+    linear-gradient(0deg,
+      #131318 0% 5%,
+      transparent 6%
+    ),
+    /* Case body */
+    linear-gradient(155deg, #21222b, #15161d) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.10),
+    0 20px 42px rgba(0,0,0,.55) !important;
 }
 
+/* Booklet — artwork fills front face, left margin leaves room for spine */
 .edition-cd .b2-edition-art img,
 .edition-cd .b2-edition-art .lib-card-initial,
 .edition-sacd .b2-edition-art img,
 .edition-sacd .b2-edition-art .lib-card-initial,
 .edition-dvd .b2-edition-art img,
 .edition-dvd .b2-edition-art .lib-card-initial {
-  width: 62% !important;
-  height: 62% !important;
-  margin: 19% 32% 19% 6%;
-  border-radius: 4px;
+  width: 84% !important;
+  height: 88% !important;
+  margin: 6% 4% 6% 12%;
+  border-radius: 1px;
   object-fit: cover;
-  box-shadow: 0 10px 20px rgba(0,0,0,.3);
+  box-shadow: 0 10px 24px rgba(0,0,0,.5);
+  z-index: 2;
 }
 
-.edition-cd .b2-edition-art::before {
-  content: '';
-  position: absolute;
-  inset: 17% 2% 17% 38%;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(10,14,16,.9) 0 9%, rgba(255,255,255,.9) 10% 14%, transparent 15%),
-    conic-gradient(from 35deg, #f6fbff, #89e7ff, #f4d6ff, #f9fff9, #83c9ff, #fff);
-  opacity: .82;
-  box-shadow: 0 14px 28px rgba(0,0,0,.28);
-  z-index: 0;
-}
-
+/* Clear polycarbonate front panel — thin border over the booklet */
+.edition-cd .b2-edition-art::before,
 .edition-sacd .b2-edition-art::before,
 .edition-dvd .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 17% 2% 17% 38%;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(8,12,16,.9) 0 9%, rgba(255,255,255,.9) 10% 14%, transparent 15%),
-    conic-gradient(from 80deg, #eaffff, #a8ffdd, #8eb7ff, #fff1bd, #f7ffff, #9edfff, #fff);
-  opacity: .9;
-  box-shadow: 0 14px 28px rgba(0,0,0,.28);
-  z-index: 0;
+  inset: 5% 3% 5% 11%;
+  border-radius: 2px;
+  background: rgba(210,220,255,.025);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(0,0,0,.18);
+  pointer-events: none;
+  z-index: 3;
 }
 
+/* Strong polycarbonate gloss — diagonal light hit across full case */
 .edition-cd .b2-edition-art::after,
 .edition-sacd .b2-edition-art::after,
 .edition-dvd .b2-edition-art::after {
   content: '';
   position: absolute;
-  inset: 5%;
-  border-radius: 10px;
+  inset: 0;
+  border-radius: 6px;
   background:
-    linear-gradient(105deg, rgba(255,255,255,.28), transparent 16% 64%, rgba(255,255,255,.1) 72%, transparent),
-    linear-gradient(90deg, transparent 0 45%, rgba(0,0,0,.22) 46% 48%, rgba(255,255,255,.16) 49% 51%, transparent 52%);
-  border: 1px solid rgba(255,255,255,.18);
+    radial-gradient(ellipse at 24% 18%, rgba(255,255,255,.30) 0%, transparent 44%),
+    linear-gradient(122deg, rgba(255,255,255,.18) 0%, transparent 36%),
+    linear-gradient(180deg, rgba(255,255,255,.06) 0%, transparent 28%);
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
 }
 
-.edition-sacd .b2-edition-art,
+/* SACD — gold-warm spine tint */
+.edition-sacd .b2-edition-art {
+  background:
+    linear-gradient(90deg, #13100a 0% 9%, rgba(255,220,140,.14) 9% 10.5%, transparent 10.5%),
+    linear-gradient(180deg, #1c1a12 0% 5%, rgba(255,220,100,.08) 5% 6.5%, transparent 7%),
+    linear-gradient(0deg, #141209 0% 5%, transparent 6%),
+    linear-gradient(155deg, #24221a, #171510) !important;
+}
+
+/* DVD-A — cool blue-dark spine tint */
 .edition-dvd .b2-edition-art {
   background:
-    linear-gradient(90deg, rgba(228,255,255,.18), rgba(255,255,255,.05) 46%, rgba(0,0,0,.22) 47% 49%, rgba(166,230,255,.08) 50%),
-    rgba(140, 205, 255, .1) !important;
+    linear-gradient(90deg, #0a0d16 0% 9%, rgba(100,160,255,.14) 9% 10.5%, transparent 10.5%),
+    linear-gradient(180deg, #12161e 0% 5%, rgba(100,160,255,.08) 5% 6.5%, transparent 7%),
+    linear-gradient(0deg, #0e1118 0% 5%, transparent 6%),
+    linear-gradient(155deg, #1c2030, #111421) !important;
 }
 
 .b2-section-title {

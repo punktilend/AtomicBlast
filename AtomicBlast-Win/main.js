@@ -46,7 +46,7 @@ const CONFIG = {
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280, height: 800, fullscreen: true, title: 'AtomicBlast', backgroundColor: '#080c08',
-    webPreferences: { nodeIntegration: true, contextIsolation: false }
+    webPreferences: { nodeIntegration: true, contextIsolation: false, webSecurity: false }
   })
   mainWindow = win
   win.loadFile('index.html')

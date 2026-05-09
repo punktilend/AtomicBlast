@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; echo \"$f\" | grep -qi 'web-deploy\\|AtomicBlast-Server' && pwsh -File 'C:/Users/adamm/AndroidStudioProjects/AtomicBlast-Android/AtomicBlast-Win/web-deploy/deploy.ps1'; } 2>/dev/null || true",
+            "timeout": 120,
+            "statusMessage": "Deploying AtomicBlast-Server changes..."
+          }
+        ]
+      }
+    ]
+  }
+}

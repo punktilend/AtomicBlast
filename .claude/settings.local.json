@@ -129,7 +129,11 @@
       "Bash(pwsh -Command \"Get-ChildItem 'C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android' -Recurse -Filter 'CLAUDE.md' -ErrorAction SilentlyContinue | Select-Object FullName\")",
       "Bash(echo \"---exit $?\")",
       "Bash(git mv *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(pwsh -File \"C:/Users/adamm/AndroidStudioProjects/AtomicBlast-Android/AtomicBlast-Win/web-deploy/deploy.ps1\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://23.95.216.131:3000/img?file=Music/test.jpg\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -H \"Range: bytes=0-1023\" \"http://23.95.216.131:3000/stream?file=Music/test.flac&quality=flac\")",
+      "PowerShell(pwsh -File \"C:\\\\Users\\\\adamm\\\\AndroidStudioProjects\\\\AtomicBlast-Android\\\\AtomicBlast-Win\\\\web-deploy\\\\deploy.ps1\")"
     ]
   },
   "hooks": {

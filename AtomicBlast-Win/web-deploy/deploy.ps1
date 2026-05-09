@@ -14,6 +14,18 @@ Write-Host "=== Patching index.html for web ===" -ForegroundColor Cyan
 # Read the original Win app index.html
 $html = Get-Content "$winDir\index.html" -Raw -Encoding UTF8
 
+# Remove web-only tags that may already exist in the Win source or a previously
+# generated file. The deploy step owns these so the hosted page stays idempotent.
+$html = $html -replace '(?im)^\s*<meta\s+name="viewport"\s+content="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<meta\s+name="apple-mobile-web-app-capable"\s+content="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<meta\s+name="apple-mobile-web-app-title"\s+content="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<meta\s+name="theme-color"\s+content="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<link\s+rel="manifest"\s+href="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<link\s+rel="apple-touch-icon"\s+href="[^"]*">\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<script\s+src="/ipc-shim\.js"></script>\s*\r?\n', ''
+$html = $html -replace '(?im)^\s*<link\s+rel="stylesheet"\s+href="[^"]*mobile\.css[^"]*">\s*\r?\n', ''
+
 # 1a. Add viewport, iOS PWA meta, manifest, and ipc-shim just after <title>
 #     (ipc-shim must load before the inline JS in <body>)
 $headTop = @'
@@ -24,6 +36,13 @@ $headTop = @'
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+      var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS && /WebKit/.test(ua)) document.documentElement.classList.add('is-ios-webkit');
+    })();
+  </script>
   <script src="/ipc-shim.js"></script>
 '@
 $html = $html -replace '(<title>AtomicBlast</title>)', "`$1`n$headTop"
