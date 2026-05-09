@@ -372,10 +372,18 @@ const AUDIO_QUALITY_RANK = {
 };
 
 function normalizeDuplicateTrackTitle(title) {
-  return String(title || '')
+  return cleanDisplayTrackTitle(title)
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .replace(/\s*[-–—]\s*(flac|wav|mp3|aac|ogg|opus|alac|aiff|ape|webm|wma)\s*$/i, '')
+    .trim();
+}
+
+function cleanDisplayTrackTitle(title) {
+  return String(title || '')
+    .replace(/^\s*[a-h]\d{1,2}\s*[-–—._]\s+/i, '')
+    .replace(/^\s*\d{1,3}\s*[-–—._]\s+/, '')
+    .replace(/^\s*0\d{1,2}\s+/, '')
     .trim();
 }
 
@@ -608,8 +616,9 @@ async function scanB2Music() {
 
     // Filename-based fallback track number / title
     let trackNo = 0, title = baseName;
-    const trackMatch = baseName.match(/^(\d+)\s*[-–.]\s+(.+)$/);
-    if (trackMatch) { trackNo = parseInt(trackMatch[1], 10); title = trackMatch[2]; }
+    const trackMatch = baseName.match(/^(?:(\d{1,3})\s*[-–—._]\s*|(0\d{1,2})\s+|([a-h](\d{1,2}))\s*[-–—._]\s*)(\S.*)$/i);
+    if (trackMatch) { trackNo = parseInt(trackMatch[1] || trackMatch[2] || trackMatch[4], 10); title = trackMatch[5]; }
+    title = cleanDisplayTrackTitle(title);
 
     const artistKey = artistName.toLowerCase();
     if (!artistNames.has(artistKey)) artistNames.set(artistKey, artistName);
@@ -655,7 +664,7 @@ async function scanB2Music() {
           // ── Single-file FLAC + CUE: expand into virtual chapter tracks ──────
           const audioFile = rawTracks[0];
           tracks = cueData.chapters.map(ch => ({
-            title:       ch.title,
+            title:       cleanDisplayTrackTitle(ch.title),
             performer:   ch.performer || cueData.albumPerformer || null,
             path:        audioFile.path,
             fileId:      audioFile.fileId,
@@ -675,7 +684,7 @@ async function scanB2Music() {
             if (!ch) return t;
             return {
               ...t,
-              title:      ch.title || t.title,
+              title:      cleanDisplayTrackTitle(ch.title || t.title),
               performer:  ch.performer || cueData.albumPerformer || null,
             };
           });
