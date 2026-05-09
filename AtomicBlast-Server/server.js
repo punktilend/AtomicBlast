@@ -356,6 +356,65 @@ const COVER_FILE_NAMES_SET = new Set(['cover.jpg','folder.jpg','cover.png','fold
 function isCoverFile(name) { return COVER_FILE_NAMES_SET.has(name.toLowerCase()); }
 function isAudioFile(name) { return AUDIO_EXTS.has(path.extname(name).toLowerCase()); }
 
+const AUDIO_QUALITY_RANK = {
+  '.flac': 1000,
+  '.alac': 980,
+  '.ape': 960,
+  '.wav': 940,
+  '.aiff': 930,
+  '.m4a': 700,
+  '.opus': 620,
+  '.ogg': 600,
+  '.mp3': 520,
+  '.aac': 500,
+  '.wma': 430,
+  '.webm': 350,
+};
+
+function normalizeDuplicateTrackTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\s*[-–—]\s*(flac|wav|mp3|aac|ogg|opus|alac|aiff|ape|webm|wma)\s*$/i, '')
+    .trim();
+}
+
+function compareTrackQuality(a, b) {
+  const aq = AUDIO_QUALITY_RANK[String(a.ext || '').toLowerCase()] || 0;
+  const bq = AUDIO_QUALITY_RANK[String(b.ext || '').toLowerCase()] || 0;
+  if (aq !== bq) return aq - bq;
+  const as = Number(a.size || 0);
+  const bs = Number(b.size || 0);
+  if (as !== bs) return as - bs;
+  return String(b.path || '').localeCompare(String(a.path || ''));
+}
+
+function dedupeAlbumTracks(tracks, albumName) {
+  const bestByTitle = new Map();
+  for (const track of tracks) {
+    const key = normalizeDuplicateTrackTitle(track.title);
+    if (!key) continue;
+    const existing = bestByTitle.get(key);
+    if (!existing || compareTrackQuality(track, existing) > 0) bestByTitle.set(key, track);
+  }
+
+  if (bestByTitle.size === tracks.length) return tracks;
+
+  const seen = new Set();
+  const deduped = [];
+  for (const track of tracks) {
+    const key = normalizeDuplicateTrackTitle(track.title);
+    if (!key || seen.has(key)) continue;
+    const best = bestByTitle.get(key) || track;
+    deduped.push(best);
+    seen.add(key);
+  }
+
+  const removed = tracks.length - deduped.length;
+  if (removed > 0) console.log(`[scan-b2-music] deduped ${removed} duplicate track(s) in album "${albumName}"`);
+  return deduped;
+}
+
 function stripFolderTags(name) {
   let s = name;
   s = s.replace(/^[\(\[]\d{4}[\)\]]\s*[-–]?\s*/, '');
@@ -623,6 +682,7 @@ async function scanB2Music() {
         }
       }
 
+      tracks = dedupeAlbumTracks(tracks, resolvedAlbumName);
       albums.push({ name: resolvedAlbumName, coverPath, tracks, cuePath });
     }
     // Propagate cover art: albums without art (e.g. bare Disc 1/2 folders) borrow from siblings
