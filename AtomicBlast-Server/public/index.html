@@ -585,7 +585,7 @@
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
   </style>
-  <link rel="stylesheet" href="/mobile.css">
+  <link rel="stylesheet" href="/mobile.css?v=20260510090939">
 </head>
 <body>
   <!-- TOP NAV BAR -->
@@ -2295,8 +2295,20 @@
       const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return false
       try {
-        const sampleHeight = Math.max(1, Math.floor(img.naturalHeight * 0.45))
-        ctx.drawImage(img, 0, 0, img.naturalWidth, sampleHeight, 0, 0, width, height)
+        const targetAspect = width / height
+        const sourceAspect = img.naturalWidth / img.naturalHeight
+        let sx = 0
+        let sy = 0
+        let sw = img.naturalWidth
+        let sh = img.naturalHeight
+        if (sourceAspect > targetAspect) {
+          sw = Math.floor(img.naturalHeight * targetAspect)
+          sx = Math.floor((img.naturalWidth - sw) / 2)
+        } else {
+          sh = Math.floor(img.naturalWidth / targetAspect)
+          sy = Math.floor((img.naturalHeight - sh) / 2)
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height)
         const pixels = ctx.getImageData(0, 0, width, height).data
         let lumaSum = 0
         let lumaSqSum = 0

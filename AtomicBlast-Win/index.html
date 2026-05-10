@@ -2284,8 +2284,20 @@
       const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return false
       try {
-        const sampleHeight = Math.max(1, Math.floor(img.naturalHeight * 0.45))
-        ctx.drawImage(img, 0, 0, img.naturalWidth, sampleHeight, 0, 0, width, height)
+        const targetAspect = width / height
+        const sourceAspect = img.naturalWidth / img.naturalHeight
+        let sx = 0
+        let sy = 0
+        let sw = img.naturalWidth
+        let sh = img.naturalHeight
+        if (sourceAspect > targetAspect) {
+          sw = Math.floor(img.naturalHeight * targetAspect)
+          sx = Math.floor((img.naturalWidth - sw) / 2)
+        } else {
+          sh = Math.floor(img.naturalWidth / targetAspect)
+          sy = Math.floor((img.naturalHeight - sh) / 2)
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height)
         const pixels = ctx.getImageData(0, 0, width, height).data
         let lumaSum = 0
         let lumaSqSum = 0

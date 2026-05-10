@@ -53,7 +53,8 @@ $headTop = @'
 $html = $html -replace '(<title>AtomicBlast</title>)', "`$1`n$headTop"
 
 # 1b. Inject mobile.css LAST in <head> (after the inline <style> block) so it wins the cascade
-$html = $html -replace '</head>', "  <link rel=`"stylesheet`" href=`"/mobile.css`">`n</head>"
+$cssVersion = Get-Date -Format 'yyyyMMddHHmmss'
+$html = $html -replace '</head>', "  <link rel=`"stylesheet`" href=`"/mobile.css?v=$cssVersion`">`n</head>"
 
 # 2. Replace the Electron require with a comment (shim loaded above)
 $html = $html -replace "const \{ ipcRenderer \} = require\('electron'\)", "// ipcRenderer provided by /ipc-shim.js (web mode)"
