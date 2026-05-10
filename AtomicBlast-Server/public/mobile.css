@@ -455,79 +455,103 @@ body.player-bar-active.queue-open #queue-panel {
   z-index: 3;
 }
 
-/* Cassette tape body — square card = cassette face front-on */
+/* Cassette tape body - front-on shell with the cover art as the paper label */
 .edition-cassette .b2-edition-art {
-  background: linear-gradient(160deg, #26272e 0%, #17181d 100%) !important;
-  border-radius: 10px !important;
+  width: 100%;
+  aspect-ratio: 1.58 / 1;
+  margin: 21px 0 13px;
+  overflow: hidden !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.12) 0 1px, transparent 1px calc(100% - 1px), rgba(255,255,255,.10) calc(100% - 1px) 100%),
+    linear-gradient(180deg, rgba(255,255,255,.16) 0 1px, transparent 1px 13%, rgba(255,255,255,.08) 13% 14%, transparent 14% 82%, rgba(0,0,0,.62) 82% 100%),
+    linear-gradient(160deg, #363842 0%, #20232b 48%, #14171d 100%) !important;
+  border: 1px solid rgba(255,255,255,.15);
   box-shadow:
     inset 0 2px 0 rgba(255,255,255,.14),
-    inset 0 -2px 0 rgba(0,0,0,.6),
-    inset 0 0 0 2px rgba(255,255,255,.06),
+    inset 0 -3px 0 rgba(0,0,0,.62),
+    inset 0 0 0 2px rgba(255,255,255,.055),
     0 20px 40px rgba(0,0,0,.58) !important;
 }
 
-/* Artwork label — upper portion of cassette face */
+/* Artwork label strip */
 .edition-cassette .b2-edition-art img,
 .edition-cassette .b2-edition-art .lib-card-initial {
-  width: 80% !important;
-  height: 44% !important;
-  margin: 7% 10% 0;
+  position: absolute;
+  top: 13%;
+  left: 12%;
+  width: 76% !important;
+  height: 27% !important;
+  margin: 0 !important;
   border-radius: 3px;
   object-fit: cover;
-  box-shadow: 0 6px 16px rgba(0,0,0,.5);
-  z-index: 2;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.20),
+    0 5px 12px rgba(0,0,0,.42);
+  z-index: 3;
 }
 
-/* Two reel windows — lower half of cassette face */
+/* Reel window and tape path */
 .edition-cassette .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 54% 6% 6%;
-  border-radius: 5px 5px 8px 8px;
+  inset: 43% 9% 20%;
+  border-radius: 999px;
   background:
-    /* Left reel hub: spindle, hub ring, reel body */
-    radial-gradient(circle at 27% 50%,
-      #080808 0% 16%,
-      #c8a048 16% 25%,
-      #1a1a1a 25% 34%,
-      rgba(0,0,0,.55) 34% 52%,
-      #232323 52% 100%
+    radial-gradient(circle at 29% 50%,
+      #070707 0 8%,
+      #d2b15b 8.5% 14%,
+      #191919 14.5% 20%,
+      #080808 20.5% 24%,
+      transparent 24.5%
     ),
-    /* Right reel hub */
-    radial-gradient(circle at 73% 50%,
-      #080808 0% 16%,
-      #c8a048 16% 25%,
-      #1a1a1a 25% 34%,
-      rgba(0,0,0,.55) 34% 52%,
-      #232323 52% 100%
+    radial-gradient(circle at 71% 50%,
+      #070707 0 8%,
+      #d2b15b 8.5% 14%,
+      #191919 14.5% 20%,
+      #080808 20.5% 24%,
+      transparent 24.5%
     ),
-    /* Tape head window — center bridge */
+    radial-gradient(circle at 29% 50%, rgba(205,168,75,.36) 0 32%, transparent 33%),
+    radial-gradient(circle at 71% 50%, rgba(205,168,75,.22) 0 32%, transparent 33%),
     linear-gradient(90deg,
-      transparent 0% 40%,
-      #0d0d0d 40% 60%,
-      transparent 60% 100%
+      transparent 0 21%,
+      rgba(7,7,7,.82) 21% 79%,
+      transparent 79% 100%
     ),
-    /* Side alignment post highlights */
     linear-gradient(90deg,
-      rgba(255,255,255,.12) 0% 3%,
-      transparent 3% 97%,
-      rgba(255,255,255,.12) 97% 100%
+      rgba(255,255,255,.16) 0 2px,
+      transparent 2px calc(100% - 2px),
+      rgba(255,255,255,.10) calc(100% - 2px) 100%
     ),
-    linear-gradient(180deg, #232328 0%, #151518 100%);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 3px 10px rgba(0,0,0,.4);
-  z-index: 1;
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.18)),
+    #111318;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    inset 0 8px 18px rgba(255,255,255,.06),
+    inset 0 -10px 18px rgba(0,0,0,.34),
+    0 4px 10px rgba(0,0,0,.42);
+  z-index: 2;
 }
 
-/* Gloss + surface reflection across the whole cassette face */
+/* Screws, transport holes, bevels, and clear-plastic glare */
 .edition-cassette .b2-edition-art::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background:
-    radial-gradient(ellipse at 20% 18%, rgba(255,255,255,.18) 0%, transparent 48%),
-    linear-gradient(130deg, rgba(255,255,255,.10) 0%, transparent 45%);
-  border: 1px solid rgba(255,255,255,.09);
+    radial-gradient(circle at 8% 13%, #090b0e 0 2.2%, rgba(255,255,255,.22) 2.3% 3%, transparent 3.2%),
+    radial-gradient(circle at 92% 13%, #090b0e 0 2.2%, rgba(255,255,255,.18) 2.3% 3%, transparent 3.2%),
+    radial-gradient(circle at 8% 87%, #07080a 0 2.2%, rgba(255,255,255,.15) 2.3% 3%, transparent 3.2%),
+    radial-gradient(circle at 92% 87%, #07080a 0 2.2%, rgba(255,255,255,.12) 2.3% 3%, transparent 3.2%),
+    radial-gradient(ellipse at 34% 83%, #070707 0 5.5%, transparent 5.8%),
+    radial-gradient(ellipse at 50% 84%, #050505 0 4.8%, transparent 5.1%),
+    radial-gradient(ellipse at 66% 83%, #070707 0 5.5%, transparent 5.8%),
+    linear-gradient(90deg, transparent 17%, rgba(255,255,255,.14) 17.5% 18.4%, transparent 18.8% 81.2%, rgba(255,255,255,.10) 81.6% 82.5%, transparent 83%),
+    linear-gradient(180deg, transparent 10%, rgba(255,255,255,.10) 10.5% 11.5%, transparent 12% 74%, rgba(0,0,0,.52) 74% 76%, transparent 77%),
+    linear-gradient(130deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.03) 34%, transparent 56%);
+  border: 1px solid rgba(255,255,255,.11);
   pointer-events: none;
   z-index: 4;
 }
