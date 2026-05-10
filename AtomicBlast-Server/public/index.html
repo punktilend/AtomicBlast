@@ -2221,6 +2221,7 @@
       el('b2-all-artists-featured')?.addEventListener('click', () => showB2AllArtists())
 
       bindB2Cards(inner, lib, dlUrl, dlToken)
+      initCassetteLabelNames(inner)
       if (!b2Popularity) loadB2Popularity(lib, dlUrl, dlToken)
     }
 
@@ -2265,9 +2266,16 @@
       for (const { artist, album } of items) {
         const initial = (album.name || '?').charAt(0).toUpperCase()
         const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
-        const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        const cassetteName = source.kind === 'cassette'
+          ? '<span class="cassette-label-name">' + esc(artist.name) + '</span>'
+          : ''
+        const artHtml = source.kind === 'cassette'
+          ? (coverUrl
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'cassette-label-name-visible\')">' + cassetteName
+            : '<span class="lib-card-initial">' + esc(initial) + '</span>' + cassetteName)
+          : (coverUrl
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            : '<span class="lib-card-initial">' + esc(initial) + '</span>')
         html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
           '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
           '<div class="lib-card-art b2-edition-art">' + artHtml + '</div>' +
@@ -2275,6 +2283,68 @@
           '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
       }
       return html + '</div></section>'
+    }
+
+    function cassetteArtworkLooksBlank(img) {
+      if (!img?.naturalWidth || !img?.naturalHeight) return false
+      const canvas = document.createElement('canvas')
+      const width = 64
+      const height = 24
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return false
+      try {
+        const sampleHeight = Math.max(1, Math.floor(img.naturalHeight * 0.45))
+        ctx.drawImage(img, 0, 0, img.naturalWidth, sampleHeight, 0, 0, width, height)
+        const pixels = ctx.getImageData(0, 0, width, height).data
+        let lumaSum = 0
+        let lumaSqSum = 0
+        let satSum = 0
+        let count = 0
+        for (let i = 0; i < pixels.length; i += 16) {
+          const r = pixels[i]
+          const g = pixels[i + 1]
+          const b = pixels[i + 2]
+          const max = Math.max(r, g, b)
+          const min = Math.min(r, g, b)
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+          lumaSum += luma
+          lumaSqSum += luma * luma
+          satSum += max - min
+          count++
+        }
+        if (!count) return false
+        const mean = lumaSum / count
+        const variance = (lumaSqSum / count) - (mean * mean)
+        const saturation = satSum / count
+        return (mean > 178 && variance < 850 && saturation < 52) || (variance < 420 && saturation < 34)
+      } catch (err) {
+        return false
+      }
+    }
+
+    function initCassetteLabelNames(root = document) {
+      root.querySelectorAll('.edition-cassette').forEach(card => {
+        const art = card.querySelector('.b2-edition-art')
+        const label = art?.querySelector('.cassette-label-name')
+        if (!art || !label) return
+        const reveal = () => card.classList.add('cassette-label-name-visible')
+        const img = art.querySelector('img')
+        if (!img || img.style.display === 'none') {
+          reveal()
+          return
+        }
+        const assess = () => {
+          if (cassetteArtworkLooksBlank(img)) reveal()
+          else card.classList.remove('cassette-label-name-visible')
+        }
+        if (img.complete) requestAnimationFrame(assess)
+        else {
+          img.addEventListener('load', assess, { once: true })
+          img.addEventListener('error', reveal, { once: true })
+        }
+      })
     }
 
     function normalizeAlbumName(name) {

@@ -491,6 +491,34 @@ body.player-bar-active.queue-open #queue-panel {
   z-index: 3;
 }
 
+.edition-cassette .cassette-label-name {
+  position: absolute;
+  top: 19%;
+  left: 16%;
+  right: 16%;
+  z-index: 5;
+  display: block;
+  color: rgba(29, 34, 34, .86);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: rotate(-.6deg);
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,.34);
+}
+
+.edition-cassette.cassette-label-name-visible .cassette-label-name,
+.edition-cassette .b2-edition-art.cassette-label-name-visible .cassette-label-name {
+  opacity: .92;
+}
+
 /* Reel window and tape path */
 .edition-cassette .b2-edition-art::before {
   content: '';
