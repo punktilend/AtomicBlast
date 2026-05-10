@@ -573,10 +573,70 @@
     .fav-fmt.mp3 { background:#0f150f; color:#3a4e3a; }
     .fav-heart { background:none; border:none; cursor:pointer; color:#ef4444; font-size:18px; padding:4px 6px; flex-shrink:0; line-height:1; transition:transform .1s; }
     .fav-heart:hover { transform:scale(1.2); }
+
+    /* ===== SIGN IN ===== */
+    body.auth-locked .topnav,
+    body.auth-locked .main,
+    body.auth-locked #player-bar,
+    body.auth-locked .status-bar,
+    body.auth-locked #queue-panel,
+    body.auth-locked #np-panel { display:none !important; }
+    #auth-screen { position:fixed; inset:0; z-index:900; display:none; align-items:center; justify-content:center; padding:24px; background:radial-gradient(circle at 18% 12%, rgba(74,222,128,.16), transparent 32%), linear-gradient(145deg, #050806 0%, #081008 52%, #020403 100%); overflow:auto; }
+    body.auth-locked #auth-screen { display:flex; }
+    .auth-panel { width:min(440px, 100%); }
+    .auth-logo { width:58px; height:58px; margin-bottom:22px; }
+    .auth-logo img { width:100%; height:100%; object-fit:contain; }
+    .auth-kicker { color:#4ade80; font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:10px; }
+    .auth-title { color:#f7fff8; font-size:36px; line-height:1.05; font-weight:800; margin-bottom:12px; letter-spacing:0; }
+    .auth-copy { color:#9aa69d; font-size:14px; line-height:1.55; margin-bottom:24px; max-width:38em; }
+    .auth-actions { display:flex; flex-direction:column; gap:10px; }
+    .auth-provider-btn { width:100%; min-height:48px; border-radius:8px; border:1px solid rgba(188,255,208,.14); background:rgba(255,255,255,.055); color:#eef7ef; display:flex; align-items:center; justify-content:center; gap:10px; font-size:14px; font-weight:700; cursor:pointer; transition:background .15s, border-color .15s, transform .1s; font-family:inherit; }
+    .auth-provider-btn:hover:not(:disabled) { background:rgba(255,255,255,.085); border-color:rgba(74,222,128,.35); }
+    .auth-provider-btn:active:not(:disabled) { transform:translateY(1px); }
+    .auth-provider-btn.primary { background:#4ade80; color:#041006; border-color:#4ade80; }
+    .auth-provider-btn.primary:hover:not(:disabled) { background:#73efa0; }
+    .auth-provider-btn:disabled { opacity:.45; cursor:not-allowed; }
+    .auth-provider-icon { width:22px; text-align:center; font-size:17px; line-height:1; }
+    .auth-divider { display:flex; align-items:center; gap:12px; color:#526052; font-size:11px; margin:16px 0; text-transform:uppercase; letter-spacing:.08em; }
+    .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:rgba(188,255,208,.1); }
+    .auth-email-row { display:flex; gap:8px; }
+    .auth-email-row input { flex:1; min-width:0; background:rgba(3,8,5,.72); border:1px solid rgba(188,255,208,.16); color:#eef7ef; border-radius:8px; padding:0 12px; font-size:13px; outline:none; font-family:inherit; }
+    .auth-email-row input:focus { border-color:rgba(74,222,128,.55); }
+    .auth-small-btn { background:#101a12; color:#cfe8d3; border:1px solid rgba(188,255,208,.16); border-radius:8px; padding:0 14px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .auth-small-btn:hover { border-color:rgba(74,222,128,.4); color:#fff; }
+    .auth-note { min-height:18px; color:#7f8a81; font-size:12px; line-height:1.5; margin-top:14px; }
+    .auth-note.error { color:#fca5a5; }
+    .auth-foot { color:#526052; font-size:11px; line-height:1.5; margin-top:20px; }
+    #account-chip { display:none; align-items:center; gap:8px; color:#8fa091; font-size:12px; max-width:240px; }
+    #account-chip.active { display:flex; }
+    #account-avatar { width:26px; height:26px; border-radius:50%; background:#14351f; color:#75f2a3; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
+    #account-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #sign-out-btn { background:none; border:1px solid rgba(188,255,208,.14); color:#718071; border-radius:7px; padding:6px 9px; cursor:pointer; font-size:11px; font-weight:700; font-family:inherit; }
+    #sign-out-btn:hover { color:#fff; border-color:rgba(74,222,128,.35); }
   </style>
   <link rel="stylesheet" href="../AtomicBlast-Server/public/mobile.css">
 </head>
-<body>
+<body class="auth-locked">
+  <section id="auth-screen" aria-label="Sign in">
+    <div class="auth-panel">
+      <div class="auth-logo"><img src="assets/pulse-logo.svg" alt="AtomicBlast"></div>
+      <div class="auth-kicker">AtomicBlast account</div>
+      <h1 class="auth-title">Sign in to your music.</h1>
+      <p class="auth-copy">Create your AtomicBlast account or come back in with a provider. This keeps playlists, favorites, and playback history ready for the web app.</p>
+      <div class="auth-actions">
+        <button class="auth-provider-btn primary" id="auth-google-btn"><span class="auth-provider-icon">G</span><span>Continue with Google</span></button>
+        <button class="auth-provider-btn" id="auth-apple-btn"><span class="auth-provider-icon"></span><span>Continue with Apple</span></button>
+        <button class="auth-provider-btn" id="auth-microsoft-btn"><span class="auth-provider-icon">M</span><span>Continue with Microsoft</span></button>
+      </div>
+      <div class="auth-divider">or</div>
+      <div class="auth-email-row">
+        <input id="auth-email-input" type="email" autocomplete="email" value="adammharvey+AtomicBlast@gmail.com" aria-label="Email address">
+        <button id="auth-email-btn" class="auth-small-btn">Continue</button>
+      </div>
+      <div id="auth-message" class="auth-note">Using adammharvey+AtomicBlast@gmail.com for the AtomicBlast account.</div>
+      <div class="auth-foot">Provider sign-in needs OAuth credentials on the server. Email sign-in is enabled now for first-run account setup.</div>
+    </div>
+  </section>
   <!-- TOP NAV BAR -->
   <nav class="topnav">
     <div class="topnav-logo">
@@ -588,6 +648,7 @@
     <div class="topnav-right">
       <button id="sidebar-toggle-btn" title="Library">&#9776;</button>
       <div class="search-bar"><input type="text" id="search-input" placeholder="Search library..."></div>
+      <div id="account-chip"><span id="account-avatar">A</span><span id="account-label"></span><button id="sign-out-btn" type="button">Sign out</button></div>
       <div class="nav-item" data-view="settings"><span class="nav-icon">≡</span><span>SETTINGS</span></div>
     </div>
   </nav>
@@ -717,6 +778,8 @@
 
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'http://23.95.216.131:3000'
+    const AUTH_STORAGE_KEY = 'atomicblast.user'
+    const DEFAULT_AUTH_EMAIL = 'adammharvey+AtomicBlast@gmail.com'
 
     let currentView = 'media'
     let musicLibrary = null
@@ -732,6 +795,136 @@
     let ctxTrack = null
     let cueAdvancing = false
     let serverFavsMeta = new Map() // filePath → {title, artist, album, format}
+    let authConfig = { googleClientId: '', supportEmail: DEFAULT_AUTH_EMAIL }
+    let currentUser = null
+
+    // ── Account sign in ───────────────────────────────────────────────────
+    function loadStoredUser() {
+      try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null') } catch { return null }
+    }
+    function saveStoredUser(user) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
+      currentUser = user
+      applyAuthState()
+    }
+    function clearStoredUser() {
+      localStorage.removeItem(AUTH_STORAGE_KEY)
+      currentUser = null
+      applyAuthState()
+    }
+    function setAuthMessage(message, isError) {
+      const node = el('auth-message')
+      if (!node) return
+      node.textContent = message
+      node.classList.toggle('error', !!isError)
+    }
+    function normalizeEmail(email) {
+      return String(email || '').trim()
+    }
+    function userInitial(user) {
+      return (user?.name || user?.email || 'A').trim().charAt(0).toUpperCase()
+    }
+    function applyAuthState() {
+      const user = currentUser || loadStoredUser()
+      document.body.classList.toggle('auth-locked', !user)
+      const chip = el('account-chip')
+      if (chip) {
+        chip.classList.toggle('active', !!user)
+        el('account-label').textContent = user ? (user.name || user.email || 'AtomicBlast') : ''
+        el('account-avatar').textContent = userInitial(user)
+      }
+    }
+    async function fetchAuthConfig() {
+      try {
+        const res = await fetch(PROXY_URL + '/api/auth/config')
+        if (res.ok) authConfig = await res.json()
+      } catch (e) {
+        console.warn('Could not load auth config:', e)
+      }
+    }
+    async function continueWithEmail() {
+      const input = el('auth-email-input')
+      const email = normalizeEmail(input?.value || DEFAULT_AUTH_EMAIL)
+      if (!email || !email.includes('@')) {
+        setAuthMessage('Enter a valid email address to continue.', true)
+        return
+      }
+      setAuthMessage('Creating your AtomicBlast session...')
+      try {
+        const res = await fetch(PROXY_URL + '/api/auth/email-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name: 'AtomicBlast' })
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.user) throw new Error(data.error || 'Sign-in failed')
+        saveStoredUser(data.user)
+        setStatus('Signed in as ' + data.user.email)
+        await init()
+      } catch (e) {
+        setAuthMessage(e.message || 'Could not sign in with that email.', true)
+      }
+    }
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[src="' + src + '"]')) return resolve()
+        const script = document.createElement('script')
+        script.src = src
+        script.async = true
+        script.defer = true
+        script.onload = resolve
+        script.onerror = reject
+        document.head.appendChild(script)
+      })
+    }
+    async function continueWithGoogle() {
+      if (!authConfig.googleClientId) {
+        setAuthMessage('Google sign-in is ready in the UI. Set GOOGLE_CLIENT_ID on the server to turn it on.', true)
+        return
+      }
+      try {
+        setAuthMessage('Opening Google sign-in...')
+        await loadScript('https://accounts.google.com/gsi/client')
+        google.accounts.id.initialize({
+          client_id: authConfig.googleClientId,
+          callback: async response => {
+            try {
+              const res = await fetch(PROXY_URL + '/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+              })
+              const data = await res.json().catch(() => ({}))
+              if (!res.ok || !data.user) throw new Error(data.error || 'Google sign-in failed')
+              saveStoredUser(data.user)
+              setStatus('Signed in as ' + data.user.email)
+              await init()
+            } catch (e) {
+              setAuthMessage(e.message || 'Google sign-in failed.', true)
+            }
+          }
+        })
+        google.accounts.id.prompt(notification => {
+          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+            google.accounts.id.renderButton(el('auth-google-btn'), { theme: 'filled_black', size: 'large', width: 390 })
+          }
+        })
+      } catch (e) {
+        setAuthMessage('Could not load Google sign-in. Check the network and Google client ID.', true)
+      }
+    }
+    function bindAuthControls() {
+      el('auth-email-input').value = DEFAULT_AUTH_EMAIL
+      el('auth-email-btn')?.addEventListener('click', continueWithEmail)
+      el('auth-email-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') continueWithEmail() })
+      el('auth-google-btn')?.addEventListener('click', continueWithGoogle)
+      el('auth-apple-btn')?.addEventListener('click', () => setAuthMessage('Apple sign-in needs APPLE_CLIENT_ID and server callback setup before it can go live.', true))
+      el('auth-microsoft-btn')?.addEventListener('click', () => setAuthMessage('Microsoft sign-in needs MICROSOFT_CLIENT_ID and server callback setup before it can go live.', true))
+      el('sign-out-btn')?.addEventListener('click', () => {
+        clearStoredUser()
+        setStatus('Signed out')
+      })
+    }
 
     // ── iTunes art fallback ────────────────────────────────────────────────
     const itunesArtCache = new Map()
@@ -3176,7 +3369,14 @@
 
     initPlayerBar()
     initCtxMenu()
-    init()
+    bindAuthControls()
+    ;(async function boot() {
+      currentUser = loadStoredUser()
+      await fetchAuthConfig()
+      applyAuthState()
+      if (currentUser) init()
+      else setAuthMessage('Using ' + DEFAULT_AUTH_EMAIL + ' for the AtomicBlast account.')
+    })()
     el('sidebar-toggle-btn')?.addEventListener('click', toggleSidebar)
     el('sidebar-overlay')?.addEventListener('click', closeSidebar)
 

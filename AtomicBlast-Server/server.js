@@ -28,9 +28,99 @@ app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
+});
+
+// ── Account auth ─────────────────────────────────────────────────────────────
+const AUTH_SUPPORT_EMAIL = process.env.AUTH_SUPPORT_EMAIL || 'adammharvey+AtomicBlast@gmail.com';
+const GOOGLE_CLIENT_ID   = process.env.GOOGLE_CLIENT_ID || '';
+const ACCOUNTS_FILE      = path.join(__dirname, 'accounts.json');
+
+function loadAccounts() {
+  try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); } catch { return { users: [] }; }
+}
+function saveAccounts(accounts) {
+  fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2), 'utf8');
+}
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name || '',
+    provider: user.provider || 'email',
+    picture: user.picture || '',
+  };
+}
+function upsertAccount(profile) {
+  const accounts = loadAccounts();
+  const email = String(profile.email || '').trim();
+  if (!email || !email.includes('@')) throw new Error('Valid email required');
+  const now = new Date().toISOString();
+  let user = accounts.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) {
+    user = {
+      id: 'usr_' + Buffer.from(email.toLowerCase()).toString('base64url').slice(0, 22),
+      email,
+      createdAt: now,
+    };
+    accounts.users.push(user);
+  }
+  Object.assign(user, {
+    name: profile.name || user.name || email.split('@')[0],
+    provider: profile.provider || user.provider || 'email',
+    picture: profile.picture || user.picture || '',
+    lastLoginAt: now,
+  });
+  saveAccounts(accounts);
+  return publicUser(user);
+}
+
+app.get('/api/auth/config', (req, res) => {
+  res.json({
+    googleClientId: GOOGLE_CLIENT_ID,
+    supportEmail: AUTH_SUPPORT_EMAIL,
+    providers: {
+      google: !!GOOGLE_CLIENT_ID,
+      apple: false,
+      microsoft: false,
+      email: true,
+    },
+  });
+});
+
+app.post('/api/auth/email-login', (req, res) => {
+  try {
+    const user = upsertAccount({
+      email: req.body?.email,
+      name: req.body?.name || 'AtomicBlast',
+      provider: 'email',
+    });
+    res.json({ ok: true, user });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    if (!GOOGLE_CLIENT_ID) return res.status(501).json({ ok: false, error: 'GOOGLE_CLIENT_ID is not configured' });
+    const credential = req.body?.credential;
+    if (!credential) return res.status(400).json({ ok: false, error: 'Google credential required' });
+    const tokenInfo = await httpsGetJSON('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
+    if (tokenInfo.aud !== GOOGLE_CLIENT_ID) return res.status(401).json({ ok: false, error: 'Google audience mismatch' });
+    if (tokenInfo.email_verified !== 'true' && tokenInfo.email_verified !== true) return res.status(401).json({ ok: false, error: 'Google email is not verified' });
+    const user = upsertAccount({
+      email: tokenInfo.email,
+      name: tokenInfo.name,
+      picture: tokenInfo.picture,
+      provider: 'google',
+    });
+    res.json({ ok: true, user });
+  } catch (e) {
+    res.status(401).json({ ok: false, error: e.message || 'Google sign-in failed' });
+  }
 });
 
 // Serve web app static files
