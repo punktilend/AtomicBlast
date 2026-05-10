@@ -117,5 +117,5 @@ ssh $server "ufw allow 3000/tcp && cd /opt/pulse-proxy && set -a && . ./.env && 
 
 Write-Host ""
 Write-Host "=== Done! ===" -ForegroundColor Green
-Write-Host "Open http://23.95.216.131:3000 in Safari on your iPhone" -ForegroundColor Yellow
+Write-Host "Open https://blast.atomicradius.app in Safari on your iPhone" -ForegroundColor Yellow
 Write-Host "Then: Share -> Add to Home Screen for the PWA install" -ForegroundColor Yellow
