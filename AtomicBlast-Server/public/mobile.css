@@ -611,15 +611,69 @@ body.player-bar-active.queue-open #queue-panel {
 .edition-reel .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 8% -2% 8% 22%;
-  border-radius: 999px;
+  inset: 10% 6% 27%;
+  border-radius: 14px;
   background:
-    radial-gradient(circle at 36% 36%, transparent 0 8%, #c9a16a 9% 13%, transparent 14%),
-    radial-gradient(circle at 63% 35%, transparent 0 8%, #c9a16a 9% 13%, transparent 14%),
-    radial-gradient(circle at 50% 66%, transparent 0 8%, #c9a16a 9% 13%, transparent 14%),
-    radial-gradient(circle, #111 0 9%, #b88952 10% 18%, #181818 19% 100%);
-  box-shadow: inset 0 0 0 7px rgba(255,255,255,.025), 0 14px 28px rgba(0,0,0,.34);
+    radial-gradient(circle at 28% 45%, #050403 0 5%, #d0b07a 5.5% 8%, #201812 8.5% 13%, transparent 13.5%),
+    radial-gradient(circle at 72% 45%, #050403 0 5%, #d0b07a 5.5% 8%, #201812 8.5% 13%, transparent 13.5%),
+    radial-gradient(circle at 28% 45%, transparent 0 18%, rgba(205,172,116,.88) 18.5% 21%, transparent 21.5% 28%, rgba(205,172,116,.72) 28.5% 31%, transparent 31.5%),
+    radial-gradient(circle at 72% 45%, transparent 0 18%, rgba(205,172,116,.88) 18.5% 21%, transparent 21.5% 28%, rgba(205,172,116,.72) 28.5% 31%, transparent 31.5%),
+    radial-gradient(circle at 28% 45%, rgba(22,15,10,.82) 0 37%, transparent 38%),
+    radial-gradient(circle at 72% 45%, rgba(18,13,10,.84) 0 37%, transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.22)),
+    #17110d;
+  border: 1px solid rgba(255,235,190,.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -12px 24px rgba(0,0,0,.34),
+    0 14px 28px rgba(0,0,0,.34);
   z-index: 0;
+}
+
+.edition-reel .b2-edition-art {
+  aspect-ratio: 1.16 / 1;
+  margin: 8px 0 12px;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.10), transparent 30%),
+    linear-gradient(180deg, #2b241e, #14100d 70%, #080706) !important;
+  border: 1px solid rgba(255,235,190,.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -2px 0 rgba(0,0,0,.58),
+    0 20px 42px rgba(0,0,0,.58) !important;
+}
+
+.edition-reel .b2-edition-art img,
+.edition-reel .b2-edition-art .lib-card-initial {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  width: 54% !important;
+  height: 54% !important;
+  margin: 0 !important;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow:
+    0 12px 26px rgba(0,0,0,.52),
+    inset 0 0 0 1px rgba(255,255,255,.12);
+  z-index: 2;
+}
+
+.edition-reel .b2-edition-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, transparent 15%, rgba(176,132,84,.35) 17%, transparent 19% 81%, rgba(176,132,84,.28) 83%, transparent 85%),
+    radial-gradient(ellipse at 50% 70%, rgba(5,4,3,.72) 0 7%, transparent 7.5%),
+    linear-gradient(128deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.035) 30%, transparent 55%);
+  border: 1px solid rgba(255,255,255,.06);
+  pointer-events: none;
+  z-index: 4;
 }
 
 /* ── CD jewel case — closed front view ───────────────────────────────────────
@@ -629,29 +683,29 @@ body.player-bar-active.queue-open #queue-panel {
 .edition-cd .b2-edition-art,
 .edition-sacd .b2-edition-art,
 .edition-dvd .b2-edition-art {
-  border-radius: 6px !important;
+  overflow: hidden !important;
+  border-radius: 3px !important;
   background:
-    /* Spine — dark plastic strip on left */
+    radial-gradient(circle at 82% 50%, rgba(230,242,255,.10) 0 25%, transparent 26%),
+    radial-gradient(circle at 82% 50%, transparent 0 7%, rgba(230,242,255,.20) 7.5% 9.5%, transparent 10% 18%, rgba(230,242,255,.13) 18.5% 20.5%, transparent 21%),
     linear-gradient(90deg,
-      #0e0f13 0% 9%,
-      rgba(255,255,255,.10) 9% 10.5%,
-      transparent 10.5%
+      rgba(6,7,10,.92) 0% 6%,
+      rgba(255,255,255,.20) 6.2% 7.5%,
+      rgba(12,14,20,.72) 7.5% 10%,
+      transparent 10.2%
     ),
-    /* Top locking ridge */
     linear-gradient(180deg,
-      #191a20 0% 5%,
-      rgba(255,255,255,.08) 5% 6.5%,
-      transparent 7%
+      rgba(255,255,255,.18) 0 1px,
+      rgba(25,27,34,.88) 1px 6%,
+      rgba(255,255,255,.07) 6% 7.2%,
+      transparent 7.3% 91%,
+      rgba(0,0,0,.44) 91% 100%
     ),
-    /* Bottom locking ridge */
-    linear-gradient(0deg,
-      #131318 0% 5%,
-      transparent 6%
-    ),
-    /* Case body */
-    linear-gradient(155deg, #21222b, #15161d) !important;
+    linear-gradient(155deg, rgba(52,55,65,.92), rgba(18,19,25,.96)) !important;
+  border: 1px solid rgba(220,230,255,.17);
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.10),
+    inset 0 0 0 1px rgba(255,255,255,.13),
+    inset 8px 0 0 rgba(0,0,0,.36),
     0 20px 42px rgba(0,0,0,.55) !important;
 }
 
@@ -663,11 +717,13 @@ body.player-bar-active.queue-open #queue-panel {
 .edition-dvd .b2-edition-art img,
 .edition-dvd .b2-edition-art .lib-card-initial {
   width: 84% !important;
-  height: 88% !important;
-  margin: 6% 4% 6% 12%;
+  height: 84% !important;
+  margin: 8% 6% 8% 10%;
   border-radius: 1px;
   object-fit: cover;
-  box-shadow: 0 10px 24px rgba(0,0,0,.5);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.45),
+    inset 0 0 0 1px rgba(255,255,255,.08);
   z-index: 2;
 }
 
@@ -677,13 +733,16 @@ body.player-bar-active.queue-open #queue-panel {
 .edition-dvd .b2-edition-art::before {
   content: '';
   position: absolute;
-  inset: 5% 3% 5% 11%;
+  inset: 7% 5% 7% 9%;
   border-radius: 2px;
-  background: rgba(210,220,255,.025);
-  border: 1px solid rgba(255,255,255,.18);
+  background:
+    radial-gradient(circle at 86% 50%, transparent 0 12%, rgba(225,235,255,.13) 12.5% 14%, transparent 14.5%),
+    rgba(210,220,255,.025);
+  border: 1px solid rgba(255,255,255,.22);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.14),
-    inset 0 -1px 0 rgba(0,0,0,.18);
+    inset 0 -1px 0 rgba(0,0,0,.18),
+    inset 7px 0 8px rgba(0,0,0,.22);
   pointer-events: none;
   z-index: 3;
 }
@@ -695,10 +754,11 @@ body.player-bar-active.queue-open #queue-panel {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 6px;
+  border-radius: 3px;
   background:
-    radial-gradient(ellipse at 24% 18%, rgba(255,255,255,.30) 0%, transparent 44%),
-    linear-gradient(122deg, rgba(255,255,255,.18) 0%, transparent 36%),
+    linear-gradient(90deg, transparent 4.5%, rgba(255,255,255,.16) 5.2%, transparent 6.2% 8.8%, rgba(0,0,0,.32) 9.4%, transparent 11%),
+    radial-gradient(ellipse at 22% 16%, rgba(255,255,255,.32) 0%, transparent 38%),
+    linear-gradient(122deg, rgba(255,255,255,.20) 0%, transparent 34%),
     linear-gradient(180deg, rgba(255,255,255,.06) 0%, transparent 28%);
   pointer-events: none;
   z-index: 4;

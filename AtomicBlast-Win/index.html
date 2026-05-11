@@ -2456,7 +2456,7 @@
             ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'cassette-label-name-visible\')">' + cassetteName
             : '<span class="lib-card-initial">' + esc(initial) + '</span>' + cassetteName)
           : (coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=lib-card-initial>' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>')
         html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
           '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +

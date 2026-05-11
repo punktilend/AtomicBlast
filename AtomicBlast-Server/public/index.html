@@ -625,7 +625,7 @@
     #sign-out-btn { background:none; border:1px solid rgba(188,255,208,.14); color:#718071; border-radius:7px; padding:6px 9px; cursor:pointer; font-size:11px; font-weight:700; font-family:inherit; }
     #sign-out-btn:hover { color:#fff; border-color:rgba(74,222,128,.35); }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260510151039">
+  <link rel="stylesheet" href="/mobile.css?v=20260511125151">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
@@ -2467,7 +2467,7 @@
             ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'cassette-label-name-visible\')">' + cassetteName
             : '<span class="lib-card-initial">' + esc(initial) + '</span>' + cassetteName)
           : (coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=lib-card-initial>' + esc(initial) + '</span>\'">'
             : '<span class="lib-card-initial">' + esc(initial) + '</span>')
         html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
           '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
