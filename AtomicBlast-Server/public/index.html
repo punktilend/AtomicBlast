@@ -626,19 +626,25 @@
     #sign-out-btn:hover { color:#fff; border-color:rgba(74,222,128,.35); }
 
     /* ===== WALKTHROUGH ===== */
-    #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.72); backdrop-filter:blur(16px); }
+    #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:flex-end; justify-content:flex-end; padding:24px; background:rgba(0,0,0,.62); backdrop-filter:blur(10px); pointer-events:none; }
     #walkthrough-modal.active { display:flex; }
-    .walkthrough-panel { width:min(560px,100%); max-height:min(720px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:24px; }
+    .walkthrough-panel { width:min(380px,100%); max-height:min(720px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:20px; pointer-events:auto; }
+    .walkthrough-spotlight { position:fixed; z-index:855; display:none; border:2px solid rgba(74,222,128,.95); border-radius:14px; box-shadow:0 0 0 9999px rgba(0,0,0,.34), 0 0 34px rgba(74,222,128,.34); pointer-events:none; transition:top .18s ease,left .18s ease,width .18s ease,height .18s ease; }
+    #walkthrough-modal.active .walkthrough-spotlight.active { display:block; }
+    body.walkthrough-active .walkthrough-target-highlight { position:relative; z-index:860; box-shadow:0 0 0 3px rgba(74,222,128,.35), 0 0 28px rgba(74,222,128,.24) !important; }
+    .walkthrough-progress { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+    .walkthrough-dot { flex:1; height:4px; border-radius:999px; background:rgba(255,255,255,.09); overflow:hidden; }
+    .walkthrough-dot span { display:block; height:100%; width:0; background:#4ade80; transition:width .18s ease; }
     .walkthrough-kicker { color:#75f2a3; font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
     .walkthrough-title { color:#fff; font-size:30px; line-height:1.08; font-weight:850; letter-spacing:0; margin-bottom:8px; }
-    .walkthrough-copy { color:#9caa9f; font-size:14px; line-height:1.55; max-width:42em; margin-bottom:18px; }
-    .walkthrough-list { display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none; }
-    .walkthrough-list li { display:flex; gap:10px; align-items:flex-start; padding:11px 12px; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.06); color:#dce8de; font-size:13px; line-height:1.45; }
-    .walkthrough-list li::before { content:'✓'; width:20px; height:20px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#06100a; background:#4ade80; font-size:12px; font-weight:900; flex-shrink:0; margin-top:1px; }
-    .walkthrough-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+    .walkthrough-copy { color:#9caa9f; font-size:14px; line-height:1.55; max-width:42em; margin-bottom:16px; }
+    .walkthrough-task { display:none; width:100%; align-items:center; justify-content:center; gap:8px; margin-top:2px; background:rgba(74,222,128,.12); color:#bff8cf; border:1px solid rgba(74,222,128,.28); border-radius:12px; padding:11px 13px; font-size:13px; font-weight:850; cursor:pointer; font-family:inherit; }
+    .walkthrough-task.active { display:flex; }
+    .walkthrough-actions { display:grid; grid-template-columns:auto 1fr auto; gap:10px; margin-top:18px; align-items:center; }
     .walkthrough-btn { border:0; border-radius:999px; padding:11px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
     .walkthrough-btn.primary { background:#4ade80; color:#041006; }
     .walkthrough-btn.ghost { background:rgba(255,255,255,.055); color:#d8e6dc; border:1px solid rgba(255,255,255,.08); }
+    .walkthrough-btn:disabled { opacity:.42; cursor:default; }
 
     /* ===== INSTALL SECTION ===== */
     .install-section { margin-bottom:22px; }
@@ -662,9 +668,11 @@
       .walkthrough-panel { max-height:calc(100vh - 28px); border-radius:18px; padding:18px; }
       .walkthrough-title { font-size:25px; }
       .walkthrough-btn { width:100%; }
+      .walkthrough-actions { grid-template-columns:1fr 1fr; }
+      #walkthrough-skip { grid-column:1 / -1; }
     }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260511140140">
+  <link rel="stylesheet" href="/mobile.css?v=20260511140832">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
@@ -824,22 +832,17 @@
   <div class="status-bar"><span><span class="status-dot"></span></span><span id="status-text">Loading...</span><span id="gp-indicator"></span></div>
 
   <div id="walkthrough-modal" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
+    <div class="walkthrough-spotlight" id="walkthrough-spotlight"></div>
     <div class="walkthrough-panel">
-      <div class="walkthrough-kicker">Quick start</div>
+      <div class="walkthrough-progress" aria-hidden="true"><div class="walkthrough-dot"><span id="walkthrough-progress-fill"></span></div><span id="walkthrough-step-count" class="walkthrough-kicker"></span></div>
+      <div class="walkthrough-kicker" id="walkthrough-kicker">Quick start</div>
       <div class="walkthrough-title" id="walkthrough-title">Welcome to AtomicBlast</div>
-      <div class="walkthrough-copy">Here is the simple version. You do not need to click these items.</div>
-      <ul class="walkthrough-list">
-        <li>Use the Music home screen to browse featured albums and artists.</li>
-        <li>Use Artists or Albums in the left menu to browse the full library.</li>
-        <li>Use the search box to find an artist, album, or song.</li>
-        <li>Open an album or artist and press Play All or Shuffle.</li>
-        <li>Use the heart button to save songs to Liked Songs.</li>
-        <li>Create playlists from the plus button or song menu.</li>
-        <li>Use the bottom player for queue and Now Playing controls.</li>
-        <li>Open Settings to install AtomicBlast on Windows 11 or Linux.</li>
-      </ul>
+      <div class="walkthrough-copy" id="walkthrough-copy">Take a quick guided pass through the places you will use most.</div>
+      <button id="walkthrough-task" class="walkthrough-task" type="button"></button>
       <div class="walkthrough-actions">
-        <button id="walkthrough-done" class="walkthrough-btn primary" type="button">Got it, start listening</button>
+        <button id="walkthrough-back" class="walkthrough-btn ghost" type="button">Back</button>
+        <button id="walkthrough-skip" class="walkthrough-btn ghost" type="button">Skip</button>
+        <button id="walkthrough-next" class="walkthrough-btn primary" type="button">Next</button>
       </div>
     </div>
   </div>
@@ -870,6 +873,73 @@
     let authConfig = { googleClientId: '', supportEmail: DEFAULT_AUTH_EMAIL }
     let currentUser = null
     let deferredInstallPrompt = null
+    let walkthroughStepIndex = 0
+    let walkthroughResizeHandler = null
+    const WALKTHROUGH_STEPS = [
+      {
+        kicker: 'Home base',
+        title: 'Start in Music',
+        copy: 'The Music tab is where the web app lands. From here you can browse the live B2 library, jump into albums, or start a full-library shuffle.',
+        target: '.nav-item[data-view="media"]',
+        actionLabel: 'Open Music',
+        action: () => activateView('media')
+      },
+      {
+        kicker: 'Find anything',
+        title: 'Search the library',
+        copy: 'Use search when you already know what you want. It filters artists, albums, and tracks without leaving the music view.',
+        target: '#music-search, #search-input',
+        before: () => activateView('media'),
+        actionLabel: 'Focus Search',
+        action: () => (document.querySelector('#music-search') || el('search-input'))?.focus()
+      },
+      {
+        kicker: 'Album shelf',
+        title: 'Browse albums',
+        copy: 'Featured albums appear on the home screen, and the album browser gives you the full shelf when you want to explore cover-first.',
+        target: '#b2-view-albums-btn, #b2-all-albums-top, .b2-home-card',
+        before: () => activateView('media'),
+        actionLabel: 'Browse Albums',
+        action: () => b2Lib ? showB2AllAlbums() : setStatus('Albums load after the library scan finishes')
+      },
+      {
+        kicker: 'Artist shelf',
+        title: 'Explore artists',
+        copy: 'Artists collect every album and track in one place, including artist radio when you want AtomicBlast to keep picking.',
+        target: '#b2-view-artists-btn, #b2-all-artists-featured, .music-tree-item',
+        before: () => activateView('media'),
+        actionLabel: 'Explore Artists',
+        action: () => b2Lib ? showB2AllArtists() : setStatus('Artists load after the library scan finishes')
+      },
+      {
+        kicker: 'Playback',
+        title: 'Start listening',
+        copy: 'Open an artist or album and use Play All, Shuffle, or any track row. Once music starts, the bottom player stays with you.',
+        target: '.play-all-btn, #b2-shuffle-all-btn, .lib-track-row, .music-track-row',
+        before: () => activateView('media'),
+        actionLabel: 'Show Shuffle',
+        action: () => el('b2-shuffle-all-btn')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      },
+      {
+        kicker: 'Up next',
+        title: 'Use the queue',
+        copy: 'The Queue button opens Up Next so you can see what is coming, rearrange your listening mentally, and keep playback oriented.',
+        target: '#p-queue-btn, #player-bar',
+        actionLabel: 'Open Queue',
+        action: () => {
+          document.body.classList.add('player-bar-active', 'queue-open')
+          updateQueuePanel()
+        }
+      },
+      {
+        kicker: 'Install and help',
+        title: 'Open Settings',
+        copy: 'Settings has install options for Windows and Linux, rescan controls, and the button to replay this walkthrough anytime.',
+        target: '.nav-item[data-view="settings"], #show-walkthrough-btn',
+        actionLabel: 'Open Settings',
+        action: () => activateView('settings')
+      }
+    ]
 
     // ── Account sign in ───────────────────────────────────────────────────
     function loadStoredUser() {
@@ -917,17 +987,96 @@
     function markWalkthroughSeen(user) {
       localStorage.setItem(walkthroughKey(user), '1')
     }
+    function activateView(view) {
+      const item = document.querySelector('.nav-item[data-view="' + view + '"]')
+      if (!item) return
+      const alreadyActive = currentView === view && item.classList.contains('active')
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+      item.classList.add('active')
+      currentView = view
+      if (!alreadyActive) renderView()
+    }
     function showWalkthrough(force) {
       const user = currentUser || loadStoredUser()
       if (!user) return
       if (!force && hasSeenWalkthrough(user)) return
       const modal = el('walkthrough-modal')
-      if (modal) modal.classList.add('active')
+      if (!modal) return
+      walkthroughStepIndex = force ? 0 : walkthroughStepIndex
+      modal.classList.add('active')
+      document.body.classList.add('walkthrough-active')
+      renderWalkthroughStep()
+      if (!walkthroughResizeHandler) {
+        walkthroughResizeHandler = () => positionWalkthroughTarget()
+        window.addEventListener('resize', walkthroughResizeHandler)
+        window.addEventListener('scroll', walkthroughResizeHandler, true)
+      }
     }
     function closeWalkthrough(markSeen) {
       const user = currentUser || loadStoredUser()
       if (markSeen && user) markWalkthroughSeen(user)
+      clearWalkthroughTarget()
       el('walkthrough-modal')?.classList.remove('active')
+      document.body.classList.remove('walkthrough-active')
+      document.body.classList.remove('queue-open')
+      if (walkthroughResizeHandler) {
+        window.removeEventListener('resize', walkthroughResizeHandler)
+        window.removeEventListener('scroll', walkthroughResizeHandler, true)
+        walkthroughResizeHandler = null
+      }
+    }
+    function clearWalkthroughTarget() {
+      document.querySelectorAll('.walkthrough-target-highlight').forEach(node => node.classList.remove('walkthrough-target-highlight'))
+      el('walkthrough-spotlight')?.classList.remove('active')
+    }
+    function currentWalkthroughTarget() {
+      const step = WALKTHROUGH_STEPS[walkthroughStepIndex]
+      if (!step?.target) return null
+      return document.querySelector(step.target)
+    }
+    function positionWalkthroughTarget() {
+      clearWalkthroughTarget()
+      const target = currentWalkthroughTarget()
+      const spotlight = el('walkthrough-spotlight')
+      if (!target || !spotlight) return
+      target.classList.add('walkthrough-target-highlight')
+      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+      requestAnimationFrame(() => {
+        const rect = target.getBoundingClientRect()
+        const pad = 8
+        spotlight.style.left = Math.max(8, rect.left - pad) + 'px'
+        spotlight.style.top = Math.max(8, rect.top - pad) + 'px'
+        spotlight.style.width = Math.min(window.innerWidth - 16, rect.width + pad * 2) + 'px'
+        spotlight.style.height = Math.min(window.innerHeight - 16, rect.height + pad * 2) + 'px'
+        spotlight.classList.add('active')
+      })
+    }
+    function renderWalkthroughStep() {
+      const step = WALKTHROUGH_STEPS[walkthroughStepIndex]
+      if (!step) return closeWalkthrough(true)
+      step.before?.()
+      el('walkthrough-step-count').textContent = (walkthroughStepIndex + 1) + ' / ' + WALKTHROUGH_STEPS.length
+      el('walkthrough-progress-fill').style.width = ((walkthroughStepIndex + 1) / WALKTHROUGH_STEPS.length * 100) + '%'
+      el('walkthrough-kicker').textContent = step.kicker
+      el('walkthrough-title').textContent = step.title
+      el('walkthrough-copy').textContent = step.copy
+      const task = el('walkthrough-task')
+      task.textContent = step.actionLabel || ''
+      task.classList.toggle('active', !!step.actionLabel)
+      el('walkthrough-back').disabled = walkthroughStepIndex === 0
+      el('walkthrough-next').textContent = walkthroughStepIndex === WALKTHROUGH_STEPS.length - 1 ? 'Finish' : 'Next'
+      setTimeout(positionWalkthroughTarget, 180)
+    }
+    function goWalkthroughStep(delta) {
+      walkthroughStepIndex += delta
+      if (walkthroughStepIndex >= WALKTHROUGH_STEPS.length) return closeWalkthrough(true)
+      if (walkthroughStepIndex < 0) walkthroughStepIndex = 0
+      renderWalkthroughStep()
+    }
+    function runWalkthroughTask() {
+      const step = WALKTHROUGH_STEPS[walkthroughStepIndex]
+      step?.action?.()
+      setTimeout(positionWalkthroughTarget, 220)
     }
     async function fetchAuthConfig() {
       try {
@@ -1019,9 +1168,12 @@
         clearStoredUser()
         setStatus('Signed out')
       })
-      el('walkthrough-done')?.addEventListener('click', () => closeWalkthrough(true))
+      el('walkthrough-back')?.addEventListener('click', () => goWalkthroughStep(-1))
+      el('walkthrough-next')?.addEventListener('click', () => goWalkthroughStep(1))
+      el('walkthrough-skip')?.addEventListener('click', () => closeWalkthrough(true))
+      el('walkthrough-task')?.addEventListener('click', runWalkthroughTask)
       el('walkthrough-modal')?.addEventListener('click', e => {
-        if (e.target.id === 'walkthrough-modal') closeWalkthrough(false)
+        if (e.target.id === 'walkthrough-modal') positionWalkthroughTarget()
       })
     }
 
