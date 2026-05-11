@@ -630,6 +630,21 @@
     .walkthrough-btn { border:0; border-radius:999px; padding:11px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
     .walkthrough-btn.primary { background:#4ade80; color:#041006; }
     .walkthrough-btn.ghost { background:rgba(255,255,255,.055); color:#d8e6dc; border:1px solid rgba(255,255,255,.08); }
+
+    /* ===== INSTALL SECTION ===== */
+    .install-section { margin-bottom:22px; }
+    .install-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .install-card { background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.03)); border:1px solid rgba(188,255,208,.10); border-radius:14px; padding:16px; }
+    .install-platform { color:#fff; font-size:16px; font-weight:850; margin-bottom:5px; }
+    .install-copy { color:#8b988d; font-size:12px; line-height:1.48; margin-bottom:12px; }
+    .install-steps { margin:0 0 14px; padding-left:18px; color:#9aa69d; font-size:12px; line-height:1.5; }
+    .install-steps li { margin:3px 0; }
+    .install-btn { border:0; border-radius:999px; padding:10px 14px; font-size:12px; font-weight:850; cursor:pointer; color:#041006; background:#4ade80; font-family:inherit; }
+    .install-btn.secondary { color:#d8e6dc; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
+    .install-note { color:#526052; font-size:11px; line-height:1.45; margin-top:10px; }
+    @media (max-width: 720px) {
+      .install-grid { grid-template-columns:1fr; }
+    }
     @media (max-width: 680px) {
       #walkthrough-modal { padding:14px; align-items:flex-end; }
       .walkthrough-panel { max-height:calc(100vh - 28px); border-radius:18px; padding:18px; }
@@ -811,7 +826,7 @@
         <div class="walkthrough-step"><div><h3>Like what you want back</h3><p>Use the heart to save favorites into Liked Songs.</p></div></div>
         <div class="walkthrough-step"><div><h3>Build playlists</h3><p>Use the playlist button, plus menu, or context menu to save custom sets.</p></div></div>
         <div class="walkthrough-step"><div><h3>Control the queue</h3><p>The bottom player opens queue controls and the larger Now Playing view.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Adjust in Settings</h3><p>Manage sources and account options from the Settings button.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Install on desktop</h3><p>Open Settings to install AtomicBlast on Windows 11 or Linux Mint.</p></div></div>
       </div>
       <div class="walkthrough-actions">
         <button id="walkthrough-later" class="walkthrough-btn ghost" type="button">Later</button>
@@ -845,6 +860,7 @@
     let serverFavsMeta = new Map() // filePath → {title, artist, album, format}
     let authConfig = { googleClientId: '', supportEmail: DEFAULT_AUTH_EMAIL }
     let currentUser = null
+    let deferredInstallPrompt = null
 
     // ── Account sign in ───────────────────────────────────────────────────
     function loadStoredUser() {
@@ -1000,6 +1016,18 @@
         if (e.target.id === 'walkthrough-modal') closeWalkthrough(false)
       })
     }
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault()
+      deferredInstallPrompt = e
+      updateInstallButtons()
+    })
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null
+      setStatus('AtomicBlast installed')
+      updateInstallButtons()
+    })
 
     // ── iTunes art fallback ────────────────────────────────────────────────
     const itunesArtCache = new Map()
@@ -3226,6 +3254,68 @@
     // =====================================================
     // SETTINGS
     // =====================================================
+    function renderInstallSection() {
+      return '<div class="install-section">' +
+        '<h3 style="color:#fff;margin-bottom:8px">Install AtomicBlast</h3>' +
+        '<p style="color:#777;font-size:12px;line-height:1.5;margin:0 0 12px">Choose the desktop install path that matches your computer. AtomicBlast installs as a web app, so it opens from your launcher without a normal browser tab.</p>' +
+        '<div class="install-grid">' +
+          '<div class="install-card">' +
+            '<div class="install-platform">Windows 11</div>' +
+            '<div class="install-copy">Best with Microsoft Edge or Chrome on Windows 11.</div>' +
+            '<ol class="install-steps">' +
+              '<li>Open AtomicBlast in Edge or Chrome.</li>' +
+              '<li>Click Install when the browser offers it.</li>' +
+              '<li>If no prompt appears, use the browser menu and choose Apps or Install this site as an app.</li>' +
+              '<li>Pin AtomicBlast to Start or the taskbar after it opens.</li>' +
+            '</ol>' +
+            '<button class="install-btn" id="install-windows-btn" type="button">Install for Windows 11</button>' +
+          '</div>' +
+          '<div class="install-card">' +
+            '<div class="install-platform">Linux Mint</div>' +
+            '<div class="install-copy">Best with Chrome, Chromium, Brave, or Edge on Linux Mint.</div>' +
+            '<ol class="install-steps">' +
+              '<li>Open AtomicBlast in a Chromium-based browser.</li>' +
+              '<li>Click Install when the browser offers it.</li>' +
+              '<li>If no prompt appears, use the browser menu and choose Install page as app or Create shortcut.</li>' +
+              '<li>Launch AtomicBlast from the Mint menu afterward.</li>' +
+            '</ol>' +
+            '<button class="install-btn" id="install-linux-btn" type="button">Install for Linux Mint</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="install-note" id="install-note">If the install button does not open a prompt, use the menu instructions above. Firefox can still bookmark AtomicBlast, but desktop app install support is strongest in Chromium-based browsers.</div>' +
+      '</div>'
+    }
+
+    function updateInstallButtons() {
+      const enabled = !!deferredInstallPrompt
+      ;['install-windows-btn', 'install-linux-btn'].forEach(id => {
+        const btn = el(id)
+        if (!btn) return
+        btn.classList.toggle('secondary', !enabled)
+        btn.textContent = id === 'install-windows-btn'
+          ? (enabled ? 'Install for Windows 11' : 'Show Windows steps')
+          : (enabled ? 'Install for Linux Mint' : 'Show Linux Mint steps')
+      })
+    }
+
+    async function requestDesktopInstall(platform) {
+      const note = el('install-note')
+      if (!deferredInstallPrompt) {
+        if (note) note.textContent = platform + ': use your browser menu if no install prompt appears. In Edge or Chrome, look for Install app, Apps, or Create shortcut.'
+        setStatus('Use browser menu to install AtomicBlast')
+        return
+      }
+      deferredInstallPrompt.prompt()
+      const choice = await deferredInstallPrompt.userChoice.catch(() => null)
+      if (choice?.outcome === 'accepted') {
+        setStatus('Installing AtomicBlast...')
+      } else {
+        setStatus('Install dismissed')
+      }
+      deferredInstallPrompt = null
+      updateInstallButtons()
+    }
+
     async function renderSettings() {
       el('view-header').style.display = ''
       el('view-title').textContent = 'Settings'
@@ -3235,6 +3325,7 @@
       const musicPathsVal = (cfg.musicPaths || []).join('\n')
       el('main-content').innerHTML =
         '<div style="max-width:600px">' +
+        renderInstallSection() +
         '<h3 style="color:#fff;margin-bottom:16px">Media Folders</h3>' +
         '<div style="background:#0f1a0f;border-radius:8px;padding:16px;border:1px solid #1a2e1a">' +
         '<div style="margin-bottom:12px"><label style="font-size:12px;color:#555;display:block;margin-bottom:4px">Music Folders <span style="color:#333">(one per line)</span></label>' +
@@ -3268,6 +3359,9 @@
         if (currentView === 'media') showB2Library()
         setStatus('Library updated — ' + (musicLibrary.allTracks?.length || 0) + ' tracks')
       })
+      el('install-windows-btn')?.addEventListener('click', () => requestDesktopInstall('Windows 11'))
+      el('install-linux-btn')?.addEventListener('click', () => requestDesktopInstall('Linux Mint'))
+      updateInstallButtons()
     }
 
     function settingsInput(label, id, val) {
