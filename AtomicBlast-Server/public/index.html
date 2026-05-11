@@ -628,15 +628,13 @@
     /* ===== WALKTHROUGH ===== */
     #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.72); backdrop-filter:blur(16px); }
     #walkthrough-modal.active { display:flex; }
-    .walkthrough-panel { width:min(760px,100%); max-height:min(760px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:24px; }
+    .walkthrough-panel { width:min(560px,100%); max-height:min(720px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:24px; }
     .walkthrough-kicker { color:#75f2a3; font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
     .walkthrough-title { color:#fff; font-size:30px; line-height:1.08; font-weight:850; letter-spacing:0; margin-bottom:8px; }
-    .walkthrough-copy { color:#9caa9f; font-size:14px; line-height:1.55; max-width:58em; margin-bottom:18px; }
-    .walkthrough-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; counter-reset:walkstep; }
-    .walkthrough-step { counter-increment:walkstep; display:grid; grid-template-columns:34px 1fr; gap:10px; align-items:start; padding:13px; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.06); }
-    .walkthrough-step::before { content:counter(walkstep); width:28px; height:28px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#06100a; background:#4ade80; font-size:12px; font-weight:900; }
-    .walkthrough-step h3 { color:#f4fff5; font-size:13px; line-height:1.25; margin:0 0 4px; }
-    .walkthrough-step p { color:#879389; font-size:12px; line-height:1.42; margin:0; }
+    .walkthrough-copy { color:#9caa9f; font-size:14px; line-height:1.55; max-width:42em; margin-bottom:18px; }
+    .walkthrough-list { display:flex; flex-direction:column; gap:9px; margin:0; padding:0; list-style:none; }
+    .walkthrough-list li { display:flex; gap:10px; align-items:flex-start; padding:11px 12px; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.06); color:#dce8de; font-size:13px; line-height:1.45; }
+    .walkthrough-list li::before { content:'✓'; width:20px; height:20px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#06100a; background:#4ade80; font-size:12px; font-weight:900; flex-shrink:0; margin-top:1px; }
     .walkthrough-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
     .walkthrough-btn { border:0; border-radius:999px; padding:11px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
     .walkthrough-btn.primary { background:#4ade80; color:#041006; }
@@ -659,13 +657,11 @@
     @media (max-width: 680px) {
       #walkthrough-modal { padding:14px; align-items:flex-end; }
       .walkthrough-panel { max-height:calc(100vh - 28px); border-radius:18px; padding:18px; }
-      .walkthrough-grid { grid-template-columns:1fr; }
       .walkthrough-title { font-size:25px; }
-      .walkthrough-actions { flex-direction:column-reverse; }
       .walkthrough-btn { width:100%; }
     }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260511132935">
+  <link rel="stylesheet" href="/mobile.css?v=20260511133504">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
@@ -827,21 +823,20 @@
   <div id="walkthrough-modal" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
     <div class="walkthrough-panel">
       <div class="walkthrough-kicker">Quick start</div>
-      <div class="walkthrough-title" id="walkthrough-title">How AtomicBlast works</div>
-      <div class="walkthrough-copy">A short tour for finding music, playing albums, and shaping your library.</div>
-      <div class="walkthrough-grid">
-        <div class="walkthrough-step"><div><h3>Browse the home shelves</h3><p>Start on Music for featured albums, artists, and source-format shelves.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Use Artists and Albums</h3><p>The left library keeps browsing album-first instead of dumping every track.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Search from the top bar</h3><p>Search finds matching artists, albums, and tracks across the collection.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Play or shuffle quickly</h3><p>Open an album or artist, then use Play All or Shuffle to start listening.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Like what you want back</h3><p>Use the heart to save favorites into Liked Songs.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Build playlists</h3><p>Use the playlist button, plus menu, or context menu to save custom sets.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Control the queue</h3><p>The bottom player opens queue controls and the larger Now Playing view.</p></div></div>
-        <div class="walkthrough-step"><div><h3>Install on desktop</h3><p>Open Settings to install AtomicBlast on Windows 11 or Linux Mint.</p></div></div>
-      </div>
+      <div class="walkthrough-title" id="walkthrough-title">Welcome to AtomicBlast</div>
+      <div class="walkthrough-copy">Here is the simple version. You do not need to click these items.</div>
+      <ul class="walkthrough-list">
+        <li>Use the Music home screen to browse featured albums and artists.</li>
+        <li>Use Artists or Albums in the left menu to browse the full library.</li>
+        <li>Use the search box to find an artist, album, or song.</li>
+        <li>Open an album or artist and press Play All or Shuffle.</li>
+        <li>Use the heart button to save songs to Liked Songs.</li>
+        <li>Create playlists from the plus button or song menu.</li>
+        <li>Use the bottom player for queue and Now Playing controls.</li>
+        <li>Open Settings to install AtomicBlast on Windows 11 or Linux Mint.</li>
+      </ul>
       <div class="walkthrough-actions">
-        <button id="walkthrough-later" class="walkthrough-btn ghost" type="button">Later</button>
-        <button id="walkthrough-done" class="walkthrough-btn primary" type="button">Start listening</button>
+        <button id="walkthrough-done" class="walkthrough-btn primary" type="button">Got it, start listening</button>
       </div>
     </div>
   </div>
@@ -1022,7 +1017,6 @@
         setStatus('Signed out')
       })
       el('walkthrough-done')?.addEventListener('click', () => closeWalkthrough(true))
-      el('walkthrough-later')?.addEventListener('click', () => closeWalkthrough(false))
       el('walkthrough-modal')?.addEventListener('click', e => {
         if (e.target.id === 'walkthrough-modal') closeWalkthrough(false)
       })
