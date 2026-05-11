@@ -822,7 +822,7 @@
         <li>Use the heart button to save songs to Liked Songs.</li>
         <li>Create playlists from the plus button or song menu.</li>
         <li>Use the bottom player for queue and Now Playing controls.</li>
-        <li>Open Settings to install AtomicBlast on Windows 11 or Linux Mint.</li>
+        <li>Open Settings to install AtomicBlast on Windows 11 or Linux.</li>
       </ul>
       <div class="walkthrough-actions">
         <button id="walkthrough-done" class="walkthrough-btn primary" type="button">Got it, start listening</button>
@@ -3265,15 +3265,15 @@
             '<button class="install-btn" id="install-windows-btn" type="button">Install for Windows 11</button>' +
           '</div>' +
           '<div class="install-card">' +
-            '<div class="install-platform">Linux Mint</div>' +
-            '<div class="install-copy">Best with Chrome, Chromium, Brave, or Edge on Linux Mint.</div>' +
+            '<div class="install-platform">Linux</div>' +
+            '<div class="install-copy">Written for Linux Mint, and also works similarly on Ubuntu, Debian, Fedora, and Pop!_OS with a Chromium-based browser.</div>' +
             '<ol class="install-steps">' +
               '<li>Open AtomicBlast in a Chromium-based browser.</li>' +
               '<li>Click Install when the browser offers it.</li>' +
               '<li>If no prompt appears, use the browser menu and choose Install page as app or Create shortcut.</li>' +
-              '<li>Launch AtomicBlast from the Mint menu afterward.</li>' +
+              '<li>Launch AtomicBlast from your app menu afterward.</li>' +
             '</ol>' +
-            '<button class="install-btn" id="install-linux-btn" type="button">Install for Linux Mint</button>' +
+            '<button class="install-btn" id="install-linux-btn" type="button">Install for Linux</button>' +
           '</div>' +
         '</div>' +
         '<div class="install-note" id="install-note">If the install button does not open a prompt, use the menu instructions above. Firefox can still bookmark AtomicBlast, but desktop app install support is strongest in Chromium-based browsers.</div>' +
@@ -3288,7 +3288,7 @@
         btn.classList.toggle('secondary', !enabled)
         btn.textContent = id === 'install-windows-btn'
           ? (enabled ? 'Install for Windows 11' : 'Show Windows steps')
-          : (enabled ? 'Install for Linux Mint' : 'Show Linux Mint steps')
+          : (enabled ? 'Install for Linux' : 'Show Linux steps')
       })
     }
 
@@ -3354,7 +3354,7 @@
         setStatus('Library updated — ' + (musicLibrary.allTracks?.length || 0) + ' tracks')
       })
       el('install-windows-btn')?.addEventListener('click', () => requestDesktopInstall('Windows 11'))
-      el('install-linux-btn')?.addEventListener('click', () => requestDesktopInstall('Linux Mint'))
+      el('install-linux-btn')?.addEventListener('click', () => requestDesktopInstall('Linux'))
       updateInstallButtons()
     }
 
