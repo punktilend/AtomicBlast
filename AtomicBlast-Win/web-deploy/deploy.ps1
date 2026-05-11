@@ -106,9 +106,11 @@ scp "$pubDir\web\favicon.svg" "${server}:/opt/pulse-proxy/public/web/favicon.svg
 scp "$pubDir\web\favicon-32x32.png" "${server}:/opt/pulse-proxy/public/web/favicon-32x32.png"
 scp "$pubDir\web\favicon-16x16.png" "${server}:/opt/pulse-proxy/public/web/favicon-16x16.png"
 scp "$pubDir\web\apple-touch-icon.png" "${server}:/opt/pulse-proxy/public/web/apple-touch-icon.png"
-if (Test-Path "$pubDir\downloads\atomicblast-firefox.xpi") {
+if (Test-Path "$pubDir\downloads") {
   ssh $server "mkdir -p /opt/pulse-proxy/public/downloads"
-  scp "$pubDir\downloads\atomicblast-firefox.xpi" "${server}:/opt/pulse-proxy/public/downloads/atomicblast-firefox.xpi"
+  Get-ChildItem "$pubDir\downloads" -File | ForEach-Object {
+    scp $_.FullName "${server}:/opt/pulse-proxy/public/downloads/$($_.Name)"
+  }
 }
 scp "$winDir\assets\pulse-logo.svg" "${server}:/opt/pulse-proxy/public/assets/pulse-logo.svg"
 scp "$pubDir\assets\icon-192.png"  "${server}:/opt/pulse-proxy/public/assets/icon-192.png"

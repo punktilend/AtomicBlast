@@ -637,9 +637,11 @@
     .install-copy { color:#8b988d; font-size:12px; line-height:1.48; margin-bottom:12px; }
     .install-steps { margin:0 0 14px; padding-left:18px; color:#9aa69d; font-size:12px; line-height:1.5; }
     .install-steps li { margin:3px 0; }
-    .install-btn { border:0; border-radius:999px; padding:10px 14px; font-size:12px; font-weight:850; cursor:pointer; color:#041006; background:#4ade80; font-family:inherit; }
+    .install-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .install-btn { border:0; border-radius:999px; padding:10px 14px; font-size:12px; font-weight:850; cursor:pointer; color:#041006; background:#4ade80; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
     .install-btn.secondary { color:#d8e6dc; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
     .install-note { color:#526052; font-size:11px; line-height:1.45; margin-top:10px; }
+    .install-terminal { background:#081008; border:1px solid rgba(188,255,208,.10); border-radius:10px; color:#9bf2b8; font-size:11px; line-height:1.45; padding:10px; white-space:pre-wrap; user-select:text; margin-top:10px; overflow:auto; }
     @media (max-width: 720px) {
       .install-grid { grid-template-columns:1fr; }
     }
@@ -3260,9 +3262,12 @@
               '<li>Open AtomicBlast in Edge or Chrome.</li>' +
               '<li>Click Install when the browser offers it.</li>' +
               '<li>If no prompt appears, use the browser menu and choose Apps or Install this site as an app.</li>' +
-              '<li>Pin AtomicBlast to Start or the taskbar after it opens.</li>' +
+              '<li>Or download the helper script to create a desktop shortcut.</li>' +
             '</ol>' +
-            '<button class="install-btn" id="install-windows-btn" type="button">Install for Windows 11</button>' +
+            '<div class="install-actions">' +
+              '<button class="install-btn" id="install-windows-btn" type="button">Install for Windows 11</button>' +
+              '<a class="install-btn secondary" href="https://blast.atomicradius.app/downloads/install-atomicblast-windows.ps1" download>Download Windows</a>' +
+            '</div>' +
           '</div>' +
           '<div class="install-card">' +
             '<div class="install-platform">Linux</div>' +
@@ -3273,7 +3278,11 @@
               '<li>If no prompt appears, use the browser menu and choose Install page as app or Create shortcut.</li>' +
               '<li>Launch AtomicBlast from your app menu afterward.</li>' +
             '</ol>' +
-            '<button class="install-btn" id="install-linux-btn" type="button">Install for Linux</button>' +
+            '<div class="install-terminal">curl -fsSL https://blast.atomicradius.app/downloads/install-atomicblast-linux.sh | sh</div>' +
+            '<div class="install-actions">' +
+              '<button class="install-btn" id="install-linux-btn" type="button">Install for Linux</button>' +
+              '<a class="install-btn secondary" href="https://blast.atomicradius.app/downloads/install-atomicblast-linux.sh" download>Download Linux</a>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="install-note" id="install-note">If the install button does not open a prompt, use the menu instructions above. Firefox can still bookmark AtomicBlast, but desktop app install support is strongest in Chromium-based browsers.</div>' +
