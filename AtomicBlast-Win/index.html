@@ -613,6 +613,31 @@
     #account-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     #sign-out-btn { background:none; border:1px solid rgba(188,255,208,.14); color:#718071; border-radius:7px; padding:6px 9px; cursor:pointer; font-size:11px; font-weight:700; font-family:inherit; }
     #sign-out-btn:hover { color:#fff; border-color:rgba(74,222,128,.35); }
+
+    /* ===== WALKTHROUGH ===== */
+    #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.72); backdrop-filter:blur(16px); }
+    #walkthrough-modal.active { display:flex; }
+    .walkthrough-panel { width:min(760px,100%); max-height:min(760px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:24px; }
+    .walkthrough-kicker { color:#75f2a3; font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+    .walkthrough-title { color:#fff; font-size:30px; line-height:1.08; font-weight:850; letter-spacing:0; margin-bottom:8px; }
+    .walkthrough-copy { color:#9caa9f; font-size:14px; line-height:1.55; max-width:58em; margin-bottom:18px; }
+    .walkthrough-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; counter-reset:walkstep; }
+    .walkthrough-step { counter-increment:walkstep; display:grid; grid-template-columns:34px 1fr; gap:10px; align-items:start; padding:13px; border-radius:12px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.06); }
+    .walkthrough-step::before { content:counter(walkstep); width:28px; height:28px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#06100a; background:#4ade80; font-size:12px; font-weight:900; }
+    .walkthrough-step h3 { color:#f4fff5; font-size:13px; line-height:1.25; margin:0 0 4px; }
+    .walkthrough-step p { color:#879389; font-size:12px; line-height:1.42; margin:0; }
+    .walkthrough-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+    .walkthrough-btn { border:0; border-radius:999px; padding:11px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+    .walkthrough-btn.primary { background:#4ade80; color:#041006; }
+    .walkthrough-btn.ghost { background:rgba(255,255,255,.055); color:#d8e6dc; border:1px solid rgba(255,255,255,.08); }
+    @media (max-width: 680px) {
+      #walkthrough-modal { padding:14px; align-items:flex-end; }
+      .walkthrough-panel { max-height:calc(100vh - 28px); border-radius:18px; padding:18px; }
+      .walkthrough-grid { grid-template-columns:1fr; }
+      .walkthrough-title { font-size:25px; }
+      .walkthrough-actions { flex-direction:column-reverse; }
+      .walkthrough-btn { width:100%; }
+    }
   </style>
   <link rel="stylesheet" href="../AtomicBlast-Server/public/mobile.css">
 </head>
@@ -773,12 +798,35 @@
 
   <div class="status-bar"><span><span class="status-dot"></span></span><span id="status-text">Loading...</span><span id="gp-indicator"></span></div>
 
+  <div id="walkthrough-modal" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
+    <div class="walkthrough-panel">
+      <div class="walkthrough-kicker">Quick start</div>
+      <div class="walkthrough-title" id="walkthrough-title">How AtomicBlast works</div>
+      <div class="walkthrough-copy">A short tour for finding music, playing albums, and shaping your library.</div>
+      <div class="walkthrough-grid">
+        <div class="walkthrough-step"><div><h3>Browse the home shelves</h3><p>Start on Music for featured albums, artists, and source-format shelves.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Use Artists and Albums</h3><p>The left library keeps browsing album-first instead of dumping every track.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Search from the top bar</h3><p>Search finds matching artists, albums, and tracks across the collection.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Play or shuffle quickly</h3><p>Open an album or artist, then use Play All or Shuffle to start listening.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Like what you want back</h3><p>Use the heart to save favorites into Liked Songs.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Build playlists</h3><p>Use the playlist button, plus menu, or context menu to save custom sets.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Control the queue</h3><p>The bottom player opens queue controls and the larger Now Playing view.</p></div></div>
+        <div class="walkthrough-step"><div><h3>Adjust in Settings</h3><p>Manage sources and account options from the Settings button.</p></div></div>
+      </div>
+      <div class="walkthrough-actions">
+        <button id="walkthrough-later" class="walkthrough-btn ghost" type="button">Later</button>
+        <button id="walkthrough-done" class="walkthrough-btn primary" type="button">Start listening</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const { ipcRenderer } = require('electron')
 
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'https://blast.atomicradius.app'
     const AUTH_STORAGE_KEY = 'atomicblast.user'
+    const WALKTHROUGH_STORAGE_PREFIX = 'atomicblast.walkthrough.seen.'
     const DEFAULT_AUTH_EMAIL = 'adammharvey+AtomicBlast@gmail.com'
 
     let currentView = 'media'
@@ -833,6 +881,28 @@
         el('account-label').textContent = user ? (user.name || user.email || 'AtomicBlast') : ''
         el('account-avatar').textContent = userInitial(user)
       }
+    }
+    function walkthroughKey(user) {
+      const id = user?.id || user?.email || 'default'
+      return WALKTHROUGH_STORAGE_PREFIX + id
+    }
+    function hasSeenWalkthrough(user) {
+      return localStorage.getItem(walkthroughKey(user)) === '1'
+    }
+    function markWalkthroughSeen(user) {
+      localStorage.setItem(walkthroughKey(user), '1')
+    }
+    function showWalkthrough(force) {
+      const user = currentUser || loadStoredUser()
+      if (!user) return
+      if (!force && hasSeenWalkthrough(user)) return
+      const modal = el('walkthrough-modal')
+      if (modal) modal.classList.add('active')
+    }
+    function closeWalkthrough(markSeen) {
+      const user = currentUser || loadStoredUser()
+      if (markSeen && user) markWalkthroughSeen(user)
+      el('walkthrough-modal')?.classList.remove('active')
     }
     async function fetchAuthConfig() {
       try {
@@ -923,6 +993,11 @@
       el('sign-out-btn')?.addEventListener('click', () => {
         clearStoredUser()
         setStatus('Signed out')
+      })
+      el('walkthrough-done')?.addEventListener('click', () => closeWalkthrough(true))
+      el('walkthrough-later')?.addEventListener('click', () => closeWalkthrough(false))
+      el('walkthrough-modal')?.addEventListener('click', e => {
+        if (e.target.id === 'walkthrough-modal') closeWalkthrough(false)
       })
     }
 
@@ -3387,6 +3462,7 @@
       } catch (e) { console.warn('Could not load server favorites:', e) }
       await renderView()
       setStatus('Ready')
+      requestAnimationFrame(() => showWalkthrough(false))
     }
 
     initPlayerBar()
