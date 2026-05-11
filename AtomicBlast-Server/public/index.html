@@ -661,7 +661,7 @@
       .walkthrough-btn { width:100%; }
     }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260511133830">
+  <link rel="stylesheet" href="/mobile.css?v=20260511134226">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
@@ -3291,6 +3291,14 @@
       '</div>'
     }
 
+    function renderHelpSection() {
+      return '<div style="margin-bottom:22px;background:#0f1a0f;border:1px solid #1a2e1a;border-radius:14px;padding:16px">' +
+        '<h3 style="color:#fff;margin:0 0 8px">Help</h3>' +
+        '<p style="color:#777;font-size:12px;line-height:1.5;margin:0 0 12px">Open the quick-start walkthrough again anytime.</p>' +
+        '<button class="back-btn" id="show-walkthrough-btn" type="button">Show Walkthrough</button>' +
+      '</div>'
+    }
+
     function updateInstallButtons() {
       const enabled = !!deferredInstallPrompt
       ;['install-windows-btn', 'install-linux-btn'].forEach(id => {
@@ -3331,6 +3339,7 @@
       el('main-content').innerHTML =
         '<div style="max-width:600px">' +
         renderInstallSection() +
+        renderHelpSection() +
         '<h3 style="color:#fff;margin-bottom:16px">Media Folders</h3>' +
         '<div style="background:#0f1a0f;border-radius:8px;padding:16px;border:1px solid #1a2e1a">' +
         '<div style="margin-bottom:12px"><label style="font-size:12px;color:#555;display:block;margin-bottom:4px">Music Folders <span style="color:#333">(one per line)</span></label>' +
@@ -3366,6 +3375,7 @@
       })
       el('install-windows-btn')?.addEventListener('click', () => requestDesktopInstall('Windows 11'))
       el('install-linux-btn')?.addEventListener('click', () => requestDesktopInstall('Linux'))
+      el('show-walkthrough-btn')?.addEventListener('click', () => showWalkthrough(true))
       updateInstallButtons()
     }
 
