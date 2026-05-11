@@ -953,7 +953,8 @@
     }
     function applyItunesArt(artEl, url, initial) {
       if (!url || !artEl || !artEl.querySelector('.lib-card-initial')) return
-      artEl.innerHTML = '<img src="' + url + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+      artEl.innerHTML = cardImageHtml(url, initial)
+      initImageFallbacks(artEl)
     }
 
     // ── Media key IPC ──────────────────────────────────────────────────────
@@ -1245,7 +1246,7 @@
           const fmt = (t.format || t.ext?.replace('.','') || '').toUpperCase()
           const fmtCls = fmt === 'FLAC' ? 'fav-fmt' : 'fav-fmt mp3'
           const artHtml = t.coverPath
-            ? '<img src="' + t.coverPath + '" onerror="this.parentElement.innerHTML=\'♪\'">'
+            ? '<img src="' + esc(t.coverPath) + '" data-fallback-initial="♪">'
             : '♪'
           return '<div class="fav-row" data-fav-i="' + i + '">' +
             '<div class="fav-art">' + artHtml + '</div>' +
@@ -1257,6 +1258,7 @@
             '<button class="fav-heart" data-fav-i="' + i + '" title="Unlike">♥</button>' +
           '</div>'
         }).join('')
+        initImageFallbacks(listEl)
 
         listEl.querySelectorAll('.fav-row').forEach(row => {
           const i = parseInt(row.dataset.favI)
@@ -1308,7 +1310,8 @@
         savePlaylists()
         if (el('music-tree')) renderMusicTree(musicLibrary)
         setStatus('Deleted playlist: ' + pl.name)
-        showAllTracks()
+        if (b2Lib) showB2Artists(b2Lib, b2DlUrl, b2DlToken)
+        else showAllTracks()
       })
       if (plId !== 'liked') wirePlaylistTrackRows(c, tracks, plId)
       else wireTrackRows(c, tracks)
@@ -1443,14 +1446,12 @@
 
     function renderMusicTree(lib) {
       const tree = el('music-tree'); if (!tree) return
-      const b2Count = b2Lib ? b2Lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0) : ''
       const albCount = b2Lib ? b2Lib.artists.reduce((s, a) => s + a.albums.length, 0) : ''
       const artCount = b2Lib ? b2Lib.artists.length : ''
 
       let html = '<div class="music-tree-section">Library</div>'
       html += '<div class="music-tree-item" data-tree="b2-artists">🎤 Artists' + (artCount !== '' ? ' <span style="color:#2a3e2a">(' + artCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-albums">💿 Albums' + (albCount !== '' ? ' <span style="color:#2a3e2a">(' + albCount + ')</span>' : '') + '</div>'
-      html += '<div class="music-tree-item" data-tree="b2-all">♪ All Tracks' + (b2Count !== '' ? ' <span style="color:#2a3e2a">(' + b2Count + ')</span>' : '') + '</div>'
 
       html += '<div class="music-tree-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Playlists <span id="tree-new-pl" style="cursor:pointer;color:#4ade80;font-size:15px;line-height:1;padding:2px 4px" title="New Playlist">+</span></div>'
       html += '<div class="music-tree-item playlist-liked" data-tree="playlist" data-pl-id="liked">♥ Liked Songs</div>'
@@ -1470,8 +1471,6 @@
             await ensureB2Lib(); showB2Artists(b2Lib, b2DlUrl, b2DlToken); renderMusicTree(musicLibrary)
           } else if (t === 'b2-albums') {
             await ensureB2Lib(); showB2AllAlbums(); renderMusicTree(musicLibrary)
-          } else if (t === 'b2-all') {
-            await ensureB2Lib(); showB2AllTracks(); renderMusicTree(musicLibrary)
           } else if (t === 'playlist') {
             showPlaylist(item.dataset.plId)
           }
@@ -1500,8 +1499,8 @@
           const initial = (album.name || '?').charAt(0).toUpperCase()
           const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+            ? cardImageHtml(coverUrl, initial)
+            : cardInitialHtml(initial)
           html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
             '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
@@ -1510,6 +1509,7 @@
       }
       html += '</div>'
       inner.innerHTML = html
+      initImageFallbacks(inner)
       inner.querySelectorAll('[data-b2-album]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
@@ -1521,39 +1521,6 @@
           fetchItunesArt(card.dataset.b2Artist, card.dataset.b2Album)
             .then(url => applyItunesArt(artEl, url, card.dataset.b2Album.charAt(0).toUpperCase()))
         }
-      })
-    }
-
-    function showB2AllTracks() {
-      const inner = el('music-content-inner'); if (!inner || !b2Lib) return
-      const bucket = b2Lib.bucketName || 'SpAtomify'
-      const allTracks = b2Lib.artists.flatMap(artist =>
-        artist.albums.flatMap(album => album.tracks.map(t => b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket)))
-      )
-      let html = '<div class="lib-header" style="padding:16px 24px 12px;min-height:auto">' +
-        '<div class="lib-header-art" style="width:60px;height:60px;font-size:28px;color:#2a3e2a">♪</div>' +
-        '<div class="lib-header-info">' +
-          '<h2>All Tracks</h2>' +
-          '<div class="lib-sub">' + allTracks.length + ' tracks</div>' +
-          '<button class="lib-play-btn" id="b2-all-play" style="margin-top:8px">▶ Shuffle All</button>' +
-        '</div></div>'
-      html += '<div class="lib-track-list">'
-      allTracks.forEach((t, i) => {
-        html += '<div class="lib-track-row" style="grid-template-columns:1fr 160px 60px" data-b2-ti="' + i + '">' +
-          '<span class="lib-track-title">' + esc(t.title) + '<span style="color:#3a4e3a;font-size:11px;margin-left:8px">' + esc(t.artist) + '</span></span>' +
-          '<span class="lib-track-dur" style="color:#3a4e3a;font-size:11px;text-align:right">' + esc(t.album) + '</span>' +
-          '<span style="color:#2a3e2a;font-size:10px;text-transform:uppercase;text-align:right">' + (t.ext || '').replace('.','') + '</span>' +
-        '</div>'
-      })
-      html += '</div>'
-      inner.innerHTML = html
-      inner.querySelector('#b2-all-play')?.addEventListener('click', () => {
-        const shuffled = [...allTracks]
-        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]] }
-        setQueue(shuffled, 0)
-      })
-      inner.querySelectorAll('.lib-track-row[data-b2-ti]').forEach(row => {
-        row.addEventListener('click', () => { setQueue(allTracks, parseInt(row.dataset.b2Ti)) })
       })
     }
 
@@ -1571,8 +1538,8 @@
         const meta = getPopularityMeta(artist.name)
         const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
         const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+          ? cardImageHtml(coverUrl, initial)
+          : cardInitialHtml(initial)
         html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
           '<div class="lib-card-art">' + artHtml + '</div>' +
           '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
@@ -1645,8 +1612,8 @@
           const initial = (artist.name || '?').charAt(0).toUpperCase()
           const coverUrl = b2CoverUrl(artist.albums.find(a => a.coverPath)?.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+            ? cardImageHtml(coverUrl, initial)
+            : cardInitialHtml(initial)
           html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
             '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
@@ -1662,8 +1629,8 @@
           const initial = (album.name || '?').charAt(0).toUpperCase()
           const coverUrl = b2CoverUrl(album.coverPath, b2DlUrl, b2DlToken, bucket)
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+            ? cardImageHtml(coverUrl, initial)
+            : cardInitialHtml(initial)
           html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
             '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
@@ -1685,6 +1652,7 @@
       }
 
       inner.innerHTML = html
+      initImageFallbacks(inner)
 
       inner.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
@@ -1788,7 +1756,7 @@
     function showAlbum(album) {
       const c = el('music-content-inner'); if (!c) return
       const artHtml = album.coverPath
-        ? '<img class="music-album-art" src="' + album.coverPath + '" onerror="this.outerHTML=\'<div class=\\\"music-album-art placeholder\\\">♪</div>\'">'
+        ? '<img class="music-album-art" src="' + esc(album.coverPath) + '" data-album-art-fallback="1">'
         : '<div class="music-album-art placeholder">♪</div>'
       c.innerHTML =
         '<div class="music-album-header">' + artHtml +
@@ -1806,6 +1774,7 @@
           '<div class="music-track-header"><span>#</span><span>Title</span><span></span><span>Duration</span><span>Format</span></div>' +
           album.tracks.map((t, i) => trackRowHtml(t, i)).join('') +
         '</div>'
+      initImageFallbacks(c)
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(album.tracks, 0))
       c.querySelector('#album-shuffle-btn')?.addEventListener('click', () => { const shuffled = shuffleTracks(album.tracks); if (shuffled.length) setQueue(shuffled, 0) })
       c.querySelector('[data-radio]')?.addEventListener('click', e => doArtistRadio(e.target.dataset.radio))
@@ -1817,7 +1786,7 @@
       const coverPath = artist.albums[0]?.coverPath
       const c = el('music-content-inner'); if (!c) return
       const artHtml = coverPath
-        ? '<img class="music-album-art" src="' + coverPath + '" onerror="this.outerHTML=\'<div class=\\\"music-album-art placeholder\\\">♪</div>\'">'
+        ? '<img class="music-album-art" src="' + esc(coverPath) + '" data-album-art-fallback="1">'
         : '<div class="music-album-art placeholder">♪</div>'
       c.innerHTML =
         '<div class="music-album-header">' + artHtml +
@@ -1832,6 +1801,7 @@
           '<div class="music-track-header"><span>#</span><span>Title / Album</span><span></span><span>Duration</span><span>Format</span></div>' +
           allTracks.map((t, i) => trackRowHtml(t, i, true)).join('') +
         '</div>'
+      initImageFallbacks(c)
       c.querySelector('.play-all-btn').addEventListener('click', () => setQueue(allTracks, 0))
       c.querySelector('[data-radio]')?.addEventListener('click', e => doArtistRadio(e.target.dataset.radio))
       wireTrackRows(c, allTracks)
@@ -2118,7 +2088,10 @@
       el('p-title').textContent  = track.title  || track.path.split(/[\\/]/).pop()
       el('p-artist').textContent = track.artist || (track.album ? track.album : 'Unknown')
       const art = el('player-art')
-      if (track.coverPath) art.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.textContent=\'♪\'">'
+      if (track.coverPath) {
+        art.innerHTML = '<img src="' + esc(track.coverPath) + '" data-player-art-fallback="1">'
+        initImageFallbacks(art)
+      }
       else art.innerHTML = track.isVideo ? '🎬' : '♪'
       applyPlayerBackdrop(track.coverPath)
       syncNowPlaying(track)
@@ -2152,7 +2125,8 @@
       applyPlayerBackdrop(track.coverPath)
       if (track.coverPath) {
         inner.className = ''
-        inner.innerHTML = '<img src="' + track.coverPath + '" onerror="this.parentElement.className=\'np-art-ph\';this.parentElement.textContent=\'♪\'">'
+        inner.innerHTML = '<img src="' + esc(track.coverPath) + '" data-player-art-fallback="1">'
+        initImageFallbacks(inner)
       } else {
         inner.className = 'np-art-ph'
         inner.textContent = '♪'
@@ -2233,6 +2207,49 @@
       return dlUrl + '/file/' + (bucketName || 'SpAtomify') + '/' + encoded + '?Authorization=' + dlToken
     }
 
+    function cardInitialHtml(initial, style) {
+      return '<span class="lib-card-initial"' + (style ? ' style="' + esc(style) + '"' : '') + '>' + esc(initial) + '</span>'
+    }
+
+    function cardImageHtml(url, initial) {
+      return url
+        ? '<img src="' + esc(url) + '" data-fallback-initial="' + esc(initial) + '">'
+        : cardInitialHtml(initial)
+    }
+
+    function initImageFallbacks(root = document) {
+      root.querySelectorAll('img[data-fallback-initial]').forEach(img => {
+        if (img.dataset.fallbackBound) return
+        img.dataset.fallbackBound = '1'
+        img.addEventListener('error', () => {
+          const span = document.createElement('span')
+          span.className = 'lib-card-initial'
+          span.textContent = img.dataset.fallbackInitial || '?'
+          img.replaceWith(span)
+        }, { once: true })
+      })
+      root.querySelectorAll('img[data-album-art-fallback]').forEach(img => {
+        if (img.dataset.fallbackBound) return
+        img.dataset.fallbackBound = '1'
+        img.addEventListener('error', () => {
+          const ph = document.createElement('div')
+          ph.className = 'music-album-art placeholder'
+          ph.textContent = '♪'
+          img.replaceWith(ph)
+        }, { once: true })
+      })
+      root.querySelectorAll('img[data-player-art-fallback]').forEach(img => {
+        if (img.dataset.fallbackBound) return
+        img.dataset.fallbackBound = '1'
+        img.addEventListener('error', () => {
+          const parent = img.parentElement
+          if (!parent) return
+          parent.textContent = '♪'
+          if (parent.id === 'np-art-inner') parent.className = 'np-art-ph'
+        }, { once: true })
+      })
+    }
+
     function getPopularityMeta(artistName) {
       return b2Popularity?.artists?.find(a => a.name === artistName) || null
     }
@@ -2261,6 +2278,7 @@
     }
 
     function bindB2Cards(container, lib, dlUrl, dlToken) {
+      initImageFallbacks(container)
       container.querySelectorAll('[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = lib.artists.find(a => a.name === card.dataset.b2Artist)
@@ -2298,7 +2316,6 @@
       const totalTracks = lib.artists.reduce((s, a) => s + a.albums.reduce((ss, al) => ss + al.tracks.length, 0), 0)
       const totalAlbums = lib.artists.reduce((s, a) => s + a.albums.length, 0)
       const rankedArtists = rankB2Artists(lib, b2Popularity)
-      const topArtists = rankedArtists.slice(0, 10)
       const featuredArtists = rankedArtists.slice(0, 8)
       const albumPool = lib.artists.flatMap(artist => artist.albums.map(album => ({ artist, album })))
       const featuredAlbums = albumPool
@@ -2319,7 +2336,7 @@
             '<div class="b2-hero-actions">' +
               '<button id="b2-shuffle-all-btn" class="b2-primary-btn">&#x21C4; Shuffle All</button>' +
               '<button id="b2-view-albums-btn" class="b2-ghost-btn">Browse Albums</button>' +
-              '<button id="b2-view-tracks-btn" class="b2-ghost-btn">All Tracks</button>' +
+              '<button id="b2-view-artists-btn" class="b2-ghost-btn">Explore Artists</button>' +
             '</div>' +
           '</div>' +
           '<div class="b2-hero-stack">'
@@ -2349,6 +2366,21 @@
         html += renderSourceFormatWall(source, sourceItems, dlUrl, dlToken, bucket)
       }
 
+      if (featuredAlbums.length) {
+        html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Album shelf</div><h2>Featured Albums</h2></div><button id="b2-all-albums-top" class="b2-pill-btn">See All</button></div>' +
+          '<div class="b2-shelf">'
+        for (const { artist, album } of featuredAlbums) {
+          const initial = (album.name || '?').charAt(0).toUpperCase()
+          const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
+          const artHtml = coverUrl ? cardImageHtml(coverUrl, initial) : cardInitialHtml(initial)
+          html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
+            '<div class="lib-card-art">' + artHtml + '</div>' +
+            '<div class="lib-card-info"><div class="lib-card-name">' + esc(album.name) + '</div>' +
+            '<div class="lib-card-sub">' + esc(artist.name) + '</div></div></div>'
+        }
+        html += '</div>'
+      }
+
       if (featuredArtists.length) {
         html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Featured shelf</div><h2>Featured Artists</h2></div><button id="b2-all-artists-featured" class="b2-pill-btn">See All</button></div>' +
           '<div class="b2-shelf">'
@@ -2360,33 +2392,14 @@
           const meta = getPopularityMeta(artist.name)
           const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
           const artHtml = coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+            ? cardImageHtml(coverUrl, initial)
+            : cardInitialHtml(initial)
           html += '<div class="lib-card b2-home-card" data-b2-artist="' + esc(artist.name) + '">' +
             '<div class="lib-card-art">' + artHtml + '</div>' +
             '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
             '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks' + stats + '</div></div></div>'
         }
         html += '</div>'
-      }
-
-      html += '<div class="b2-section-title"><div><div class="b2-section-kicker">Artist wall</div><h2>Artists</h2></div><button id="b2-all-artists-top" class="b2-pill-btn">' + lib.artists.length + ' total</button></div>'
-      html += '<div class="lib-grid">'
-      for (const artist of topArtists) {
-        const initial = (artist.name || '?').charAt(0).toUpperCase()
-        const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
-        const coverUrl = b2CoverUrl(firstCover, dlUrl, dlToken, bucket)
-        const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
-        const meta = getPopularityMeta(artist.name)
-        const stats = meta?.listeners ? ' · ' + esc(meta.listeners) + ' listeners' : ''
-        const artHtml = coverUrl
-          ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-          : '<span class="lib-card-initial">' + esc(initial) + '</span>'
-        html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
-          '<div class="lib-card-art">' + artHtml + '</div>' +
-          '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
-          '<div class="lib-card-sub">' + artist.albums.length + ' album' + (artist.albums.length !== 1 ? 's' : '') + ' · ' + totalTracks + ' tracks' + stats + '</div></div>' +
-          '</div>'
       }
       html += '</div></div>'
       inner.innerHTML = html
@@ -2397,7 +2410,7 @@
         setQueue(all, 0)
       })
       el('b2-view-albums-btn')?.addEventListener('click', () => showB2AllAlbums())
-      el('b2-view-tracks-btn')?.addEventListener('click', () => showB2AllTracks())
+      el('b2-view-artists-btn')?.addEventListener('click', () => showB2AllArtists())
       el('b2-all-albums-top')?.addEventListener('click', () => showB2AllAlbums())
       el('b2-all-artists-top')?.addEventListener('click', () => showB2AllArtists())
       el('b2-all-artists-featured')?.addEventListener('click', () => showB2AllArtists())
@@ -2453,11 +2466,11 @@
           : ''
         const artHtml = source.kind === 'cassette'
           ? (coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.classList.add(\'cassette-label-name-visible\')">' + cassetteName
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>' + cassetteName)
+            ? '<img src="' + esc(coverUrl) + '" data-cassette-fallback="1">' + cassetteName
+            : cardInitialHtml(initial) + cassetteName)
           : (coverUrl
-            ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=lib-card-initial>' + esc(initial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(initial) + '</span>')
+            ? cardImageHtml(coverUrl, initial)
+            : cardInitialHtml(initial))
         html += '<div class="lib-card b2-edition-card edition-' + source.kind + '" data-b2-artist="' + esc(artist.name) + '" data-b2-album="' + esc(album.name) + '">' +
           '<div class="b2-edition-badge">' + esc(source.badge) + '</div>' +
           '<div class="lib-card-art b2-edition-art">' + artHtml + '</div>' +
@@ -2561,8 +2574,8 @@
       const totalTracks = artist.albums.reduce((s, a) => s + a.tracks.length, 0)
 
       const artHtml = coverUrl
-        ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-        : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        ? cardImageHtml(coverUrl, initial)
+        : cardInitialHtml(initial)
 
       let html = '<div class="lib-breadcrumb">' +
         '<span class="crumb" id="b2-crumb-root">Music</span>' +
@@ -2605,18 +2618,18 @@
         let artHtml
         if (albums.length > 1) {
           const backImg = backUrl
-            ? '<img src="' + backUrl + '">'
-            : '<span class="lib-card-initial" style="font-size:32px">' + esc(albInitial) + '</span>'
+            ? cardImageHtml(backUrl, albInitial)
+            : cardInitialHtml(albInitial, 'font-size:32px')
           const frontImg = frontUrl
-            ? '<img src="' + frontUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(albInitial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(albInitial) + '</span>'
+            ? cardImageHtml(frontUrl, albInitial)
+            : cardInitialHtml(albInitial)
           artHtml = '<div class="stacked-back">' + backImg + '</div>' +
                     '<div class="stacked-front">' + frontImg + '</div>' +
                     '<div class="stacked-badge">' + albums.length + '</div>'
         } else {
           artHtml = frontUrl
-            ? '<img src="' + frontUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(albInitial) + '</span>\'">'
-            : '<span class="lib-card-initial">' + esc(albInitial) + '</span>'
+            ? cardImageHtml(frontUrl, albInitial)
+            : cardInitialHtml(albInitial)
         }
 
         const artClass = 'lib-card-art' + (albums.length > 1 ? ' stacked-art' : '')
@@ -2656,8 +2669,10 @@
           const meta = await ipcRenderer.invoke('fetch-artist-meta', { artistName: artist.name })
           if (!meta) return
           // Image fallback
-          if (!itunesUrl && meta.image && headerArtEl?.querySelector('.lib-card-initial'))
-            headerArtEl.innerHTML = '<img src="' + meta.image + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          if (!itunesUrl && meta.image && headerArtEl?.querySelector('.lib-card-initial')) {
+            headerArtEl.innerHTML = cardImageHtml(meta.image, initial)
+            initImageFallbacks(headerArtEl)
+          }
           // Bio
           if (meta.bio && bioEl) {
             const links = [
@@ -2716,8 +2731,10 @@
             if (url) { applyItunesArt(artEl, url, albIni); return }
             try {
               const meta = await ipcRenderer.invoke('fetch-album-meta', { artistName: artist.name, albumName: albName })
-              if (meta?.coverArt && artEl.querySelector('.lib-card-initial'))
-                artEl.innerHTML = '<img src="' + meta.coverArt + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(albIni) + '</span>\'">'
+              if (meta?.coverArt && artEl.querySelector('.lib-card-initial')) {
+                artEl.innerHTML = cardImageHtml(meta.coverArt, albIni)
+                initImageFallbacks(artEl)
+              }
             } catch(e) {}
           })
         }
@@ -2732,8 +2749,8 @@
       const initial = groupTitle.charAt(0).toUpperCase()
       const coverUrl = b2CoverUrl(primary.coverPath, dlUrl, dlToken, bucket)
       const artHtml = coverUrl
-        ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-        : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        ? cardImageHtml(coverUrl, initial)
+        : cardInitialHtml(initial)
 
       let html = '<div class="lib-breadcrumb">' +
         '<span class="crumb" id="b2-crumb-root">Music</span>' +
@@ -2763,13 +2780,14 @@
 
       const allQueued = []
       const sectionsEl = inner.querySelector('#b2-group-sections')
+      initImageFallbacks(inner)
 
       for (const album of sorted) {
         const albCoverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
         const albInitial = (album.name || '?').charAt(0).toUpperCase()
         const artImg = albCoverUrl
-          ? '<img src="' + albCoverUrl + '">'
-          : '<span class="lib-card-initial" style="font-size:24px">' + esc(albInitial) + '</span>'
+          ? cardImageHtml(albCoverUrl, albInitial)
+          : cardInitialHtml(albInitial, 'font-size:24px')
 
         let queuedTracks = album.tracks.map(t => b2TrackObj(t, artist.name, album, dlUrl, dlToken, bucket))
         let isCue = false
@@ -2832,6 +2850,7 @@
         sHtml += '</div>'
         section.innerHTML = sHtml
         sectionsEl.appendChild(section)
+        initImageFallbacks(section)
       }
 
       // Wire up play buttons and track rows after all sections rendered
@@ -2873,8 +2892,8 @@
       const coverUrl = b2CoverUrl(album.coverPath, dlUrl, dlToken, bucket)
 
       const artHtml = coverUrl
-        ? '<img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
-        : '<span class="lib-card-initial">' + esc(initial) + '</span>'
+        ? cardImageHtml(coverUrl, initial)
+        : cardInitialHtml(initial)
 
       let html = '<div class="lib-breadcrumb">' +
         '<span class="crumb" id="b2-crumb-root">Music</span>' +
@@ -2897,6 +2916,7 @@
       html += '<div style="color:#2a3e2a;padding:12px;font-size:11px">' + (album.cuePath ? 'Loading CUE sheet…' : 'Loading tracks…') + '</div>'
       html += '</div>'
       inner.innerHTML = html
+      initImageFallbacks(inner)
 
       inner.querySelector('#b2-crumb-root')?.addEventListener('click', () => showB2Artists(lib, dlUrl, dlToken))
       inner.querySelector('#b2-crumb-artist')?.addEventListener('click', () => showB2Artist(artist, lib, dlUrl, dlToken))
@@ -2914,8 +2934,10 @@
           }
           const meta = await ipcRenderer.invoke('fetch-album-meta', { artistName: artist.name, albumName: album.name })
           if (!meta) return
-          if (!itunesUrl && meta.coverArt && albumArtEl?.querySelector('.lib-card-initial'))
-            albumArtEl.innerHTML = '<img src="' + meta.coverArt + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=\\\"lib-card-initial\\\">' + esc(initial) + '</span>\'">'
+          if (!itunesUrl && meta.coverArt && albumArtEl?.querySelector('.lib-card-initial')) {
+            albumArtEl.innerHTML = cardImageHtml(meta.coverArt, initial)
+            initImageFallbacks(albumArtEl)
+          }
           if (meta.year && subEl && !subEl.textContent.includes(meta.year))
             subEl.textContent = artist.name + ' · ' + meta.year
           if (meta.wiki && wikiEl)
