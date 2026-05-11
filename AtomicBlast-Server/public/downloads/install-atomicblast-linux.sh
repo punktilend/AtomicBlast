@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 set -eu
 
+# AtomicBlast launcher helper.
+# Scope: no sudo, no package installs, no credential access. It only writes a
+# desktop launcher in the current user's application menu.
+
 APP_NAME="AtomicBlast"
 APP_URL="https://blast.atomicradius.app"
 DESKTOP_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/applications"

@@ -1,5 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
+# AtomicBlast launcher helper.
+# Scope: no admin rights, no package installs, no credential access. It only
+# creates a desktop shortcut for the current user.
+
 $appName = 'AtomicBlast'
 $appUrl = 'https://blast.atomicradius.app'
 $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) "$appName.lnk"
