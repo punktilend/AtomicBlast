@@ -5,7 +5,7 @@ const B2_KEY_ID  = '0055a9c537f296d0000000014'
 const B2_APP_KEY = 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc'
 const B2_BUCKET  = 'SpAtomify'
 const B2_PREFIX  = 'Music/'
-const PROXY_URL  = 'http://23.95.216.131:3000'
+const PROXY_URL  = 'https://blast.atomicradius.app'
 
 const AUDIO_EXTS   = new Set(['mp3','flac','aac','ogg','wav','m4a','opus','wma'])
 const ART_FOLDERS  = new Set(['artwork','scans','covers','images','art','booklet','extras'])
@@ -284,7 +284,7 @@ async function fetchFileText(filePath) {
 }
 
 // ── Favorites API ─────────────────────────────────────────────────────────────
-const PROXY = 'http://23.95.216.131:3000'
+const PROXY = 'https://blast.atomicradius.app'
 
 async function getFavorites() {
   const res = await fetch(`${PROXY}/favorites`)

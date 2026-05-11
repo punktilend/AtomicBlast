@@ -147,6 +147,9 @@ const browseList    = $('browse-list')
 const favToggle     = $('fav-toggle')
 const favBody       = $('fav-body')
 const favList       = $('fav-list')
+const openWebAppBtn = $('open-web-app')
+const quickStartToggle = $('quick-start-toggle')
+const quickStartPanel = $('quick-start')
 
 // ── Local state ───────────────────────────────────────────────────────────────
 let state      = null   // latest state from background
@@ -163,6 +166,15 @@ let loadingBrowse = false
 let cueTrackCache = null
 
 const ART_SKIP = new Set(['artwork','scans','covers','images','art','booklet','extras'])
+
+// ── Web app / help ───────────────────────────────────────────────────────────
+openWebAppBtn?.addEventListener('click', () => {
+  browser.tabs.create({ url: 'https://blast.atomicradius.app' })
+})
+
+quickStartToggle?.addEventListener('click', () => {
+  quickStartPanel?.classList.toggle('open')
+})
 
 // ── Metadata aggregator ────────────────────────────────────────────────────────
 const LASTFM_KEY      = 'd67dea9be32d3f2510ef5cde2db140fb'

@@ -6,6 +6,7 @@
   "permissions": [
     "https://api.backblazeb2.com/*",
     "https://*.backblazeb2.com/*",
+    "https://blast.atomicradius.app/*",
     "http://23.95.216.131:3000/*",
     "https://ws.audioscrobbler.com/*",
     "https://en.wikipedia.org/*",
