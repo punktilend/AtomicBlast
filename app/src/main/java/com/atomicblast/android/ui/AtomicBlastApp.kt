@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.atomicblast.android.ui.components.NowPlayingBar
 import com.atomicblast.android.ui.screens.AlbumsScreen
+import com.atomicblast.android.ui.screens.AuthScreen
 import com.atomicblast.android.ui.screens.CloudScreen
 import com.atomicblast.android.ui.screens.DashboardScreen
 import com.atomicblast.android.ui.screens.FavoritesScreen
@@ -60,11 +61,15 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun AtomicBlastApp() {
     val vm: PlayerViewModel = viewModel()
     val isDark by vm.isDarkTheme.collectAsState()
+    val account by vm.account.collectAsState()
     val colors = if (isDark) DarkAtomicBlastColors else LightAtomicBlastColors
 
     CompositionLocalProvider(LocalAtomicBlastColors provides colors) {
         AtomicBlastTheme(isDark = isDark) {
-            val navController = rememberNavController()
+            if (account == null) {
+                AuthScreen(vm)
+            } else {
+                val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
             val isNowPlayingRoute = currentRoute == "nowplaying"
@@ -162,6 +167,7 @@ fun AtomicBlastApp() {
                         }
                     }
                 }
+            }
             }
         }
     }

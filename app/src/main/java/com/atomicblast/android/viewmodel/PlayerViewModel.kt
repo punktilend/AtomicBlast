@@ -12,8 +12,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import com.atomicblast.android.data.AccountRepository
 import com.atomicblast.android.data.AlbumMeta
 import com.atomicblast.android.data.AtomicImportRepository
+import com.atomicblast.android.data.AtomicBlastAccount
 import com.atomicblast.android.data.ArtistMeta
 import com.atomicblast.android.data.B2Config
 import com.atomicblast.android.data.B2Repository
@@ -36,6 +38,7 @@ import okhttp3.OkHttpClient
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val httpClient = OkHttpClient()
+    private val accountRepo = AccountRepository(client = httpClient)
     val b2 = B2Repository(B2Config(), httpClient)
     private val favRepo = FavoritesRepository(client = httpClient)
     val metaRepo = MetadataRepository(httpClient)
@@ -52,6 +55,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val favorites: StateFlow<List<Favorite>> = _favorites.asStateFlow()
 
     private val prefs = application.getSharedPreferences("atomicblast_prefs", Context.MODE_PRIVATE)
+    private val _account = MutableStateFlow(loadStoredAccount())
+    val account: StateFlow<AtomicBlastAccount?> = _account.asStateFlow()
+    private val _authError = MutableStateFlow<String?>(null)
+    val authError: StateFlow<String?> = _authError.asStateFlow()
+    private val _isSigningIn = MutableStateFlow(false)
+    val isSigningIn: StateFlow<Boolean> = _isSigningIn.asStateFlow()
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("dark_theme", true))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -124,8 +133,73 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val mediaSession: MediaSession = MediaSession.Builder(application, player).build()
 
     init {
-        connectToB2()
-        loadFavorites()
+        if (_account.value != null) {
+            connectToB2()
+            loadFavorites()
+        }
+    }
+
+    private fun loadStoredAccount(): AtomicBlastAccount? {
+        val email = prefs.getString("account_email", null) ?: return null
+        return AtomicBlastAccount(
+            id = prefs.getString("account_id", "") ?: "",
+            email = email,
+            name = prefs.getString("account_name", "") ?: "",
+            provider = prefs.getString("account_provider", "email") ?: "email",
+            picture = prefs.getString("account_picture", "") ?: "",
+        )
+    }
+
+    private fun saveAccount(account: AtomicBlastAccount) {
+        prefs.edit()
+            .putString("account_id", account.id)
+            .putString("account_email", account.email)
+            .putString("account_name", account.name)
+            .putString("account_provider", account.provider)
+            .putString("account_picture", account.picture)
+            .apply()
+    }
+
+    fun signInWithEmail(email: String, password: String) {
+        val normalizedEmail = email.trim()
+        if (!normalizedEmail.contains("@")) {
+            _authError.value = "Enter a valid email address."
+            return
+        }
+        if (password.length < 8) {
+            _authError.value = "Password must be at least 8 characters."
+            return
+        }
+        viewModelScope.launch {
+            _isSigningIn.value = true
+            _authError.value = null
+            accountRepo.emailPasswordLogin(normalizedEmail, password)
+                .onSuccess { account ->
+                    saveAccount(account)
+                    _account.value = account
+                    connectToB2()
+                    loadFavorites()
+                }
+                .onFailure { error ->
+                    _authError.value = error.message ?: "Could not sign in."
+                }
+            _isSigningIn.value = false
+        }
+    }
+
+    fun signOut() {
+        prefs.edit()
+            .remove("account_id")
+            .remove("account_email")
+            .remove("account_name")
+            .remove("account_provider")
+            .remove("account_picture")
+            .apply()
+        player.stop()
+        _account.value = null
+        _favorites.value = emptyList()
+        _isConnected.value = false
+        _nowPlaying.value = NowPlaying()
     }
 
     fun loadFavorites() {

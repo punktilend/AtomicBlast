@@ -4,6 +4,7 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use((req, res, next) => {
 const AUTH_SUPPORT_EMAIL = process.env.AUTH_SUPPORT_EMAIL || 'adammharvey+AtomicBlast@gmail.com';
 const GOOGLE_CLIENT_ID   = process.env.GOOGLE_CLIENT_ID || '';
 const ACCOUNTS_FILE      = path.join(__dirname, 'accounts.json');
+const PASSWORD_ITERATIONS = 210000;
 
 function loadAccounts() {
   try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); } catch { return { users: [] }; }
@@ -53,9 +55,34 @@ function publicUser(user) {
     picture: user.picture || '',
   };
 }
+function normalizeEmail(email) {
+  return String(email || '').trim();
+}
+function normalizePassword(password) {
+  return String(password || '');
+}
+function validatePassword(password) {
+  if (password.length < 8) throw new Error('Password must be at least 8 characters.');
+}
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('base64url');
+  const hash = crypto.pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, 32, 'sha256').toString('base64url');
+  return `pbkdf2_sha256$${PASSWORD_ITERATIONS}$${salt}$${hash}`;
+}
+function verifyPassword(password, storedHash) {
+  const parts = String(storedHash || '').split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2_sha256') return false;
+  const iterations = Number(parts[1]);
+  const [, , salt, expected] = parts;
+  if (!Number.isFinite(iterations) || iterations < 100000 || !salt || !expected) return false;
+  const actual = crypto.pbkdf2Sync(password, salt, iterations, 32, 'sha256').toString('base64url');
+  const a = Buffer.from(actual);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 function upsertAccount(profile) {
   const accounts = loadAccounts();
-  const email = String(profile.email || '').trim();
+  const email = normalizeEmail(profile.email);
   if (!email || !email.includes('@')) throw new Error('Valid email required');
   const now = new Date().toISOString();
   let user = accounts.users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -76,6 +103,38 @@ function upsertAccount(profile) {
   saveAccounts(accounts);
   return publicUser(user);
 }
+function emailPasswordLogin({ email, password, name }) {
+  const accounts = loadAccounts();
+  email = normalizeEmail(email);
+  password = normalizePassword(password);
+  if (!email || !email.includes('@')) throw new Error('Valid email required');
+  validatePassword(password);
+
+  const now = new Date().toISOString();
+  let user = accounts.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (user?.passwordHash) {
+    if (!verifyPassword(password, user.passwordHash)) throw new Error('Incorrect email or password.');
+  } else if (user) {
+    user.passwordHash = hashPassword(password);
+  } else {
+    user = {
+      id: 'usr_' + Buffer.from(email.toLowerCase()).toString('base64url').slice(0, 22),
+      email,
+      createdAt: now,
+      passwordHash: hashPassword(password),
+    };
+    accounts.users.push(user);
+  }
+
+  Object.assign(user, {
+    name: name || user.name || email.split('@')[0],
+    provider: user.provider || 'email',
+    picture: user.picture || '',
+    lastLoginAt: now,
+  });
+  saveAccounts(accounts);
+  return publicUser(user);
+}
 
 app.get('/api/auth/config', (req, res) => {
   res.json({
@@ -86,16 +145,17 @@ app.get('/api/auth/config', (req, res) => {
       apple: false,
       microsoft: false,
       email: true,
+      emailPassword: true,
     },
   });
 });
 
 app.post('/api/auth/email-login', (req, res) => {
   try {
-    const user = upsertAccount({
+    const user = emailPasswordLogin({
       email: req.body?.email,
+      password: req.body?.password,
       name: req.body?.name || 'AtomicBlast',
-      provider: 'email',
     });
     res.json({ ok: true, user });
   } catch (e) {

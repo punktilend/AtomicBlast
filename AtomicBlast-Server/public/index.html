@@ -610,10 +610,10 @@
     .auth-provider-icon { width:22px; text-align:center; font-size:17px; line-height:1; }
     .auth-divider { display:flex; align-items:center; gap:12px; color:#526052; font-size:11px; margin:16px 0; text-transform:uppercase; letter-spacing:.08em; }
     .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:rgba(188,255,208,.1); }
-    .auth-email-row { display:flex; gap:8px; }
-    .auth-email-row input { flex:1; min-width:0; background:rgba(3,8,5,.72); border:1px solid rgba(188,255,208,.16); color:#eef7ef; border-radius:8px; padding:0 12px; font-size:13px; outline:none; font-family:inherit; }
-    .auth-email-row input:focus { border-color:rgba(74,222,128,.55); }
-    .auth-small-btn { background:#101a12; color:#cfe8d3; border:1px solid rgba(188,255,208,.16); border-radius:8px; padding:0 14px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .auth-email-form { display:flex; flex-direction:column; gap:10px; }
+    .auth-email-form input { width:100%; min-height:46px; box-sizing:border-box; background:rgba(3,8,5,.72); border:1px solid rgba(188,255,208,.16); color:#eef7ef; border-radius:8px; padding:0 12px; font-size:13px; outline:none; font-family:inherit; }
+    .auth-email-form input:focus { border-color:rgba(74,222,128,.55); }
+    .auth-small-btn { min-height:46px; background:#101a12; color:#cfe8d3; border:1px solid rgba(188,255,208,.16); border-radius:8px; padding:0 14px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
     .auth-small-btn:hover { border-color:rgba(74,222,128,.4); color:#fff; }
     .auth-note { min-height:18px; color:#7f8a81; font-size:12px; line-height:1.5; margin-top:14px; }
     .auth-note.error { color:#fca5a5; }
@@ -672,7 +672,7 @@
       #walkthrough-skip { grid-column:1 / -1; }
     }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260511140832">
+  <link rel="stylesheet" href="/mobile.css?v=20260511220315">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
@@ -686,13 +686,14 @@
         <button class="auth-provider-btn" id="auth-apple-btn"><span class="auth-provider-icon"></span><span>Continue with Apple</span></button>
         <button class="auth-provider-btn" id="auth-microsoft-btn"><span class="auth-provider-icon">M</span><span>Continue with Microsoft</span></button>
       </div>
-      <div class="auth-divider">or</div>
-      <div class="auth-email-row">
-        <input id="auth-email-input" type="email" autocomplete="email" value="adammharvey+AtomicBlast@gmail.com" aria-label="Email address">
-        <button id="auth-email-btn" class="auth-small-btn">Continue</button>
+      <div class="auth-divider">or use email</div>
+      <div class="auth-email-form">
+        <input id="auth-email-input" type="email" autocomplete="email" placeholder="Email address" aria-label="Email address">
+        <input id="auth-password-input" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
+        <button id="auth-email-btn" class="auth-small-btn" type="button">Sign in or create account</button>
       </div>
-      <div id="auth-message" class="auth-note">Using adammharvey+AtomicBlast@gmail.com for the AtomicBlast account.</div>
-      <div class="auth-foot">Provider sign-in needs OAuth credentials on the server. Email sign-in is enabled now for first-run account setup.</div>
+      <div id="auth-message" class="auth-note">Use any email and a password of at least 8 characters.</div>
+      <div class="auth-foot">New email/password combinations create an AtomicBlast account automatically. Existing email accounts sign in with their saved password.</div>
     </div>
   </section>
   <!-- TOP NAV BAR -->
@@ -1087,26 +1088,33 @@
       }
     }
     async function continueWithEmail() {
-      const input = el('auth-email-input')
-      const email = normalizeEmail(input?.value || DEFAULT_AUTH_EMAIL)
+      const emailInput = el('auth-email-input')
+      const passwordInput = el('auth-password-input')
+      const email = normalizeEmail(emailInput?.value || '')
+      const password = String(passwordInput?.value || '')
       if (!email || !email.includes('@')) {
         setAuthMessage('Enter a valid email address to continue.', true)
         return
       }
-      setAuthMessage('Creating your AtomicBlast session...')
+      if (password.length < 8) {
+        setAuthMessage('Password must be at least 8 characters.', true)
+        return
+      }
+      setAuthMessage('Signing in to AtomicBlast...')
       try {
         const res = await fetch(PROXY_URL + '/api/auth/email-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, name: 'AtomicBlast' })
+          body: JSON.stringify({ email, password, name: email.split('@')[0] })
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok || !data.user) throw new Error(data.error || 'Sign-in failed')
+        if (passwordInput) passwordInput.value = ''
         saveStoredUser(data.user)
         setStatus('Signed in as ' + data.user.email)
         await init()
       } catch (e) {
-        setAuthMessage(e.message || 'Could not sign in with that email.', true)
+        setAuthMessage(e.message || 'Could not sign in with that email and password.', true)
       }
     }
     function loadScript(src) {
@@ -1158,9 +1166,9 @@
       }
     }
     function bindAuthControls() {
-      el('auth-email-input').value = DEFAULT_AUTH_EMAIL
       el('auth-email-btn')?.addEventListener('click', continueWithEmail)
       el('auth-email-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') continueWithEmail() })
+      el('auth-password-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') continueWithEmail() })
       el('auth-google-btn')?.addEventListener('click', continueWithGoogle)
       el('auth-apple-btn')?.addEventListener('click', () => setAuthMessage('Apple sign-in needs APPLE_CLIENT_ID and server callback setup before it can go live.', true))
       el('auth-microsoft-btn')?.addEventListener('click', () => setAuthMessage('Microsoft sign-in needs MICROSOFT_CLIENT_ID and server callback setup before it can go live.', true))
@@ -3745,7 +3753,7 @@
       await fetchAuthConfig()
       applyAuthState()
       if (currentUser) init()
-      else setAuthMessage('Using ' + DEFAULT_AUTH_EMAIL + ' for the AtomicBlast account.')
+      else setAuthMessage('Use any email and a password of at least 8 characters.')
     })()
     el('sidebar-toggle-btn')?.addEventListener('click', toggleSidebar)
     el('sidebar-overlay')?.addEventListener('click', closeSidebar)

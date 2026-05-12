@@ -46,6 +46,7 @@ import com.atomicblast.android.viewmodel.PlayerViewModel
 fun SettingsScreen(vm: PlayerViewModel, onOpenNowPlaying: () -> Unit) {
     val colors = LocalAtomicBlastColors.current
     val isConnected by vm.isConnected.collectAsState()
+    val account by vm.account.collectAsState()
     val error by vm.error.collectAsState()
     val isDark by vm.isDarkTheme.collectAsState()
     val streamQuality by vm.streamQuality.collectAsState()
@@ -68,6 +69,30 @@ fun SettingsScreen(vm: PlayerViewModel, onOpenNowPlaying: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Text("Settings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Account", color = colors.textPrimary, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                    Text(account?.email ?: "Not signed in", color = colors.textMuted, fontSize = 16.sp)
+                }
+                OutlinedButton(
+                    onClick = { vm.signOut() },
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text("Sign out", fontSize = 16.sp)
+                }
+            }
+        }
 
         // Theme toggle
         Card(

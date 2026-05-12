@@ -7,6 +7,14 @@ enum class StreamQuality(val label: String, val param: String) {
     LOW("Low · 128k AAC", "low"),
 }
 
+data class AtomicBlastAccount(
+    val id: String,
+    val email: String,
+    val name: String = "",
+    val provider: String = "email",
+    val picture: String = "",
+)
+
 data class Track(
     val id: String,
     val title: String,
