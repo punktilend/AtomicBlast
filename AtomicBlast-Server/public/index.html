@@ -9,10 +9,9 @@
   <meta name="apple-mobile-web-app-title" content="AtomicBlast">
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/web/favicon.svg?v=atomic-radius-2">
-  <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png?v=atomic-radius-2">
-  <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png?v=atomic-radius-2">
-  <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png?v=atomic-radius-2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png?v=atomicblast-orbit-1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png?v=atomicblast-orbit-1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png?v=atomicblast-orbit-1">
   <script>
     (function () {
       var ua = navigator.userAgent || '';
@@ -26,9 +25,9 @@
     body { background: #080c08; color: #e0e0e0; font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
 
     /* ===== TOP NAV BAR ===== */
-    .topnav { height: 60px; min-height: 60px; background: rgba(8,12,8,0.97); display: flex; align-items: center; padding: 0 20px; gap: 0; border-bottom: 1px solid rgba(74,222,128,0.08); position: relative; z-index: 100; flex-shrink: 0; }
-    .topnav-logo { width: 36px; height: 36px; margin-right: 20px; flex-shrink: 0; }
-    .topnav-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .topnav { height: 68px; min-height: 68px; background: rgba(8,12,8,0.97); display: flex; align-items: center; padding: 0 22px; gap: 0; border-bottom: 1px solid rgba(74,222,128,0.08); position: relative; z-index: 100; flex-shrink: 0; }
+    .topnav-logo { width: 50px; height: 50px; margin-right: 18px; flex-shrink: 0; border-radius: 13px; filter: drop-shadow(0 0 14px rgba(74,222,128,0.18)); }
+    .topnav-logo img { width: 100%; height: 100%; object-fit: contain; display:block; }
     .topnav-tabs { display: flex; align-items: center; gap: 2px; }
     .topnav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
     .nav-item { padding: 7px 16px; cursor: pointer; transition: color 0.15s, background 0.15s; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 7px; color: #555; border-radius: 7px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
@@ -569,6 +568,29 @@
     .lib-track-dur   { text-align:right; color:#3a4e3a; font-size:12px; }
     .lib-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; color:#555; gap:12px; }
 
+    /* ===== GENRES / ATOMIC DJ ===== */
+    .genre-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; padding:0 24px 80px; }
+    .genre-card { min-height:118px; background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)); border:1px solid rgba(122,255,170,.09); border-radius:8px; padding:16px; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; transition:transform .15s,border-color .15s,background .15s; }
+    .genre-card:hover { transform:translateY(-2px); border-color:rgba(74,222,128,.34); background:rgba(74,222,128,.055); }
+    .genre-name { color:#f2f7f3; font-size:18px; font-weight:850; line-height:1.1; }
+    .genre-meta { color:#6f7f71; font-size:12px; margin-top:8px; line-height:1.35; }
+    .genre-chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .genre-mini-chip { color:#75f2a3; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.16); border-radius:999px; padding:3px 8px; font-size:10px; font-weight:800; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dj-panel { margin:0 24px 18px; padding:18px; border:1px solid rgba(122,255,170,.12); border-radius:8px; background:linear-gradient(135deg, rgba(74,222,128,.09), rgba(10,20,12,.72)); }
+    .dj-kicker { color:#75f2a3; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; }
+    .dj-title { color:#fff; font-size:26px; line-height:1.06; font-weight:900; margin-bottom:8px; }
+    .dj-copy { color:#96a59a; font-size:13px; line-height:1.55; max-width:720px; }
+    .dj-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .dj-btn { border:0; border-radius:999px; padding:9px 14px; font-size:12px; font-weight:850; cursor:pointer; color:#041006; background:#4ade80; font-family:inherit; }
+    .dj-btn.secondary { color:#d7e8da; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.08); }
+    .dj-set-list { padding:0 24px 80px; }
+    .dj-set-row { display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; padding:9px 10px; color:#657466; border-radius:6px; cursor:pointer; }
+    .dj-set-row:hover { background:#0d180d; color:#c8d4ca; }
+    .dj-set-row.playing { color:#4ade80; }
+    .dj-set-title { color:inherit; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dj-set-sub { color:#425243; font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dj-set-reason { color:#536855; font-size:10px; text-transform:uppercase; letter-spacing:.08em; white-space:nowrap; }
+
     /* ===== FAVORITES LIST ===== */
     .fav-list { padding: 0 24px 80px; }
     .fav-row { display:flex; align-items:center; gap:16px; padding:10px 12px; border-radius:6px; cursor:pointer; border-left:3px solid transparent; transition:background .1s, border-color .1s; }
@@ -595,12 +617,17 @@
     #auth-screen { position:fixed; inset:0; z-index:900; display:none; align-items:center; justify-content:center; padding:24px; background:radial-gradient(circle at 18% 12%, rgba(74,222,128,.16), transparent 32%), linear-gradient(145deg, #050806 0%, #081008 52%, #020403 100%); overflow:auto; }
     body.auth-locked #auth-screen { display:flex; }
     .auth-panel { width:min(440px, 100%); }
-    .auth-logo { width:58px; height:58px; margin-bottom:22px; }
-    .auth-logo img { width:100%; height:100%; object-fit:contain; }
+    .auth-logo { width:72px; height:72px; margin-bottom:22px; filter: drop-shadow(0 0 18px rgba(74,222,128,.2)); }
+    .auth-logo img { width:100%; height:100%; object-fit:contain; display:block; }
     .auth-kicker { color:#4ade80; font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:10px; }
     .auth-title { color:#f7fff8; font-size:36px; line-height:1.05; font-weight:800; margin-bottom:12px; letter-spacing:0; }
     .auth-copy { color:#9aa69d; font-size:14px; line-height:1.55; margin-bottom:24px; max-width:38em; }
     .auth-actions { display:flex; flex-direction:column; gap:10px; }
+    .auth-provider-hint { display:none; color:#fbbf24; font-size:12px; line-height:1.45; margin:-2px 0 4px; }
+    .auth-provider-hint.active { display:block; }
+    #auth-google-rendered { width:100%; min-height:48px; display:none; }
+    #auth-google-rendered.active { display:flex; justify-content:center; }
+    #auth-google-rendered iframe { max-width:100%; }
     .auth-provider-btn { width:100%; min-height:48px; border-radius:8px; border:1px solid rgba(188,255,208,.14); background:rgba(255,255,255,.055); color:#eef7ef; display:flex; align-items:center; justify-content:center; gap:10px; font-size:14px; font-weight:700; cursor:pointer; transition:background .15s, border-color .15s, transform .1s; font-family:inherit; }
     .auth-provider-btn:hover:not(:disabled) { background:rgba(255,255,255,.085); border-color:rgba(74,222,128,.35); }
     .auth-provider-btn:active:not(:disabled) { transform:translateY(1px); }
@@ -626,12 +653,12 @@
     #sign-out-btn:hover { color:#fff; border-color:rgba(74,222,128,.35); }
 
     /* ===== WALKTHROUGH ===== */
-    #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:flex-end; justify-content:flex-end; padding:24px; background:rgba(0,0,0,.62); backdrop-filter:blur(10px); pointer-events:none; }
+    #walkthrough-modal { position:fixed; inset:0; z-index:850; display:none; align-items:flex-end; justify-content:flex-end; padding:24px; background:rgba(0,0,0,.42); pointer-events:none; }
     #walkthrough-modal.active { display:flex; }
-    .walkthrough-panel { width:min(380px,100%); max-height:min(720px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:20px; pointer-events:auto; }
-    .walkthrough-spotlight { position:fixed; z-index:855; display:none; border:2px solid rgba(74,222,128,.95); border-radius:14px; box-shadow:0 0 0 9999px rgba(0,0,0,.34), 0 0 34px rgba(74,222,128,.34); pointer-events:none; transition:top .18s ease,left .18s ease,width .18s ease,height .18s ease; }
+    .walkthrough-panel { position:relative; z-index:870; width:min(380px,100%); max-height:min(720px, calc(100vh - 48px)); overflow:auto; background:linear-gradient(180deg, rgba(17,28,20,.98), rgba(5,9,7,.99)); border:1px solid rgba(145,255,180,.16); border-radius:20px; box-shadow:0 28px 80px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05); padding:20px; pointer-events:auto; }
+    .walkthrough-spotlight { position:fixed; z-index:865; display:none; border:2px solid rgba(74,222,128,.95); border-radius:14px; box-shadow:0 0 28px rgba(74,222,128,.28); pointer-events:none; transition:top .12s ease,left .12s ease,width .12s ease,height .12s ease; }
     #walkthrough-modal.active .walkthrough-spotlight.active { display:block; }
-    body.walkthrough-active .walkthrough-target-highlight { position:relative; z-index:860; box-shadow:0 0 0 3px rgba(74,222,128,.35), 0 0 28px rgba(74,222,128,.24) !important; }
+    body.walkthrough-active .walkthrough-target-highlight { outline:2px solid rgba(74,222,128,.65); outline-offset:3px; }
     .walkthrough-progress { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
     .walkthrough-dot { flex:1; height:4px; border-radius:999px; background:rgba(255,255,255,.09); overflow:hidden; }
     .walkthrough-dot span { display:block; height:100%; width:0; background:#4ade80; transition:width .18s ease; }
@@ -672,17 +699,19 @@
       #walkthrough-skip { grid-column:1 / -1; }
     }
   </style>
-  <link rel="stylesheet" href="/mobile.css?v=20260511220315">
+  <link rel="stylesheet" href="/mobile.css?v=20260525130137">
 </head>
 <body class="auth-locked">
   <section id="auth-screen" aria-label="Sign in">
     <div class="auth-panel">
-      <div class="auth-logo"><img src="assets/pulse-logo.svg" alt="AtomicBlast"></div>
+      <div class="auth-logo"><img src="assets/atomicblast-mark.png" alt="AtomicBlast"></div>
       <div class="auth-kicker">AtomicBlast account</div>
       <h1 class="auth-title">Sign in to your music.</h1>
       <p class="auth-copy">Create your AtomicBlast account or come back in with a provider. This keeps playlists, favorites, and playback history ready for the web app.</p>
       <div class="auth-actions">
         <button class="auth-provider-btn primary" id="auth-google-btn"><span class="auth-provider-icon">G</span><span>Continue with Google</span></button>
+        <div id="auth-google-hint" class="auth-provider-hint">Google sign-in is temporarily unavailable. Use email/password for now.</div>
+        <div id="auth-google-rendered" aria-label="Continue with Google"></div>
         <button class="auth-provider-btn" id="auth-apple-btn"><span class="auth-provider-icon"></span><span>Continue with Apple</span></button>
         <button class="auth-provider-btn" id="auth-microsoft-btn"><span class="auth-provider-icon">M</span><span>Continue with Microsoft</span></button>
       </div>
@@ -699,7 +728,7 @@
   <!-- TOP NAV BAR -->
   <nav class="topnav">
     <div class="topnav-logo">
-      <img src="assets/pulse-logo.svg" alt="AtomicBlast">
+      <img src="assets/atomicblast-mark.png" alt="AtomicBlast">
     </div>
     <div class="topnav-tabs">
       <div class="nav-item active" data-view="media"><span class="nav-icon">♪</span><span>MUSIC</span></div>
@@ -854,6 +883,7 @@
     // ── State ─────────────────────────────────────────────────────────────
     const PROXY_URL = 'https://blast.atomicradius.app'
     const AUTH_STORAGE_KEY = 'atomicblast.user'
+    const GOOGLE_AUTH_RESULT_KEY = 'atomicblast.googleAuthResult'
     const WALKTHROUGH_STORAGE_PREFIX = 'atomicblast.walkthrough.seen.'
     const DEFAULT_AUTH_EMAIL = 'adammharvey+AtomicBlast@gmail.com'
 
@@ -866,6 +896,8 @@
     let cloudSources = []
     let b2Lib = null, b2DlUrl = null, b2DlToken = null
     let b2Popularity = null, b2PopularityLoading = false
+    let b2Genres = null, b2GenresLoading = false
+    let lastDjSet = []
     const VIDEO_EXTS_CLIENT = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv'])
     let playlists = { liked: [], playlists: [] }
     let ctxTrack = null
@@ -873,6 +905,8 @@
     let serverFavsMeta = new Map() // filePath → {title, artist, album, format}
     let authConfig = { googleClientId: '', supportEmail: DEFAULT_AUTH_EMAIL }
     let currentUser = null
+    let googleIdentityReady = false
+    let googleIdentityLoading = null
     let deferredInstallPrompt = null
     let walkthroughStepIndex = 0
     let walkthroughResizeHandler = null
@@ -950,6 +984,20 @@
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
       currentUser = user
       applyAuthState()
+    }
+    function finishGoogleSignIn(user) {
+      saveStoredUser(user)
+      setStatus('Signed in as ' + user.email)
+      init()
+    }
+    function handleGoogleAuthPayload(payload) {
+      if (!payload || payload.type !== 'atomicblast-google-auth') return false
+      if (payload.user) {
+        finishGoogleSignIn(payload.user)
+        return true
+      }
+      if (payload.error) setAuthMessage(payload.error, true)
+      return false
     }
     function clearStoredUser() {
       localStorage.removeItem(AUTH_STORAGE_KEY)
@@ -1030,10 +1078,17 @@
       document.querySelectorAll('.walkthrough-target-highlight').forEach(node => node.classList.remove('walkthrough-target-highlight'))
       el('walkthrough-spotlight')?.classList.remove('active')
     }
+    function isVisibleWalkthroughTarget(node) {
+      if (!node) return false
+      const style = getComputedStyle(node)
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false
+      const rect = node.getBoundingClientRect()
+      return rect.width >= 12 && rect.height >= 12 && rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth
+    }
     function currentWalkthroughTarget() {
       const step = WALKTHROUGH_STEPS[walkthroughStepIndex]
       if (!step?.target) return null
-      return document.querySelector(step.target)
+      return Array.from(document.querySelectorAll(step.target)).find(isVisibleWalkthroughTarget) || null
     }
     function positionWalkthroughTarget() {
       clearWalkthroughTarget()
@@ -1041,16 +1096,19 @@
       const spotlight = el('walkthrough-spotlight')
       if (!target || !spotlight) return
       target.classList.add('walkthrough-target-highlight')
-      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
-      requestAnimationFrame(() => {
+      const rectBefore = target.getBoundingClientRect()
+      const outOfView = rectBefore.top < 80 || rectBefore.bottom > window.innerHeight - 80 || rectBefore.left < 12 || rectBefore.right > window.innerWidth - 12
+      if (outOfView) target.scrollIntoView({ block: 'center', inline: 'nearest' })
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         const rect = target.getBoundingClientRect()
+        if (!isVisibleWalkthroughTarget(target)) return
         const pad = 8
         spotlight.style.left = Math.max(8, rect.left - pad) + 'px'
         spotlight.style.top = Math.max(8, rect.top - pad) + 'px'
         spotlight.style.width = Math.min(window.innerWidth - 16, rect.width + pad * 2) + 'px'
         spotlight.style.height = Math.min(window.innerHeight - 16, rect.height + pad * 2) + 'px'
         spotlight.classList.add('active')
-      })
+      }))
     }
     function renderWalkthroughStep() {
       const step = WALKTHROUGH_STEPS[walkthroughStepIndex]
@@ -1085,6 +1143,101 @@
         if (res.ok) authConfig = await res.json()
       } catch (e) {
         console.warn('Could not load auth config:', e)
+      }
+      updateAuthProviderControls()
+    }
+    function updateAuthProviderControls() {
+      const googleBtn = el('auth-google-btn')
+      const googleHint = el('auth-google-hint')
+      if (!googleBtn) return
+      const googleReady = !!authConfig.providers?.google
+      googleBtn.disabled = !googleReady
+      googleBtn.title = googleReady
+        ? 'Continue with Google'
+        : 'Google OAuth is not fully configured on the server.'
+      googleHint?.classList.toggle('active', !googleReady)
+      if (googleReady && isIOSWebKit() && isStandaloneAppMode() && location.origin === PROXY_URL) renderGoogleIdentityButton()
+    }
+    function isIOSWebKit() {
+      const ua = navigator.userAgent || ''
+      return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    }
+    function isStandaloneAppMode() {
+      return window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone === true
+    }
+    function consumeGoogleAuthResult() {
+      let stored = null
+      try {
+        stored = localStorage.getItem(GOOGLE_AUTH_RESULT_KEY)
+        if (stored) localStorage.removeItem(GOOGLE_AUTH_RESULT_KEY)
+      } catch {}
+      if (!stored) return false
+      try {
+        const parsed = JSON.parse(stored)
+        if (Date.now() - Number(parsed.ts || 0) > 10 * 60 * 1000) return false
+        return handleGoogleAuthPayload(parsed.payload || {})
+      } catch {}
+      return false
+    }
+    async function handleGoogleIdentityCredential(response) {
+      try {
+        if (!response?.credential) throw new Error('Google did not return a sign-in credential.')
+        const res = await fetch(PROXY_URL + '/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential })
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.user) throw new Error(data.error || 'Google sign-in failed')
+        finishGoogleSignIn(data.user)
+      } catch (e) {
+        setAuthMessage(e.message || 'Google sign-in failed.', true)
+      }
+    }
+    async function ensureGoogleIdentity() {
+      if (googleIdentityReady) return true
+      if (googleIdentityLoading) return googleIdentityLoading
+      googleIdentityLoading = (async () => {
+        await loadScript('https://accounts.google.com/gsi/client')
+        google.accounts.id.initialize({
+          client_id: authConfig.googleClientId,
+          callback: handleGoogleIdentityCredential,
+          auto_select: false,
+          cancel_on_tap_outside: false,
+          context: 'signin',
+          itp_support: true,
+        })
+        googleIdentityReady = true
+        return true
+      })().catch(e => {
+        googleIdentityReady = false
+        throw e
+      }).finally(() => {
+        googleIdentityLoading = null
+      })
+      return googleIdentityLoading
+    }
+    async function renderGoogleIdentityButton() {
+      if (!authConfig.providers?.google || !authConfig.googleClientId) return
+      const rendered = el('auth-google-rendered')
+      const fallback = el('auth-google-btn')
+      if (!rendered || rendered.dataset.ready === 'true') return
+      try {
+        await ensureGoogleIdentity()
+        rendered.innerHTML = ''
+        google.accounts.id.renderButton(rendered, {
+          theme: 'filled_black',
+          size: 'large',
+          width: Math.min(390, Math.max(240, rendered.parentElement?.clientWidth || 390)),
+          text: 'continue_with',
+          shape: 'rectangular',
+        })
+        rendered.classList.add('active')
+        rendered.dataset.ready = 'true'
+        if (fallback) fallback.style.display = 'none'
+        setAuthMessage('Use the Google button above, or sign in with email/password.')
+      } catch (e) {
+        setAuthMessage('Could not load Google sign-in. Use email/password or try again.', true)
       }
     }
     async function continueWithEmail() {
@@ -1130,40 +1283,16 @@
       })
     }
     async function continueWithGoogle() {
-      if (!authConfig.googleClientId) {
-        setAuthMessage('Google sign-in is ready in the UI. Set GOOGLE_CLIENT_ID on the server to turn it on.', true)
+      if (!authConfig.providers?.google) {
+        setAuthMessage('Google sign-in needs GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and the Google redirect URI configured on the server.', true)
         return
       }
-      try {
-        setAuthMessage('Opening Google sign-in...')
-        await loadScript('https://accounts.google.com/gsi/client')
-        google.accounts.id.initialize({
-          client_id: authConfig.googleClientId,
-          callback: async response => {
-            try {
-              const res = await fetch(PROXY_URL + '/api/auth/google', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: response.credential })
-              })
-              const data = await res.json().catch(() => ({}))
-              if (!res.ok || !data.user) throw new Error(data.error || 'Google sign-in failed')
-              saveStoredUser(data.user)
-              setStatus('Signed in as ' + data.user.email)
-              await init()
-            } catch (e) {
-              setAuthMessage(e.message || 'Google sign-in failed.', true)
-            }
-          }
-        })
-        google.accounts.id.prompt(notification => {
-          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
-            google.accounts.id.renderButton(el('auth-google-btn'), { theme: 'filled_black', size: 'large', width: 390 })
-          }
-        })
-      } catch (e) {
-        setAuthMessage('Could not load Google sign-in. Check the network and Google client ID.', true)
+      setAuthMessage('Opening Google sign-in...')
+      if (isIOSWebKit() && isStandaloneAppMode() && location.origin === PROXY_URL) {
+        await renderGoogleIdentityButton()
+        return
       }
+      window.location.href = PROXY_URL + '/api/auth/google/start'
     }
     function bindAuthControls() {
       el('auth-email-btn')?.addEventListener('click', continueWithEmail)
@@ -1184,6 +1313,25 @@
         if (e.target.id === 'walkthrough-modal') positionWalkthroughTarget()
       })
     }
+
+    window.addEventListener('message', e => {
+      if (e.origin !== PROXY_URL) return
+      handleGoogleAuthPayload(e.data || {})
+    })
+
+    window.addEventListener('storage', e => {
+      if (e.key === GOOGLE_AUTH_RESULT_KEY) consumeGoogleAuthResult()
+      if (e.key === AUTH_STORAGE_KEY) {
+        currentUser = loadStoredUser()
+        applyAuthState()
+        if (currentUser) init()
+      }
+    })
+
+    try {
+      const authChannel = new BroadcastChannel('atomicblast-auth')
+      authChannel.onmessage = e => handleGoogleAuthPayload(e.data || {})
+    } catch {}
 
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault()
@@ -1661,10 +1809,23 @@
       })
     })
 
-    document.getElementById('search-input').addEventListener('input', e => {
-      const q = e.target.value.toLowerCase()
+    function handleMusicSearchInput(e) {
+      const q = (e.target.value || '').toLowerCase()
       if (currentView === 'media') filterMusicTree(q)
-    })
+    }
+    function bindMusicSearchInputs() {
+      const globalSearch = el('search-input')
+      if (globalSearch && !globalSearch.dataset.musicSearchBound) {
+        globalSearch.dataset.musicSearchBound = '1'
+        globalSearch.addEventListener('input', handleMusicSearchInput)
+      }
+      const panelSearch = el('music-search')
+      if (panelSearch && !panelSearch.dataset.musicSearchBound) {
+        panelSearch.dataset.musicSearchBound = '1'
+        panelSearch.addEventListener('input', handleMusicSearchInput)
+      }
+    }
+    bindMusicSearchInputs()
 
     async function renderView() {
       if (currentView === 'media') { await renderMusic(); return }
@@ -1709,7 +1870,7 @@
       renderMusicTree(musicLibrary)
       showB2Library()
 
-      el('music-search').addEventListener('input', e => filterMusicTree(e.target.value.toLowerCase()))
+      bindMusicSearchInputs()
       el('stream-play-btn')?.addEventListener('click', playStreamUrl)
       el('stream-url')?.addEventListener('keydown', e => { if (e.key === 'Enter') playStreamUrl() })
       el('p-fullscreen').style.display = musicVideoPlaying ? '' : 'none'
@@ -1719,10 +1880,13 @@
       const tree = el('music-tree'); if (!tree) return
       const albCount = b2Lib ? b2Lib.artists.reduce((s, a) => s + a.albums.length, 0) : ''
       const artCount = b2Lib ? b2Lib.artists.length : ''
+      const genreCount = b2Genres?.genreMap ? Object.keys(b2Genres.genreMap).length : ''
 
       let html = '<div class="music-tree-section">Library</div>'
       html += '<div class="music-tree-item" data-tree="b2-artists">🎤 Artists' + (artCount !== '' ? ' <span style="color:#2a3e2a">(' + artCount + ')</span>' : '') + '</div>'
       html += '<div class="music-tree-item" data-tree="b2-albums">💿 Albums' + (albCount !== '' ? ' <span style="color:#2a3e2a">(' + albCount + ')</span>' : '') + '</div>'
+      html += '<div class="music-tree-item" data-tree="b2-genres">▦ Genres' + (genreCount !== '' ? ' <span style="color:#2a3e2a">(' + genreCount + ')</span>' : '') + '</div>'
+      html += '<div class="music-tree-item" data-tree="atomic-dj">✦ Atomic DJ</div>'
 
       html += '<div class="music-tree-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:8px">Playlists <span id="tree-new-pl" style="cursor:pointer;color:#4ade80;font-size:15px;line-height:1;padding:2px 4px" title="New Playlist">+</span></div>'
       html += '<div class="music-tree-item playlist-liked" data-tree="playlist" data-pl-id="liked">♥ Liked Songs</div>'
@@ -1742,6 +1906,10 @@
             await ensureB2Lib(); showB2Artists(b2Lib, b2DlUrl, b2DlToken); renderMusicTree(musicLibrary)
           } else if (t === 'b2-albums') {
             await ensureB2Lib(); showB2AllAlbums(); renderMusicTree(musicLibrary)
+          } else if (t === 'b2-genres') {
+            await ensureB2Lib(); await ensureB2Genres(); showB2Genres(); renderMusicTree(musicLibrary)
+          } else if (t === 'atomic-dj') {
+            await ensureB2Lib(); await showAtomicDj()
           } else if (t === 'playlist') {
             showPlaylist(item.dataset.plId)
           }
@@ -1758,6 +1926,268 @@
         b2Lib = lib; b2DlUrl = lib.dlUrl; b2DlToken = lib.dlToken
         return true
       } catch (e) { setStatus('B2 error: ' + e.message); return false }
+    }
+
+    async function fetchAtomicApi(path, options) {
+      const localPath = path.startsWith('/') ? path : '/' + path
+      try {
+        const r = await fetch(localPath, options)
+        if (r.ok) return r.json()
+      } catch (e) {}
+      const base = PROXY_URL.replace(/\/$/, '')
+      const r = await fetch(base + localPath, options)
+      if (!r.ok) throw new Error(localPath + ': HTTP ' + r.status)
+      return r.json()
+    }
+
+    async function ensureB2Genres() {
+      if (b2Genres?.genreMap) return true
+      if (b2GenresLoading) return false
+      b2GenresLoading = true
+      try {
+        b2Genres = await fetchAtomicApi('/api/genres')
+        return true
+      } catch (e) {
+        setStatus('Genre scan unavailable: ' + e.message)
+        return false
+      } finally {
+        b2GenresLoading = false
+      }
+    }
+
+    function allB2TrackEntries(lib = b2Lib) {
+      if (!lib?.artists) return []
+      const bucket = lib.bucketName || 'SpAtomify'
+      return lib.artists.flatMap(artist =>
+        artist.albums.flatMap(album =>
+          album.tracks.map(track => ({ artist, album, raw: track, track: b2TrackObj(track, artist.name, album, b2DlUrl, b2DlToken, bucket) }))
+        )
+      )
+    }
+
+    function tracksForArtistNames(names, limit) {
+      if (!b2Lib?.artists?.length) return []
+      const wanted = new Set((names || []).map(n => String(n).toLowerCase()))
+      const bucket = b2Lib.bucketName || 'SpAtomify'
+      const tracks = []
+      for (const artist of b2Lib.artists) {
+        if (!wanted.has(artist.name.toLowerCase())) continue
+        for (const album of artist.albums) {
+          for (const t of album.tracks) tracks.push(b2TrackObj(t, artist.name, album, b2DlUrl, b2DlToken, bucket))
+        }
+      }
+      return shuffleTracks(tracks).slice(0, limit || tracks.length)
+    }
+
+    function trackEntriesForGenre(genreName, limit) {
+      const genrePaths = b2Genres?.genreTracks?.[genreName]
+      if (!genrePaths?.length) return []
+      const wanted = new Set(genrePaths)
+      const matches = allB2TrackEntries().filter(item => wanted.has(item.raw.path)).map(item => item.track)
+      return shuffleTracks(matches).slice(0, limit || matches.length)
+    }
+
+    function artistNamesForGenre(genreName) {
+      const genrePaths = b2Genres?.genreTracks?.[genreName]
+      if (!genrePaths?.length) return b2Genres?.genreMap?.[genreName] || []
+      const wanted = new Set(genrePaths)
+      return Array.from(new Set(allB2TrackEntries()
+        .filter(item => wanted.has(item.raw.path))
+        .map(item => item.artist.name)))
+        .sort((a, b) => a.localeCompare(b))
+    }
+
+    function artistGenresFor(artistName) {
+      const g = b2Genres?.artistGenres?.[artistName]
+      return g ? [g] : []
+    }
+
+    function showB2Genres() {
+      const inner = el('music-content-inner'); if (!inner || !b2Lib || !b2Genres?.genreMap) return
+      const entries = Object.entries(b2Genres.genreMap)
+        .map(([name, artists]) => {
+          const genreTracks = trackEntriesForGenre(name)
+          const genreArtists = artistNamesForGenre(name)
+          const fallbackTracks = genreTracks.length ? genreTracks : tracksForArtistNames(artists)
+          return { name, artists: genreArtists.length ? genreArtists : (artists || []), trackCount: fallbackTracks.length }
+        })
+        .sort((a, b) => b.trackCount - a.trackCount || a.name.localeCompare(b.name))
+
+      let html = '<div class="lib-breadcrumb"><span class="crumb active">Genres</span></div>' +
+        '<div class="dj-panel">' +
+          '<div class="dj-kicker">AtomicBlast DJ</div>' +
+          '<div class="dj-title">Make a set from your library.</div>' +
+          '<div class="dj-copy">Atomic DJ builds a playable queue from liked tracks, the current artist, genre neighborhoods, and deeper album cuts already in SpAtomify.</div>' +
+          '<div class="dj-actions"><button class="dj-btn" id="genre-dj-start">Start Atomic DJ</button><button class="dj-btn secondary" id="genre-refresh">Refresh Genres</button></div>' +
+        '</div>' +
+        '<div class="genre-grid">'
+      for (const entry of entries) {
+        const chips = entry.artists.slice(0, 3).map(a => '<span class="genre-mini-chip">' + esc(a) + '</span>').join('')
+        html += '<div class="genre-card" data-genre="' + esc(entry.name) + '">' +
+          '<div><div class="genre-name">' + esc(entry.name) + '</div>' +
+          '<div class="genre-meta">' + entry.artists.length + ' artist' + (entry.artists.length !== 1 ? 's' : '') + ' · ' + entry.trackCount + ' tracks</div></div>' +
+          '<div class="genre-chip-row">' + chips + '</div>' +
+        '</div>'
+      }
+      html += '</div>'
+      inner.innerHTML = html
+      inner.querySelector('#genre-dj-start')?.addEventListener('click', () => showAtomicDj({ autoStart: true }))
+      inner.querySelector('#genre-refresh')?.addEventListener('click', async () => {
+        setStatus('Refreshing genres...')
+        try {
+          await fetchAtomicApi('/api/genres/refresh', { method: 'POST' })
+          b2Genres = null
+          await ensureB2Genres()
+          showB2Genres()
+        } catch (e) { setStatus('Genre refresh failed: ' + e.message) }
+      })
+      inner.querySelectorAll('.genre-card').forEach(card => {
+        card.addEventListener('click', () => showB2Genre(card.dataset.genre))
+      })
+    }
+
+    function showB2Genre(genreName) {
+      const inner = el('music-content-inner'); if (!inner || !b2Genres?.genreMap) return
+      const artists = artistNamesForGenre(genreName)
+      const tracks = trackEntriesForGenre(genreName)
+      const playableTracks = tracks.length ? tracks : tracksForArtistNames(artists)
+      let html = '<div class="lib-breadcrumb">' +
+        '<span class="crumb" id="genre-root">Genres</span><span class="sep">›</span><span class="crumb active">' + esc(genreName) + '</span></div>' +
+        '<div class="music-album-header">' +
+          '<div class="music-album-art placeholder" style="font-size:30px;color:#75f2a3">▦</div>' +
+          '<div class="music-album-meta">' +
+            '<h2>' + esc(genreName) + '</h2>' +
+            '<p class="meta-sub">' + artists.length + ' artists · ' + playableTracks.length + ' tracks</p>' +
+            '<button class="play-all-btn" id="genre-play">▶ Play All</button>' +
+            '<button class="play-all-btn" id="genre-shuffle" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">⇄ Shuffle</button>' +
+            '<button class="play-all-btn" id="genre-dj" style="margin-left:8px;background:#0f1a0f;border:1px solid #1a2e1a;color:#4ade80">✦ DJ This Genre</button>' +
+          '</div></div>' +
+        '<div class="lib-section-header">Artists</div><div class="lib-grid">'
+      for (const artistName of artists) {
+        const artist = b2Lib.artists.find(a => a.name === artistName)
+        if (!artist) continue
+        const firstCover = artist.albums.find(a => a.coverPath)?.coverPath
+        const initial = (artist.name || '?').charAt(0).toUpperCase()
+        const artHtml = firstCover ? cardImageHtml(b2CoverUrl(firstCover, b2DlUrl, b2DlToken, b2Lib.bucketName), initial) : cardInitialHtml(initial)
+        const totalTracks = artist.albums.reduce((s, album) => s + album.tracks.length, 0)
+        html += '<div class="lib-card" data-b2-artist="' + esc(artist.name) + '">' +
+          '<div class="lib-card-art">' + artHtml + '</div>' +
+          '<div class="lib-card-info"><div class="lib-card-name">' + esc(artist.name) + '</div>' +
+          '<div class="lib-card-sub">' + artist.albums.length + ' albums · ' + totalTracks + ' tracks</div></div></div>'
+      }
+      html += '</div>'
+      inner.innerHTML = html
+      inner.querySelector('#genre-root')?.addEventListener('click', showB2Genres)
+      inner.querySelector('#genre-play')?.addEventListener('click', () => { if (playableTracks.length) setQueue(playableTracks, 0) })
+      inner.querySelector('#genre-shuffle')?.addEventListener('click', () => { const shuffled = shuffleTracks(playableTracks); if (shuffled.length) setQueue(shuffled, 0) })
+      inner.querySelector('#genre-dj')?.addEventListener('click', () => showAtomicDj({ genre: genreName, autoStart: true }))
+      bindB2Cards(inner, b2Lib, b2DlUrl, b2DlToken)
+    }
+
+    function pickUniqueTracks(pool, count, used, reason) {
+      const out = []
+      for (const item of shuffleTracks(pool)) {
+        const t = item.track || item
+        const key = trackKey(t)
+        if (!key || used.has(key)) continue
+        used.add(key)
+        out.push({ ...t, djReason: reason })
+        if (out.length >= count) break
+      }
+      return out
+    }
+
+    function buildAtomicDjSet(options = {}) {
+      const all = allB2TrackEntries()
+      const used = new Set()
+      const set = []
+      if (!all.length) return set
+
+      const current = playQueue[queueIdx]
+      const currentArtist = current?.artist || ''
+      const likedKeys = new Set(playlists.liked || [])
+      const likedArtists = new Set()
+      for (const item of all) {
+        if (likedKeys.has(trackKey(item.track)) || likedKeys.has(item.raw.path)) likedArtists.add(item.artist.name)
+      }
+
+      const genreName = options.genre || (currentArtist ? artistGenresFor(currentArtist)[0] : '')
+      const genreArtists = genreName && b2Genres?.genreMap?.[genreName] ? b2Genres.genreMap[genreName] : []
+      const genreTracks = genreName ? trackEntriesForGenre(genreName) : []
+
+      if (currentArtist) {
+        set.push(...pickUniqueTracks(all.filter(x => x.artist.name === currentArtist), 4, used, 'seed artist'))
+      }
+      if (likedArtists.size) {
+        set.push(...pickUniqueTracks(all.filter(x => likedArtists.has(x.artist.name)), 7, used, 'from likes'))
+      }
+      if (genreTracks.length) {
+        set.push(...pickUniqueTracks(genreTracks, 9, used, genreName))
+      } else if (genreArtists.length) {
+        set.push(...pickUniqueTracks(all.filter(x => genreArtists.includes(x.artist.name)), 9, used, genreName))
+      }
+
+      const ranked = rankB2Artists(b2Lib, b2Popularity).slice(0, 18).map(a => a.name)
+      set.push(...pickUniqueTracks(all.filter(x => ranked.includes(x.artist.name)), 6, used, 'high signal'))
+      set.push(...pickUniqueTracks(all.filter(x => (x.album.tracks || []).length > 4 && (x.raw.trackNo || 99) > 2), 8, used, 'deep cut'))
+      set.push(...pickUniqueTracks(all, 30 - set.length, used, 'wildcard'))
+      return set.slice(0, 30)
+    }
+
+    async function showAtomicDj(options = {}) {
+      const inner = el('music-content-inner'); if (!inner) return
+      await ensureB2Lib()
+      await ensureB2Genres()
+      if (!b2Lib) return
+      const tracks = buildAtomicDjSet(options)
+      lastDjSet = tracks
+      const genreText = options.genre ? ' tuned to ' + options.genre : ''
+      const seedText = playQueue[queueIdx]?.artist ? ' Seeded from ' + playQueue[queueIdx].artist + '.' : ''
+      const likedText = (playlists.liked || []).length ? ' Favorites are in the mix.' : ''
+      let html = '<div class="lib-breadcrumb"><span class="crumb active">Atomic DJ</span></div>' +
+        '<div class="dj-panel">' +
+          '<div class="dj-kicker">AI-style library radio</div>' +
+          '<div class="dj-title">Atomic DJ' + esc(genreText) + '</div>' +
+          '<div class="dj-copy">I built a playable set from your own files, blending familiar artists, genre neighbors, popular library anchors, and deeper cuts.' + esc(seedText + likedText) + '</div>' +
+          '<div class="dj-actions">' +
+            '<button class="dj-btn" id="dj-play">▶ Play Set</button>' +
+            '<button class="dj-btn secondary" id="dj-regen">Regenerate</button>' +
+            '<button class="dj-btn secondary" id="dj-save">Save as Playlist</button>' +
+          '</div>' +
+        '</div>'
+      if (!tracks.length) {
+        html += '<div class="music-empty"><span class="me-icon">✦</span><span class="me-text">Atomic DJ needs the B2 library scan to finish first.</span></div>'
+      } else {
+        html += '<div class="dj-set-list">' + tracks.map((t, i) =>
+          '<div class="dj-set-row" data-dj-i="' + i + '">' +
+            '<span class="music-track-num">' + (i + 1) + '</span>' +
+            '<div style="min-width:0"><div class="dj-set-title">' + esc(t.title || '') + '</div>' +
+            '<div class="dj-set-sub">' + esc(t.artist || '') + (t.album ? ' · ' + esc(t.album) : '') + '</div></div>' +
+            '<span class="dj-set-reason">' + esc(t.djReason || '') + '</span>' +
+          '</div>'
+        ).join('') + '</div>'
+      }
+      inner.innerHTML = html
+      inner.querySelector('#dj-play')?.addEventListener('click', () => { if (tracks.length) setQueue(tracks, 0) })
+      inner.querySelector('#dj-regen')?.addEventListener('click', () => showAtomicDj(options))
+      inner.querySelector('#dj-save')?.addEventListener('click', async () => {
+        if (!tracks.length) return
+        const pl = { id: 'pl_' + Date.now(), name: 'Atomic DJ - ' + new Date().toLocaleDateString(), tracks: tracks.map(({ djReason, ...t }) => t) }
+        playlists.playlists.push(pl)
+        await savePlaylists()
+        renderMusicTree(musicLibrary)
+        setStatus('Saved playlist: ' + pl.name)
+      })
+      inner.querySelectorAll('.dj-set-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const i = parseInt(row.dataset.djI)
+          inner.querySelectorAll('.dj-set-row').forEach(r => r.classList.remove('playing'))
+          row.classList.add('playing')
+          setQueue(tracks, i)
+        })
+        row.addEventListener('contextmenu', e => showCtxMenu(e, tracks[parseInt(row.dataset.djI)]))
+      })
+      if (options.autoStart && tracks.length) setQueue(tracks, 0)
     }
 
     function showB2AllAlbums() {
@@ -1848,6 +2278,17 @@
       }
     }
 
+    function resetMusicSearchScroll() {
+      const inner = el('music-content-inner')
+      const content = inner?.closest('.music-content') || document.querySelector('.music-content')
+      if (content) content.scrollTop = 0
+      if (inner) inner.scrollTop = 0
+      requestAnimationFrame(() => {
+        if (content) content.scrollTop = 0
+        if (inner) inner.scrollTop = 0
+      })
+    }
+
     function showB2Search(q) {
       const inner = el('music-content-inner'); if (!inner) return
       const bucket = b2Lib.bucketName || 'SpAtomify'
@@ -1874,7 +2315,9 @@
 
       if (!matchArtists.length && !matchAlbums.length && !matchTracks.length) {
         html += '<div class="music-empty"><span class="me-icon">🔍</span><span class="me-text">No results for "' + esc(q) + '"</span></div>'
-        inner.innerHTML = html; return
+        inner.innerHTML = html
+        resetMusicSearchScroll()
+        return
       }
 
       if (matchArtists.length) {
@@ -1923,9 +2366,10 @@
       }
 
       inner.innerHTML = html
+      resetMusicSearchScroll()
       initImageFallbacks(inner)
 
-      inner.querySelectorAll('[data-b2-artist]').forEach(card => {
+      inner.querySelectorAll('.lib-card[data-b2-artist]').forEach(card => {
         card.addEventListener('click', () => {
           const artist = b2Lib.artists.find(a => a.name === card.dataset.b2Artist)
           if (!artist) return
@@ -2608,6 +3052,8 @@
               '<button id="b2-shuffle-all-btn" class="b2-primary-btn">&#x21C4; Shuffle All</button>' +
               '<button id="b2-view-albums-btn" class="b2-ghost-btn">Browse Albums</button>' +
               '<button id="b2-view-artists-btn" class="b2-ghost-btn">Explore Artists</button>' +
+              '<button id="b2-view-genres-btn" class="b2-ghost-btn">Genres</button>' +
+              '<button id="b2-dj-btn" class="b2-ghost-btn">Atomic DJ</button>' +
             '</div>' +
           '</div>' +
           '<div class="b2-hero-stack">'
@@ -2682,6 +3128,8 @@
       })
       el('b2-view-albums-btn')?.addEventListener('click', () => showB2AllAlbums())
       el('b2-view-artists-btn')?.addEventListener('click', () => showB2AllArtists())
+      el('b2-view-genres-btn')?.addEventListener('click', async () => { await ensureB2Genres(); showB2Genres(); renderMusicTree(musicLibrary) })
+      el('b2-dj-btn')?.addEventListener('click', () => showAtomicDj({ autoStart: true }))
       el('b2-all-albums-top')?.addEventListener('click', () => showB2AllAlbums())
       el('b2-all-artists-top')?.addEventListener('click', () => showB2AllArtists())
       el('b2-all-artists-featured')?.addEventListener('click', () => showB2AllArtists())
@@ -3751,6 +4199,7 @@
     ;(async function boot() {
       currentUser = loadStoredUser()
       await fetchAuthConfig()
+      if (consumeGoogleAuthResult()) return
       applyAuthState()
       if (currentUser) init()
       else setAuthMessage('Use any email and a password of at least 8 characters.')
@@ -3910,8 +4359,13 @@
     if (!filePath) return '';
     return '/img?file=' + encodeURIComponent(filePath);
   }
+  function atomicBlastStreamQuality() {
+    var conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+    if (conn && conn.saveData) return 'low';
+    return 'flac';
+  }
   function b2TrackObj(track, artistName, album, dlUrl, dlToken, bucket) {
-    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=flac';
+    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=' + atomicBlastStreamQuality();
     var coverUrl  = b2CoverUrl(album.coverPath);
     return { id: track.path, title: track.title, artist: artistName, album: album.name,
              path: signedUrl, ext: track.ext, coverPath: coverUrl };
@@ -3919,3 +4373,4 @@
   </script>
 </body>
 </html>
+

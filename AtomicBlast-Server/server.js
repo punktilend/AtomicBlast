@@ -8,13 +8,26 @@ const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const STATE_DIR = process.env.STATE_DIR || __dirname;
+const B2_HTTP_AGENT = new https.Agent({ keepAlive: true, maxSockets: 64 });
+fs.mkdirSync(STATE_DIR, { recursive: true });
+function stateFile(name) {
+  return path.join(STATE_DIR, name);
+}
+function envValue(name, fallback = '') {
+  const value = process.env[name];
+  if (value === undefined || value === null) return fallback;
+  const trimmed = String(value).trim();
+  if (!trimmed || trimmed.startsWith('TODO_SET_') || trimmed === '__unset__') return fallback;
+  return trimmed;
+}
 
 // B2 config
-const B2_BUCKET_URL = process.env.B2_BUCKET_URL || 'https://s3.us-east-005.backblazeb2.com/SpAtomify';
-const B2_KEY_ID     = process.env.B2_KEY_ID  || '0055a9c537f296d0000000014';
-const B2_APP_KEY    = process.env.B2_APP_KEY || 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc';
-const B2_BUCKET     = process.env.B2_BUCKET  || 'SpAtomify';
-const B2_PREFIX     = process.env.B2_PREFIX  || 'Music/';
+const B2_BUCKET_URL = envValue('B2_BUCKET_URL', 'https://s3.us-east-005.backblazeb2.com/SpAtomify');
+const B2_KEY_ID     = envValue('B2_KEY_ID', '0055a9c537f296d0000000014');
+const B2_APP_KEY    = envValue('B2_APP_KEY', 'K005XUecoGa52VpCS6Hb2qx45iGZ/jc');
+const B2_BUCKET     = envValue('B2_BUCKET', 'SpAtomify');
+const B2_PREFIX     = envValue('B2_PREFIX', 'Music/');
 
 // Quality presets
 const QUALITY_PRESETS = {
@@ -27,6 +40,13 @@ const QUALITY_PRESETS = {
 // ── Middleware ─────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (host === '23.95.216.131:3000' || host === '23.95.216.131') {
+    return res.redirect(308, PUBLIC_ORIGIN + req.originalUrl);
+  }
+  next();
+});
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -35,10 +55,14 @@ app.use((req, res, next) => {
 });
 
 // ── Account auth ─────────────────────────────────────────────────────────────
-const AUTH_SUPPORT_EMAIL = process.env.AUTH_SUPPORT_EMAIL || 'adammharvey+AtomicBlast@gmail.com';
-const GOOGLE_CLIENT_ID   = process.env.GOOGLE_CLIENT_ID || '';
-const ACCOUNTS_FILE      = path.join(__dirname, 'accounts.json');
+const AUTH_SUPPORT_EMAIL = envValue('AUTH_SUPPORT_EMAIL', 'adammharvey+AtomicBlast@gmail.com');
+const GOOGLE_CLIENT_ID   = envValue('GOOGLE_CLIENT_ID');
+const GOOGLE_CLIENT_SECRET = envValue('GOOGLE_CLIENT_SECRET');
+const PUBLIC_ORIGIN = envValue('PUBLIC_ORIGIN', 'https://blast.atomicradius.app').replace(/\/+$/, '');
+const GOOGLE_REDIRECT_URI = envValue('GOOGLE_REDIRECT_URI', `${PUBLIC_ORIGIN}/api/auth/google/callback`);
+const ACCOUNTS_FILE      = stateFile('accounts.json');
 const PASSWORD_ITERATIONS = 210000;
+const googleOAuthStates = new Map();
 
 function loadAccounts() {
   try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); } catch { return { users: [] }; }
@@ -137,11 +161,13 @@ function emailPasswordLogin({ email, password, name }) {
 }
 
 app.get('/api/auth/config', (req, res) => {
+  const googleRedirectConfigured = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
   res.json({
     googleClientId: GOOGLE_CLIENT_ID,
+    googleRedirectUri: GOOGLE_REDIRECT_URI,
     supportEmail: AUTH_SUPPORT_EMAIL,
     providers: {
-      google: !!GOOGLE_CLIENT_ID,
+      google: googleRedirectConfigured,
       apple: false,
       microsoft: false,
       email: true,
@@ -160,6 +186,123 @@ app.post('/api/auth/email-login', (req, res) => {
     res.json({ ok: true, user });
   } catch (e) {
     res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+function htmlResponse(res, body) {
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  res.send(body);
+}
+
+function authReturnPage({ user, error, returnMode }) {
+  const payload = JSON.stringify({ type: 'atomicblast-google-auth', user: user || null, error: error || null });
+  const bodyText = error ? 'Google sign-in could not finish.' : 'Google sign-in complete. You can return to AtomicBlast.';
+  const shouldClose = returnMode === 'popup';
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AtomicBlast Sign In</title>
+  <style>
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:#050806; color:#eef7ef; font:16px system-ui,-apple-system,Segoe UI,sans-serif; }
+    main { max-width:460px; padding:28px; text-align:center; }
+    h1 { font-size:24px; margin:0 0 10px; }
+    p { color:#a8b4aa; line-height:1.5; }
+    button { margin-top:18px; min-height:44px; border:0; border-radius:8px; background:#4ade80; color:#041006; font-weight:800; padding:0 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>${error ? 'Sign-in failed' : 'Signed in'}</h1>
+    <p>${bodyText}</p>
+    ${error ? `<p>${String(error).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</p>` : ''}
+    <button type="button" onclick="${shouldClose ? 'window.close()' : `location.href='${PUBLIC_ORIGIN}'`}">${shouldClose ? 'Close this page' : 'Open AtomicBlast'}</button>
+  </main>
+  <script>
+    const payload = ${payload};
+    try {
+      if (payload.user) localStorage.setItem('atomicblast.user', JSON.stringify(payload.user));
+      localStorage.setItem('atomicblast.googleAuthResult', JSON.stringify({ payload, ts: Date.now() }));
+      if (window.opener) window.opener.postMessage(payload, '${PUBLIC_ORIGIN}');
+      try {
+        const channel = new BroadcastChannel('atomicblast-auth');
+        channel.postMessage(payload);
+        channel.close();
+      } catch (_) {}
+    } catch (_) {}
+    setTimeout(() => {
+      try {
+        if (${shouldClose ? 'true' : 'false'}) {
+          window.close();
+          document.querySelector('p').textContent = 'You are signed in. Close this page and return to AtomicBlast.';
+        } else {
+          location.replace('${PUBLIC_ORIGIN}');
+        }
+      } catch (_) {}
+    }, 900);
+  </script>
+</body>
+</html>`;
+}
+
+app.get('/api/auth/google/start', (req, res) => {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return htmlResponse(res, authReturnPage({ error: 'Google OAuth is not fully configured on the server.', returnMode: req.query.return }));
+  }
+  const state = crypto.randomBytes(18).toString('base64url');
+  const nonce = crypto.randomBytes(18).toString('base64url');
+  googleOAuthStates.set(state, {
+    returnMode: req.query.return === 'popup' ? 'popup' : '',
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
+  res.cookie?.('atomicblast_google_state', state, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: PUBLIC_ORIGIN.startsWith('https://'),
+    maxAge: 10 * 60 * 1000,
+  });
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    nonce,
+    prompt: 'select_account',
+  });
+  res.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const stateInfo = googleOAuthStates.get(String(req.query.state || '')) || {};
+  googleOAuthStates.delete(String(req.query.state || ''));
+  const returnMode = stateInfo.expiresAt && stateInfo.expiresAt > Date.now() ? stateInfo.returnMode : '';
+  try {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) throw new Error('Google OAuth is not fully configured on the server.');
+    if (req.query.error) throw new Error(String(req.query.error_description || req.query.error));
+    const code = String(req.query.code || '');
+    if (!code) throw new Error('Google did not return an authorization code.');
+    const tokenRes = await httpsPostForm('https://oauth2.googleapis.com/token', new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }).toString());
+    if (!tokenRes.id_token) throw new Error('Google did not return an ID token.');
+    const tokenInfo = await httpsGetJSON('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(tokenRes.id_token));
+    if (tokenInfo.aud !== GOOGLE_CLIENT_ID) throw new Error('Google audience mismatch');
+    if (tokenInfo.email_verified !== 'true' && tokenInfo.email_verified !== true) throw new Error('Google email is not verified');
+    const user = upsertAccount({
+      email: tokenInfo.email,
+      name: tokenInfo.name,
+      picture: tokenInfo.picture,
+      provider: 'google',
+    });
+    htmlResponse(res, authReturnPage({ user, returnMode }));
+  } catch (e) {
+    htmlResponse(res, authReturnPage({ error: e.message || 'Google sign-in failed', returnMode }));
   }
 });
 
@@ -183,11 +326,26 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+const WINDOWS_DOWNLOAD_FILE = path.join(__dirname, 'public', 'downloads', 'install-atomicblast-windows.ps1');
+
+app.get(['/download', '/download/windows'], (req, res) => {
+  if (!fs.existsSync(WINDOWS_DOWNLOAD_FILE)) return res.status(404).send('Windows download is not available.');
+  res.download(WINDOWS_DOWNLOAD_FILE, 'install-atomicblast-windows.ps1');
+});
+
 // Serve web app static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (/\.(?:html)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  },
+}));
 
 // ── Favorites storage ─────────────────────────────────────────────────────────
-const FAVORITES_FILE = path.join(__dirname, 'favorites.json');
+const FAVORITES_FILE = stateFile('favorites.json');
 function loadFavorites() {
   try { return JSON.parse(fs.readFileSync(FAVORITES_FILE, 'utf8')); } catch { return []; }
 }
@@ -213,7 +371,7 @@ app.delete('/favorites', (req, res) => {
 });
 
 // ── Playlists storage (web app) ───────────────────────────────────────────────
-const PLAYLISTS_FILE = path.join(__dirname, 'playlists.json');
+const PLAYLISTS_FILE = stateFile('playlists.json');
 function loadPlaylists() {
   try { return JSON.parse(fs.readFileSync(PLAYLISTS_FILE, 'utf8')); } catch { return { liked: [], playlists: [] }; }
 }
@@ -226,7 +384,7 @@ app.post('/api/playlists', (req, res) => {
 });
 
 // ── Playback state (pause-on-disconnect / cross-device resume) ────────────────
-const PLAYBACK_STATE_FILE = path.join(__dirname, 'playback-state.json');
+const PLAYBACK_STATE_FILE = stateFile('playback-state.json');
 app.get('/api/playback-state', (req, res) => {
   try {
     const state = fs.existsSync(PLAYBACK_STATE_FILE)
@@ -248,13 +406,107 @@ app.delete('/api/playback-state', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// ── Genre cache (iTunes Search API) ──────────────────────────────────────────
-const GENRES_FILE = path.join(__dirname, 'genres.json');
+// ── Genre cache/database ─────────────────────────────────────────────────────
+const GENRES_FILE = stateFile('genres.json');
+const GENRE_DB_FILE = stateFile('genre-db.json');
+const GENRE_LOOKUP_BATCH_SIZE = Math.max(1, Math.min(parseInt(envValue('GENRE_LOOKUP_BATCH_SIZE', '5'), 10) || 5, 10));
+const GENRE_LOOKUP_LIMIT = Math.max(0, parseInt(envValue('GENRE_LOOKUP_LIMIT', '80'), 10) || 80);
+const GENRE_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const GENRE_UNRESOLVED_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 function loadGenresCache() {
   try { return JSON.parse(fs.readFileSync(GENRES_FILE, 'utf8')); } catch { return {}; }
 }
 function saveGenresCache(data) {
   try { fs.writeFileSync(GENRES_FILE, JSON.stringify(data, null, 2), 'utf8'); } catch {}
+}
+function emptyGenreDb() {
+  return {
+    schema: 1,
+    updatedAt: null,
+    artists: {},
+    albums: {},
+    tracks: {},
+    manual: { artists: {}, albums: {}, tracks: {} },
+  };
+}
+function loadGenreDb() {
+  try {
+    const db = JSON.parse(fs.readFileSync(GENRE_DB_FILE, 'utf8'));
+    return {
+      ...emptyGenreDb(),
+      ...db,
+      artists: db.artists || {},
+      albums: db.albums || {},
+      tracks: db.tracks || {},
+      manual: {
+        artists: db.manual?.artists || {},
+        albums: db.manual?.albums || {},
+        tracks: db.manual?.tracks || {},
+      },
+    };
+  } catch {
+    return emptyGenreDb();
+  }
+}
+function saveGenreDb(db) {
+  db.updatedAt = new Date().toISOString();
+  fs.writeFileSync(GENRE_DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+}
+function genreKey(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function albumGenreKey(artist, album) {
+  return genreKey(artist) + '\x00' + genreKey(album);
+}
+function trackGenreKey(filePath) {
+  return String(filePath || '').trim();
+}
+function normalizeGenreName(value) {
+  let g = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!g || /^music$/i.test(g)) return '';
+  g = g.replace(/\b(escape room|grave wave|permanent wave|metropopolis|stomp and holler)\b/ig, '').replace(/\s+/g, ' ').trim();
+  if (!g) return '';
+  return g.split(' ').map(part => {
+    if (/^(r&b|edm|emo|oi!|uk|us|idm)$/i.test(part)) return part.toUpperCase();
+    if (/^(and|or|the|of)$/i.test(part)) return part.toLowerCase();
+    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+  }).join(' ');
+}
+function simplifyGenreName(value) {
+  const g = String(value || '').toLowerCase();
+  const rules = [
+    ['Punk', /\b(punk|hardcore|emo|skate punk|pop punk|post-hardcore)\b/],
+    ['Metal', /\b(metal|grindcore|deathcore|metalcore|doom|blackgaze|thrash)\b/],
+    ['Hip-Hop/Rap', /\b(hip hop|rap|trap|boom bap)\b/],
+    ['Electronic', /\b(electronic|edm|techno|house|trance|dubstep|drum and bass|ambient|idm|synth)\b/],
+    ['R&B/Soul', /\b(r&b|soul|funk|motown)\b/],
+    ['Reggae', /\b(reggae|ska|dub|dancehall|rocksteady)\b/],
+    ['Country', /\b(country|americana|bluegrass|honky tonk)\b/],
+    ['Jazz', /\b(jazz|bebop|swing|fusion)\b/],
+    ['Classical', /\b(classical|orchestra|chamber|baroque|opera)\b/],
+    ['Folk', /\b(folk|singer-songwriter)\b/],
+    ['Pop', /\b(pop|dance pop|synthpop)\b/],
+    ['Alternative', /\b(alternative|indie|shoegaze|post-rock|noise pop|britpop)\b/],
+    ['Rock', /\b(rock|grunge|garage|psychedelic|post-punk|new wave)\b/],
+  ];
+  for (const [name, re] of rules) if (re.test(g)) return name;
+  return normalizeGenreName(value);
+}
+function genreRecord(genre, source, confidence, extra = {}) {
+  const normalized = simplifyGenreName(genre);
+  return {
+    genre: normalized || 'Other',
+    genres: normalized ? [normalized] : [],
+    source,
+    confidence,
+    updatedAt: new Date().toISOString(),
+    ...extra,
+  };
+}
+function genreRecordIsFresh(record) {
+  if (!record?.updatedAt) return false;
+  const ttl = record.genre === 'Other' ? GENRE_UNRESOLVED_TTL_MS : GENRE_CACHE_TTL_MS;
+  return Date.now() - Date.parse(record.updatedAt) < ttl;
 }
 
 function httpsGetText(url, headers = {}) {
@@ -293,9 +545,9 @@ function httpsPostForm(url, formBody, headers = {}) {
 }
 
 // ── Spotify client credentials auth ──────────────────────────────────────────
-const SPOTIFY_CLIENT_ID     = process.env.SPOTIFY_CLIENT_ID     || '';
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const LASTFM_API_KEY        = process.env.LASTFM_API_KEY        || '';
+const SPOTIFY_CLIENT_ID     = envValue('SPOTIFY_CLIENT_ID');
+const SPOTIFY_CLIENT_SECRET = envValue('SPOTIFY_CLIENT_SECRET');
+const LASTFM_API_KEY        = envValue('LASTFM_API_KEY');
 
 let _spotifyToken    = null;
 let _spotifyTokenExp = 0;
@@ -342,33 +594,203 @@ async function fetchItunesGenre(artistName) {
   } catch { return null; }
 }
 
+async function fetchSpotifyArtistGenres(artistName) {
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) return [];
+  const sr = await spotifySearch('artist', artistName);
+  const artist = sr?.artists?.items?.[0];
+  return (artist?.genres || []).filter(Boolean);
+}
+
+async function fetchLastFmArtistGenres(artistName) {
+  if (!LASTFM_API_KEY) return [];
+  const lfUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&format=json&autocorrect=1`;
+  const lf = await httpsGetJSON(lfUrl);
+  return (lf?.toptags?.tag || [])
+    .filter(t => Number(t.count || 0) > 0 || t.name)
+    .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+    .map(t => t.name)
+    .filter(Boolean);
+}
+
+function pickGenreCandidate(candidates) {
+  for (const candidate of candidates || []) {
+    const normalized = simplifyGenreName(candidate);
+    if (normalized) return normalized;
+  }
+  return '';
+}
+
+async function resolveArtistGenre(artistName) {
+  const spotifyGenres = await fetchSpotifyArtistGenres(artistName).catch(e => {
+    console.error('[genres] Spotify genre lookup failed for', artistName + ':', e.message);
+    return [];
+  });
+  const spotifyPick = pickGenreCandidate(spotifyGenres);
+  if (spotifyPick) return genreRecord(spotifyPick, 'spotify', 0.9, { rawGenres: spotifyGenres.slice(0, 8) });
+
+  const lastFmGenres = await fetchLastFmArtistGenres(artistName).catch(e => {
+    console.error('[genres] Last.fm genre lookup failed for', artistName + ':', e.message);
+    return [];
+  });
+  const lastFmPick = pickGenreCandidate(lastFmGenres);
+  if (lastFmPick) return genreRecord(lastFmPick, 'lastfm', 0.75, { rawGenres: lastFmGenres.slice(0, 8) });
+
+  const itunesGenre = await fetchItunesGenre(artistName);
+  if (itunesGenre) return genreRecord(itunesGenre, 'itunes', 0.55, { rawGenres: [itunesGenre] });
+
+  return genreRecord('Other', 'unresolved', 0);
+}
+
+function flattenLibraryAlbums(lib) {
+  const albums = [];
+  for (const artist of lib.artists || []) {
+    for (const album of artist.albums || []) albums.push({ artist, album });
+  }
+  return albums;
+}
+
+function flattenLibraryTracks(lib) {
+  const tracks = [];
+  for (const artist of lib.artists || []) {
+    for (const album of artist.albums || []) {
+      for (const track of album.tracks || []) tracks.push({ artist, album, track });
+    }
+  }
+  return tracks;
+}
+
+function manualGenreRecord(value, source = 'manual') {
+  if (!value) return null;
+  return genreRecord(value.genre || value, source, 1, {
+    updatedAt: value.updatedAt || new Date().toISOString(),
+    note: value.note || undefined,
+  });
+}
+
+function resolveStoredGenreForTrack(db, artist, album, track) {
+  const trackManual = manualGenreRecord(db.manual.tracks[trackGenreKey(track.path)]);
+  if (trackManual) return trackManual;
+  const albumManual = manualGenreRecord(db.manual.albums[albumGenreKey(artist.name, album.name)]);
+  if (albumManual) return albumManual;
+  const artistManual = manualGenreRecord(db.manual.artists[genreKey(artist.name)]);
+  if (artistManual) return artistManual;
+  return db.tracks[trackGenreKey(track.path)]
+    || db.albums[albumGenreKey(artist.name, album.name)]
+    || db.artists[genreKey(artist.name)]
+    || genreRecord('Other', 'unresolved', 0);
+}
+
+async function updateGenreDbForLibrary(lib, options = {}) {
+  const force = !!options.force;
+  const lookupLimit = Number.isFinite(options.lookupLimit) ? options.lookupLimit : GENRE_LOOKUP_LIMIT;
+  const db = options.db || loadGenreDb();
+  const artists = lib.artists || [];
+  const missing = artists.filter(artist => {
+    const key = genreKey(artist.name);
+    if (db.manual.artists[key]) return false;
+    return force || !genreRecordIsFresh(db.artists[key]);
+  });
+  const selected = lookupLimit < 0 ? missing : missing.slice(0, lookupLimit);
+
+  for (let i = 0; i < selected.length; i += GENRE_LOOKUP_BATCH_SIZE) {
+    const batch = selected.slice(i, i + GENRE_LOOKUP_BATCH_SIZE);
+    const records = await Promise.all(batch.map(artist => resolveArtistGenre(artist.name)));
+    batch.forEach((artist, index) => {
+      db.artists[genreKey(artist.name)] = { ...records[index], name: artist.name };
+    });
+    saveGenreDb(db);
+    if (i + GENRE_LOOKUP_BATCH_SIZE < selected.length) await new Promise(r => setTimeout(r, 250));
+  }
+
+  for (const { artist, album } of flattenLibraryAlbums(lib)) {
+    const key = albumGenreKey(artist.name, album.name);
+    if (!db.albums[key]) {
+      const artistRecord = db.artists[genreKey(artist.name)];
+      if (artistRecord?.genre && artistRecord.genre !== 'Other') {
+        db.albums[key] = {
+          genre: artistRecord.genre,
+          genres: artistRecord.genres || [artistRecord.genre],
+          source: 'artist-inferred',
+          confidence: Math.max(0, Number(artistRecord.confidence || 0) - 0.1),
+          artist: artist.name,
+          album: album.name,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    }
+  }
+
+  saveGenreDb(db);
+  return {
+    db,
+    stats: {
+      artists: artists.length,
+      missing: missing.length,
+      lookedUp: selected.length,
+      pending: Math.max(0, missing.length - selected.length),
+      lookupLimit: lookupLimit < 0 ? 'all' : lookupLimit,
+      updatedAt: db.updatedAt,
+    },
+  };
+}
+
+function buildGenreResponse(lib, db, stats = {}) {
+  const genreMap = {};
+  const artistGenres = {};
+  const albumGenres = {};
+  const trackGenres = {};
+  const genreTracks = {};
+
+  for (const artist of lib.artists || []) {
+    const artistRecord = db.manual.artists[genreKey(artist.name)]
+      ? manualGenreRecord(db.manual.artists[genreKey(artist.name)])
+      : db.artists[genreKey(artist.name)];
+    artistGenres[artist.name] = artistRecord?.genre || 'Other';
+    if (!genreMap[artistGenres[artist.name]]) genreMap[artistGenres[artist.name]] = [];
+    genreMap[artistGenres[artist.name]].push(artist.name);
+  }
+
+  for (const { artist, album, track } of flattenLibraryTracks(lib)) {
+    const record = resolveStoredGenreForTrack(db, artist, album, track);
+    const genre = record.genre || 'Other';
+    const albumKey = artist.name + '\x00' + album.name;
+    albumGenres[albumKey] = albumGenres[albumKey] || genre;
+    trackGenres[track.path] = {
+      genre,
+      genres: record.genres || [genre],
+      source: record.source || 'unknown',
+      confidence: record.confidence || 0,
+    };
+    if (!genreTracks[genre]) genreTracks[genre] = [];
+    genreTracks[genre].push(track.path);
+  }
+
+  for (const list of Object.values(genreMap)) list.sort((a, b) => a.localeCompare(b));
+  return {
+    schema: 2,
+    genreMap,
+    artistGenres,
+    albumGenres,
+    trackGenres,
+    genreTracks,
+    stats: {
+      ...stats,
+      genres: Object.keys(genreMap).length,
+      tracks: Object.keys(trackGenres).length,
+      dbUpdatedAt: db.updatedAt,
+    },
+  };
+}
+
 app.get('/api/genres', async (req, res) => {
   try {
     const lib = await scanB2Music();
-    const cached = loadGenresCache();
-    const artistGenres = { ...cached };
-
-    // Find artists not yet cached
-    const missing = lib.artists.map(a => a.name).filter(n => !(n in artistGenres));
-    if (missing.length > 0) {
-      // Fetch in batches of 5 to avoid rate limits
-      for (let i = 0; i < missing.length; i += 5) {
-        const batch = missing.slice(i, i + 5);
-        const results = await Promise.all(batch.map(name => fetchItunesGenre(name)));
-        batch.forEach((name, j) => { artistGenres[name] = results[j] || 'Other'; });
-        if (i + 5 < missing.length) await new Promise(r => setTimeout(r, 300));
-      }
-      saveGenresCache(artistGenres);
-    }
-
-    // Build genre → artist list map
-    const genreMap = {};
-    for (const artist of lib.artists) {
-      const genre = artistGenres[artist.name] || 'Other';
-      if (!genreMap[genre]) genreMap[genre] = [];
-      genreMap[genre].push(artist.name);
-    }
-    res.json({ genreMap, artistGenres });
+    const force = req.query.force === '1' || req.query.refresh === '1';
+    const lookupLimit = req.query.limit !== undefined
+      ? Math.max(0, parseInt(req.query.limit, 10) || 0)
+      : GENRE_LOOKUP_LIMIT;
+    const { db, stats } = await updateGenreDbForLibrary(lib, { force, lookupLimit });
+    res.json(buildGenreResponse(lib, db, stats));
   } catch (e) {
     console.error('[api/genres]', e.message);
     res.status(500).json({ error: e.message });
@@ -376,19 +798,56 @@ app.get('/api/genres', async (req, res) => {
 });
 
 // Force re-fetch genres (clear cache)
-app.post('/api/genres/refresh', (req, res) => {
-  try { fs.unlinkSync(GENRES_FILE); } catch {}
-  res.json({ ok: true });
+app.post('/api/genres/refresh', async (req, res) => {
+  try {
+    try { fs.unlinkSync(GENRES_FILE); } catch {}
+    try { fs.unlinkSync(GENRE_DB_FILE); } catch {}
+    const lib = await scanB2Music();
+    const lookupLimit = req.query.limit !== undefined
+      ? Math.max(0, parseInt(req.query.limit, 10) || 0)
+      : -1;
+    const { db, stats } = await updateGenreDbForLibrary(lib, { force: true, lookupLimit });
+    res.json({ ok: true, ...buildGenreResponse(lib, db, stats) });
+  } catch (e) {
+    console.error('[api/genres/refresh]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/genres/manual', async (req, res) => {
+  try {
+    const { scope, key, artist, album, filePath, genre, note } = req.body || {};
+    const cleanGenre = simplifyGenreName(genre);
+    if (!cleanGenre) return res.status(400).json({ error: 'genre required' });
+    const db = loadGenreDb();
+    const record = { genre: cleanGenre, note: note || '', updatedAt: new Date().toISOString() };
+    if (scope === 'track') db.manual.tracks[trackGenreKey(filePath || key)] = record;
+    else if (scope === 'album') db.manual.albums[albumGenreKey(artist, album) || key] = record;
+    else if (scope === 'artist') db.manual.artists[genreKey(artist || key)] = record;
+    else return res.status(400).json({ error: 'scope must be artist, album, or track' });
+    saveGenreDb(db);
+    res.json({ ok: true, record });
+  } catch (e) {
+    console.error('[api/genres/manual]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── B2 native API helpers ─────────────────────────────────────────────────────
+const B2_REQUEST_TIMEOUT_MS = 20 * 1000;
+
 function b2Get(url, headers = {}) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0', ...headers } }, res => {
+    const req = https.get(url, {
+      headers: { 'User-Agent': 'AtomicBlast/1.0', ...headers },
+      timeout: B2_REQUEST_TIMEOUT_MS,
+    }, res => {
       let d = '';
       res.on('data', c => { d += c; });
       res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(new Error(d.slice(0, 300))); } });
-    }).on('error', reject);
+    });
+    req.on('timeout', () => req.destroy(new Error('B2 request timed out')));
+    req.on('error', reject);
   });
 }
 
@@ -399,12 +858,14 @@ function b2Post(url, body, headers = {}) {
     const req = https.request({
       hostname: u.hostname, path: u.pathname + u.search, method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data),
-                 'User-Agent': 'AtomicBlast/1.0', ...headers }
+                 'User-Agent': 'AtomicBlast/1.0', ...headers },
+      timeout: B2_REQUEST_TIMEOUT_MS,
     }, res => {
       let d = '';
       res.on('data', c => { d += c; });
       res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(new Error(d.slice(0, 300))); } });
     });
+    req.on('timeout', () => req.destroy(new Error('B2 request timed out')));
     req.on('error', reject);
     req.write(data);
     req.end();
@@ -412,7 +873,7 @@ function b2Post(url, body, headers = {}) {
 }
 
 // ── CUE disk cache — avoids re-downloading 800+ CUE files on every scan ──────
-const CUE_CACHE_FILE = path.join(__dirname, 'cue-cache.json');
+const CUE_CACHE_FILE = stateFile('cue-cache.json');
 let _cueCache = null;
 function loadCueCache() {
   if (_cueCache) return _cueCache;
@@ -501,10 +962,47 @@ function fetchB2TextRaw(filePath, dlUrl, dlToken) {
 // ── B2 library scanner (ported from Electron main.js) ────────────────────────
 const AUDIO_EXTS = new Set(['.mp3','.flac','.m4a','.wav','.aac','.ogg','.opus','.wma','.ape','.aiff','.alac','.webm']);
 const VIDEO_EXTS = new Set(['.mp4','.mkv','.avi','.mov','.m4v','.flv']);
-const COVER_FILE_NAMES_SET = new Set(['cover.jpg','folder.jpg','cover.png','folder.png','artwork.jpg','album.jpg','front.jpg']);
+const COVER_FILE_NAMES_SET = new Set(['cover.jpg','folder.jpg','cover.png','folder.png','artwork.jpg','album.jpg','front.jpg','front.png']);
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const LOW_PRIORITY_ART_RE = /\b(back|booklet|inlay|disc|cd|media|tray|matrix|obi|sticker|label)\b/i;
 
 function isCoverFile(name) { return COVER_FILE_NAMES_SET.has(name.toLowerCase()); }
 function isAudioFile(name) { return AUDIO_EXTS.has(path.extname(name).toLowerCase()); }
+
+function normalizeCoverText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[_\W]+/g, ' ')
+    .replace(/\b(19|20)\d{2}\b/g, ' ')
+    .replace(/\b(flac|mp3|aac|ogg|wav|alac|webp|jpg|jpeg|png|cover|folder|front|artwork|album|va)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function coverCandidateRank(filePath, baseName, parsed) {
+  const ext = path.extname(baseName).toLowerCase();
+  if (!IMAGE_EXTS.has(ext)) return 0;
+
+  const lowerBase = baseName.toLowerCase();
+  const pathParts = filePath.split('/');
+  const parent = (pathParts[pathParts.length - 2] || '').toLowerCase();
+  const exactName = COVER_FILE_NAMES_SET.has(lowerBase);
+  if (exactName && !LOW_PRIORITY_ART_RE.test(baseName)) return parent === 'art' ? 90 : 100;
+
+  if (LOW_PRIORITY_ART_RE.test(baseName)) return 0;
+
+  const baseText = normalizeCoverText(baseName);
+  const albumText = normalizeCoverText(parsed.albumName);
+  const artistText = normalizeCoverText(parsed.artistName);
+  if (albumText && baseText.includes(albumText)) return 80;
+  if (artistText && albumText && baseText.includes(artistText) && baseText.split(' ').some(part => albumText.includes(part))) return 70;
+  return 0;
+}
+
+function isGenericAlbumCoverKey(albumName) {
+  return /^(greatest hits|best of|the best of|collection|anthology|live|unreleased|disc \d+|cd \d+)$/i.test(String(albumName || '').trim());
+}
 
 const AUDIO_QUALITY_RANK = {
   '.flac': 1000,
@@ -529,12 +1027,18 @@ function normalizeDuplicateTrackTitle(title) {
     .trim();
 }
 
-function cleanDisplayTrackTitle(title) {
-  return String(title || '')
+function cleanDisplayTrackTitle(title, expectedTrackNo = 0) {
+  let cleaned = String(title || '')
     .replace(/^\s*[a-h]\d{1,2}\s*[-–—._]\s+/i, '')
     .replace(/^\s*\d{1,3}\s*[-–—._]\s+/, '')
     .replace(/^\s*0\d{1,2}\s+/, '')
     .trim();
+  const trackNo = Number(expectedTrackNo || 0);
+  if (trackNo > 0) {
+    const repeated = new RegExp('^0*' + trackNo + '\\s+(.+)$');
+    cleaned = cleaned.replace(repeated, '$1').trim();
+  }
+  return cleaned;
 }
 
 function compareTrackQuality(a, b) {
@@ -628,7 +1132,7 @@ function parseArtistAlbumFolder(folderName) {
   return { artist, album: album || artist };
 }
 
-const SKIP_SEGMENTS = /^(cd\s*\d+|disc\s*\d+|disk\s*\d+|artwork|scans|extras?|bonus)$/i;
+const SKIP_SEGMENTS = /^(cd\s*\d+|disc\s*\d+|disk\s*\d+|art|artwork|scans|extras?|bonus)$/i;
 
 function parseMusicPath(parts) {
   if (parts.length < 3) return null;
@@ -672,12 +1176,76 @@ function parseMusicPath(parts) {
 // ── B2 music cache ────────────────────────────────────────────────────────────
 let b2Cache = null;
 let b2CacheTime = 0;
+let b2ScanPromise = null;
 const B2_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const B2_DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const B2_STALE_DISK_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const B2_DOWNLOAD_AUTH_REFRESH_MS = 23 * 60 * 60 * 1000; // B2 tokens are issued for 24 hours
+const B2_LIBRARY_CACHE_FILE = stateFile('b2-library-cache.json');
 
-async function scanB2Music() {
-  const now = Date.now();
-  if (b2Cache && (now - b2CacheTime) < B2_CACHE_TTL_MS) return b2Cache;
+function loadB2LibraryCacheFromDisk() {
+  try {
+    const cached = JSON.parse(fs.readFileSync(B2_LIBRARY_CACHE_FILE, 'utf8'));
+    if (!cached || !cached.lib || !Array.isArray(cached.lib.artists)) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
 
+function saveB2LibraryCacheToDisk(lib) {
+  try {
+    fs.writeFileSync(B2_LIBRARY_CACHE_FILE, JSON.stringify({ savedAt: Date.now(), lib }));
+  } catch (e) {
+    console.error('[scan-b2-music] disk cache save failed:', e.message);
+  }
+}
+
+function useB2DiskCacheIfAvailable(maxAgeMs = Infinity) {
+  const cached = loadB2LibraryCacheFromDisk();
+  if (!cached) return null;
+  const age = Date.now() - Number(cached.savedAt || 0);
+  if (age > maxAgeMs) return null;
+  b2Cache = cached.lib;
+  b2CacheTime = Number(cached.savedAt || Date.now());
+  return b2Cache;
+}
+
+async function refreshB2DownloadAuthForCachedLibrary(lib) {
+  const auth = await b2Auth();
+  const bucketId = await b2GetBucketId(auth, B2_BUCKET);
+  const dlAuthRes = await b2Post(auth.apiUrl + '/b2api/v2/b2_get_download_authorization',
+    { bucketId, fileNamePrefix: '', validDurationInSeconds: 86400 },
+    { Authorization: auth.authorizationToken });
+  const refreshed = {
+    ...lib,
+    dlUrl: auth.downloadUrl,
+    dlToken: dlAuthRes.authorizationToken,
+    bucketName: B2_BUCKET,
+  };
+  b2Cache = refreshed;
+  b2CacheTime = Date.now();
+  saveB2LibraryCacheToDisk(refreshed);
+  return refreshed;
+}
+
+function refreshB2MusicLibraryInBackground() {
+  if (b2ScanPromise) return;
+  b2ScanPromise = buildB2MusicLibrary()
+    .then(lib => {
+      b2Cache = lib;
+      b2CacheTime = Date.now();
+      saveB2LibraryCacheToDisk(lib);
+      return lib;
+    })
+    .catch(e => {
+      console.error('[scan-b2-music] background refresh failed:', e.message);
+      return null;
+    })
+    .finally(() => { b2ScanPromise = null; });
+}
+
+async function buildB2MusicLibrary() {
   console.log('[scan-b2-music] starting...');
   const auth = await b2Auth();
   const bucketId = await b2GetBucketId(auth, B2_BUCKET);
@@ -718,14 +1286,30 @@ async function scanB2Music() {
     const parsed = parseMusicPath(parts);
     if (!parsed) continue;
 
-    if (isCoverFile(baseName)) {
+    const coverRank = coverCandidateRank(filePath, baseName, parsed);
+    if (coverRank > 0) {
       const key = parsed.artistName + '\x00' + parsed.albumName;
-      if (!coverMap.has(key)) coverMap.set(key, filePath);
+      const existing = coverMap.get(key);
+      if (!existing || coverRank > existing.rank) coverMap.set(key, { path: filePath, rank: coverRank });
     } else if (ext === '.cue') {
       const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
       if (!cueMap.has(folderPath)) cueMap.set(folderPath, { path: filePath, ts: f.uploadTimestamp });
     } else if (AUDIO_EXTS.has(ext)) {
       audioEntries.push({ ...f, _parsed: parsed });
+    }
+  }
+
+  const uniqueCoverByAlbum = new Map();
+  for (const [key, cover] of coverMap.entries()) {
+    const albumName = key.split('\x00')[1] || '';
+    if (isGenericAlbumCoverKey(albumName)) continue;
+    const albumKey = normalizeCoverText(albumName);
+    if (!albumKey || albumKey.length < 8) continue;
+    const existing = uniqueCoverByAlbum.get(albumKey);
+    if (!existing) {
+      uniqueCoverByAlbum.set(albumKey, { path: cover.path, ambiguous: false });
+    } else if (existing.path !== cover.path) {
+      existing.ambiguous = true;
     }
   }
 
@@ -766,9 +1350,9 @@ async function scanB2Music() {
 
     // Filename-based fallback track number / title
     let trackNo = 0, title = baseName;
-    const trackMatch = baseName.match(/^(?:(\d{1,3})\s*[-–—._]\s*|(0\d{1,2})\s+|([a-h](\d{1,2}))\s*[-–—._]\s*)(\S.*)$/i);
+    const trackMatch = baseName.match(/^(?:(\d{1,3})\s*[-–—._]\s*|(\d{1,3})\s+|([a-h](\d{1,2}))\s*[-–—._]\s*)(\S.*)$/i);
     if (trackMatch) { trackNo = parseInt(trackMatch[1] || trackMatch[2] || trackMatch[4], 10); title = trackMatch[5]; }
-    title = cleanDisplayTrackTitle(title);
+    title = cleanDisplayTrackTitle(title, trackNo);
 
     const artistKey = artistName.toLowerCase();
     if (!artistNames.has(artistKey)) artistNames.set(artistKey, artistName);
@@ -798,7 +1382,9 @@ async function scanB2Music() {
       rawTracks.sort((a, b) => (a.trackNo || 999) - (b.trackNo || 999) || a.path.localeCompare(b.path));
       const coverKey  = artistName + '\x00' + albumName;
       const coverKey2 = artistKey  + '\x00' + albumName;
-      const coverPath = coverMap.get(coverKey) || coverMap.get(coverKey2) || null;
+      const directCover = (coverMap.get(coverKey) || coverMap.get(coverKey2) || {}).path || null;
+      const albumCover = uniqueCoverByAlbum.get(normalizeCoverText(albumName));
+      const coverPath = directCover || (!albumCover?.ambiguous ? albumCover?.path : null) || null;
       const folderPath = rawTracks[0] ? rawTracks[0].path.substring(0, rawTracks[0].path.lastIndexOf('/')) : '';
       const cuePath    = (cueMap.get(folderPath) || {}).path || null;
       const cueData    = cueDataMap.get(folderPath) || null;
@@ -814,7 +1400,7 @@ async function scanB2Music() {
           // ── Single-file FLAC + CUE: expand into virtual chapter tracks ──────
           const audioFile = rawTracks[0];
           tracks = cueData.chapters.map(ch => ({
-            title:       cleanDisplayTrackTitle(ch.title),
+            title:       cleanDisplayTrackTitle(ch.title, ch.trackNo),
             performer:   ch.performer || cueData.albumPerformer || null,
             path:        audioFile.path,
             fileId:      audioFile.fileId,
@@ -834,7 +1420,7 @@ async function scanB2Music() {
             if (!ch) return t;
             return {
               ...t,
-              title:      cleanDisplayTrackTitle(ch.title || t.title),
+              title:      cleanDisplayTrackTitle(ch.title || t.title, ch.trackNo || t.trackNo),
               performer:  ch.performer || cueData.albumPerformer || null,
             };
           });
@@ -844,18 +1430,45 @@ async function scanB2Music() {
       tracks = dedupeAlbumTracks(tracks, resolvedAlbumName);
       albums.push({ name: resolvedAlbumName, coverPath, tracks, cuePath });
     }
-    // Propagate cover art: albums without art (e.g. bare Disc 1/2 folders) borrow from siblings
-    const fallbackCover = albums.find(a => a.coverPath)?.coverPath || null;
-    if (fallbackCover) {
-      for (const album of albums) { if (!album.coverPath) album.coverPath = fallbackCover; }
-    }
     artists.push({ name: artistName, albums });
   }
 
-  b2Cache = { artists, dlUrl, dlToken, bucketName: B2_BUCKET };
-  b2CacheTime = now;
+  const lib = { artists, dlUrl, dlToken, bucketName: B2_BUCKET };
   console.log(`[scan-b2-music] done: ${artists.length} artists`);
-  return b2Cache;
+  return lib;
+}
+
+async function scanB2Music() {
+  const now = Date.now();
+  if (b2Cache && (now - b2CacheTime) < B2_CACHE_TTL_MS) return b2Cache;
+  const diskCache = useB2DiskCacheIfAvailable(B2_DISK_CACHE_TTL_MS);
+  if (diskCache) return diskCache;
+
+  const staleDiskCache = useB2DiskCacheIfAvailable(B2_STALE_DISK_CACHE_TTL_MS);
+  if (staleDiskCache) {
+    console.error('[scan-b2-music] serving stale disk cache while refreshing in background');
+    refreshB2MusicLibraryInBackground();
+    return staleDiskCache;
+  }
+
+  if (b2ScanPromise) return b2ScanPromise;
+  b2ScanPromise = buildB2MusicLibrary()
+    .then(lib => {
+      b2Cache = lib;
+      b2CacheTime = Date.now();
+      saveB2LibraryCacheToDisk(lib);
+      return lib;
+    })
+    .catch(e => {
+      const stale = b2Cache || useB2DiskCacheIfAvailable();
+      if (stale) {
+        console.error('[scan-b2-music] using stale cache after error:', e.message);
+        return stale;
+      }
+      throw e;
+    })
+    .finally(() => { b2ScanPromise = null; });
+  return b2ScanPromise;
 }
 
 // ── API: scan B2 music library ────────────────────────────────────────────────
@@ -873,8 +1486,12 @@ app.get('/api/scan-b2-music', async (req, res) => {
 app.post('/api/scan-b2-music/refresh', async (req, res) => {
   b2Cache = null;
   b2CacheTime = 0;
+  b2ScanPromise = null;
   try {
-    const lib = await scanB2Music();
+    const lib = await buildB2MusicLibrary();
+    b2Cache = lib;
+    b2CacheTime = Date.now();
+    saveB2LibraryCacheToDisk(lib);
     res.json({ ok: true, artists: lib.artists.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -891,7 +1508,7 @@ app.get('/api/b2-file-text', async (req, res) => {
     const { dlUrl, dlToken } = b2Cache;
     const encoded = filePath.split('/').map(encodeURIComponent).join('/');
     const url = `${dlUrl}/file/${B2_BUCKET}/${encoded}?Authorization=${dlToken}`;
-    https.get(url, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
+    https.get(url, { agent: B2_HTTP_AGENT, headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
       if (b2res.statusCode !== 200) {
         return res.status(b2res.statusCode).json({ error: 'B2 returned ' + b2res.statusCode });
       }
@@ -912,6 +1529,12 @@ function b2DownloadUrl(filePath, dlUrl, dlToken) {
 
 async function b2CacheFetch() {
   const lib = await scanB2Music();
+  if ((Date.now() - b2CacheTime) > B2_DOWNLOAD_AUTH_REFRESH_MS) {
+    return refreshB2DownloadAuthForCachedLibrary(lib).then(refreshed => ({
+      dlUrl: refreshed.dlUrl,
+      dlToken: refreshed.dlToken,
+    }));
+  }
   return { dlUrl: lib.dlUrl, dlToken: lib.dlToken };
 }
 
@@ -929,7 +1552,7 @@ app.get('/stream', async (req, res) => {
   if (quality === 'flac' || preset === null) {
     const reqHeaders = { 'User-Agent': 'AtomicBlast/1.0' };
     if (req.headers.range) reqHeaders['Range'] = req.headers.range;
-    https.get(fileUrl, { headers: reqHeaders }, (b2res) => {
+    const upstreamReq = https.get(fileUrl, { agent: B2_HTTP_AGENT, headers: reqHeaders }, (b2res) => {
       if (b2res.statusCode !== 200 && b2res.statusCode !== 206) {
         b2res.resume();
         return res.status(502).json({ error: `B2 returned ${b2res.statusCode}` });
@@ -940,7 +1563,18 @@ app.get('/stream', async (req, res) => {
       if (b2res.headers['content-range']) res.setHeader('Content-Range', b2res.headers['content-range']);
       res.status(b2res.statusCode);
       b2res.pipe(res);
-    }).on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'Fetch failed' }); });
+      res.on('close', () => b2res.destroy());
+      b2res.on('error', e => {
+        if (e.code !== 'ERR_STREAM_PREMATURE_CLOSE' && e.code !== 'EPIPE') console.error('B2 stream error:', e.message);
+        if (!res.headersSent) res.status(500).end();
+      });
+      res.on('error', e => {
+        if (e.code !== 'EPIPE') console.error('client stream error:', e.message);
+        b2res.destroy();
+      });
+    });
+    upstreamReq.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'Fetch failed' }); });
+    req.on('close', () => upstreamReq.destroy());
     return;
   }
 
@@ -952,12 +1586,15 @@ app.get('/stream', async (req, res) => {
 
   fetchStream(fileUrl, { 'User-Agent': 'AtomicBlast/1.0' }, (err, stream) => {
     if (err) return res.status(500).json({ error: 'Failed to fetch from B2' });
-    const ffmpeg = spawn('ffmpeg', ['-i','pipe:0','-vn','-acodec',codec,'-b:a',preset,'-f',isLow?'adts':'mp3','pipe:1']);
+    const ffmpeg = spawn('ffmpeg', ['-nostdin','-hide_banner','-loglevel','error','-analyzeduration','128k','-probesize','128k','-i','pipe:0','-vn','-acodec',codec,'-b:a',preset,'-f',isLow?'adts':'mp3','pipe:1']);
     stream.pipe(ffmpeg.stdin);
     ffmpeg.stdout.pipe(res);
     ffmpeg.stderr.on('data', () => {});
     ffmpeg.on('error', err => { console.error('ffmpeg error:', err); if (!res.headersSent) res.status(500).end(); });
-    req.on('close', () => ffmpeg.kill('SIGKILL'));
+    req.on('close', () => {
+      stream.destroy();
+      ffmpeg.kill('SIGKILL');
+    });
   });
 });
 
@@ -970,7 +1607,7 @@ app.get('/img', async (req, res) => {
   catch (e) { return res.status(503).end(); }
 
   const fileUrl = b2DownloadUrl(file, dlUrl, dlToken);
-  https.get(fileUrl, { headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
+  https.get(fileUrl, { agent: B2_HTTP_AGENT, headers: { 'User-Agent': 'AtomicBlast/1.0' } }, (b2res) => {
     if (b2res.statusCode !== 200) { b2res.resume(); return res.status(b2res.statusCode).end(); }
     res.setHeader('Content-Type', b2res.headers['content-type'] || 'image/jpeg');
     if (b2res.headers['content-length']) res.setHeader('Content-Length', b2res.headers['content-length']);
@@ -981,7 +1618,7 @@ app.get('/img', async (req, res) => {
 
 function fetchStream(url, headers, cb) {
   const proto = url.startsWith('https') ? https : http;
-  proto.get(url, { headers }, (response) => {
+  proto.get(url, { agent: url.startsWith('https') ? B2_HTTP_AGENT : undefined, headers }, (response) => {
     if (response.statusCode !== 200) return cb(new Error(`B2 returned ${response.statusCode}`));
     cb(null, response);
   }).on('error', cb);
