@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AtomicBlast ECS/Fargate service attached to the shared atomicradius.app ALB.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: atomic-blast
+    AllowedPattern: "^[a-z][a-z0-9-]*$"
+  EnvironmentName:
+    Type: String
+    Default: prod
+    AllowedPattern: "^[a-z][a-z0-9-]*$"
+  ClusterName:
+    Type: String
+    Default: atomic-radius-prod
+  ImageTag:
+    Type: String
+    Default: aws-prep
+  DesiredCount:
+    Type: Number
+    Default: 0
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  EcsServiceSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  EcsTaskExecutionRoleArn:
+    Type: String
+  EcsTaskRoleArn:
+    Type: String
+  HttpsListenerArn:
+    Type: String
+  HostName:
+    Type: String
+    Default: blast.atomicradius.app
+  ConfigPrefix:
+    Type: String
+    Default: /atomic-blast/prod/config
+  SecretPrefix:
+    Type: String
+    Default: /atomic-blast/prod/secrets
+  RepositoryUri:
+    Type: String
+  EfsFileSystemId:
+    Type: String
+  EfsAccessPointId:
+    Type: String
+
+Resources:
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-${EnvironmentName}-server"
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8080
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200-399"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  HostRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpsListenerArn
+      Priority: 5
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig:
+            Values:
+              - !Ref HostName
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-${EnvironmentName}-server"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "1024"
+      Memory: "2048"
+      ExecutionRoleArn: !Ref EcsTaskExecutionRoleArn
+      TaskRoleArn: !Ref EcsTaskRoleArn
+      Volumes:
+        - Name: state
+          EFSVolumeConfiguration:
+            FilesystemId: !Ref EfsFileSystemId
+            TransitEncryption: ENABLED
+            AuthorizationConfig:
+              AccessPointId: !Ref EfsAccessPointId
+              IAM: DISABLED
+      ContainerDefinitions:
+        - Name: server
+          Image: !Sub "${RepositoryUri}:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          MountPoints:
+            - SourceVolume: state
+              ContainerPath: /data
+              ReadOnly: false
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: STATE_DIR
+              Value: /data
+          Secrets:
+            - Name: NODE_ENV
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/NODE_ENV"
+            - Name: PORT
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/PORT"
+            - Name: PUBLIC_ORIGIN
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/PUBLIC_ORIGIN"
+            - Name: B2_BUCKET
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/B2_BUCKET"
+            - Name: B2_BUCKET_URL
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/B2_BUCKET_URL"
+            - Name: B2_PREFIX
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/B2_PREFIX"
+            - Name: AUTH_SUPPORT_EMAIL
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/AUTH_SUPPORT_EMAIL"
+            - Name: GOOGLE_REDIRECT_URI
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ConfigPrefix}/GOOGLE_REDIRECT_URI"
+            - Name: B2_KEY_ID
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/B2_KEY_ID"
+            - Name: B2_APP_KEY
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/B2_APP_KEY"
+            - Name: GOOGLE_CLIENT_ID
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/GOOGLE_CLIENT_ID"
+            - Name: GOOGLE_CLIENT_SECRET
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/GOOGLE_CLIENT_SECRET"
+            - Name: SPOTIFY_CLIENT_ID
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/SPOTIFY_CLIENT_ID"
+            - Name: SPOTIFY_CLIENT_SECRET
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/SPOTIFY_CLIENT_SECRET"
+            - Name: LASTFM_API_KEY
+              ValueFrom: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecretPrefix}/LASTFM_API_KEY"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub "/${ProjectName}/${EnvironmentName}/server"
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: server
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: HostRule
+    Properties:
+      ServiceName: !Sub "${ProjectName}-${EnvironmentName}-server"
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      EnableExecuteCommand: true
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref EcsServiceSecurityGroupId
+          Subnets: !Ref PublicSubnetIds
+      LoadBalancers:
+        - ContainerName: server
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroup
+
+Outputs:
+  ServiceName:
+    Value: !GetAtt Service.Name
+  TargetGroupArn:
+    Value: !Ref TargetGroup
+  TaskDefinitionArn:
+    Value: !Ref TaskDefinition

@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Route 53 cutover for blast.atomicradius.app to the shared AWS ALB.
+
+Parameters:
+  HostedZoneId:
+    Type: String
+  HostName:
+    Type: String
+    Default: blast.atomicradius.app
+  LoadBalancerDnsName:
+    Type: String
+  LoadBalancerHostedZoneId:
+    Type: String
+
+Resources:
+  BlastAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${HostName}."
+      Type: A
+      AliasTarget:
+        DNSName: !Sub "dualstack.${LoadBalancerDnsName}"
+        HostedZoneId: !Ref LoadBalancerHostedZoneId
+        EvaluateTargetHealth: false
+

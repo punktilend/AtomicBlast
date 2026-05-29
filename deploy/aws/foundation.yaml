@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AtomicBlast AWS foundation resources for the server/PWA migration.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: atomic-blast
+    AllowedPattern: "^[a-z][a-z0-9-]*$"
+  EnvironmentName:
+    Type: String
+    Default: prod
+    AllowedPattern: "^[a-z][a-z0-9-]*$"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  EcsServiceSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  EcsTaskExecutionRoleName:
+    Type: String
+    Default: atomic-radius-prod-ecs-task-execution
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+  ServerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: atomic-blast-server
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/${ProjectName}/${EnvironmentName}/server"
+      RetentionInDays: 30
+
+  ReadRuntimeConfigPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: read-atomic-blast-runtime-config
+      Roles:
+        - !Ref EcsTaskExecutionRoleName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ssm:GetParameter
+              - ssm:GetParameters
+              - ssm:GetParametersByPath
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/${EnvironmentName}/*"
+              - !Sub "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${EnvironmentName}/*"
+
+  EfsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AtomicBlast EFS access from ECS tasks.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref EcsServiceSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${EnvironmentName}-efs"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  StateFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: elastic
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${EnvironmentName}-state"
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  MountTargetA:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StateFileSystem
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+      SubnetId: !Select [0, !Ref PrivateSubnetIds]
+
+  MountTargetB:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StateFileSystem
+      SecurityGroups:
+        - !Ref EfsSecurityGroup
+      SubnetId: !Select [1, !Ref PrivateSubnetIds]
+
+  StateAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref StateFileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        Path: "/atomicblast"
+        CreationInfo:
+          OwnerUid: "1000"
+          OwnerGid: "1000"
+          Permissions: "750"
+
+  RepositoryUriParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/${EnvironmentName}/ecr/server_repository_uri"
+      Type: String
+      Value: !GetAtt ServerRepository.RepositoryUri
+
+  EfsIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/${EnvironmentName}/efs/state_file_system_id"
+      Type: String
+      Value: !Ref StateFileSystem
+
+  EfsAccessPointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/${EnvironmentName}/efs/state_access_point_id"
+      Type: String
+      Value: !Ref StateAccessPoint
+
+Outputs:
+  ServerRepositoryUri:
+    Value: !GetAtt ServerRepository.RepositoryUri
+  LogGroupName:
+    Value: !Ref LogGroup
+  StateFileSystemId:
+    Value: !Ref StateFileSystem
+  StateAccessPointId:
+    Value: !Ref StateAccessPoint

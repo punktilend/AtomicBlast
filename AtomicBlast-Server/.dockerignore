@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+accounts.json
+favorites.json
+playlists.json
+playback-state.json
+genres.json
+cue-cache.json
+b2-library-cache.json
+!package.json
+!package-lock.json
+public/downloads/*.xpi
