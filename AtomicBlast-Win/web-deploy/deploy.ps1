@@ -37,10 +37,9 @@ $headTop = @'
   <meta name="apple-mobile-web-app-title" content="AtomicBlast">
   <meta name="theme-color" content="#080c08">
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/web/favicon.svg?v=atomic-radius-2">
-  <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png?v=atomic-radius-2">
-  <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png?v=atomic-radius-2">
-  <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png?v=atomic-radius-2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/web/favicon-32x32.png?v=atomicblast-orbit-1">
+  <link rel="icon" type="image/png" sizes="16x16" href="/web/favicon-16x16.png?v=atomicblast-orbit-1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/web/apple-touch-icon.png?v=atomicblast-orbit-1">
   <script>
     (function () {
       var ua = navigator.userAgent || '';
@@ -70,8 +69,13 @@ $webOverrides = @'
     if (!filePath) return '';
     return '/img?file=' + encodeURIComponent(filePath);
   }
+  function atomicBlastStreamQuality() {
+    var conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+    if (conn && conn.saveData) return 'low';
+    return 'flac';
+  }
   function b2TrackObj(track, artistName, album, dlUrl, dlToken, bucket) {
-    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=flac';
+    var signedUrl = '/stream?file=' + encodeURIComponent(track.path) + '&quality=' + atomicBlastStreamQuality();
     var coverUrl  = b2CoverUrl(album.coverPath);
     return { id: track.path, title: track.title, artist: artistName, album: album.name,
              path: signedUrl, ext: track.ext, coverPath: coverUrl };
@@ -113,6 +117,7 @@ if (Test-Path "$pubDir\downloads") {
   }
 }
 scp "$winDir\assets\pulse-logo.svg" "${server}:/opt/pulse-proxy/public/assets/pulse-logo.svg"
+scp "$winDir\assets\atomicblast-mark.png" "${server}:/opt/pulse-proxy/public/assets/atomicblast-mark.png"
 scp "$pubDir\assets\icon-192.png"  "${server}:/opt/pulse-proxy/public/assets/icon-192.png"
 scp "$pubDir\assets\icon-512.png"  "${server}:/opt/pulse-proxy/public/assets/icon-512.png"
 Write-Host "  -> public/ uploaded" -ForegroundColor Green

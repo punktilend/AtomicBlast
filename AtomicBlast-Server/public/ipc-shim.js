@@ -2,15 +2,60 @@
 // Maps ipcRenderer.invoke() calls to HTTP fetch calls against the proxy API.
 // Loaded by index.html before the main app script.
 
+const ATOMICBLAST_CACHE_NAME = 'atomicblast-runtime-v2';
+const ATOMICBLAST_B2_CACHE_URL = '/__atomicblast_cache__/b2-library';
+
+async function readCachedB2Library() {
+  if (!('caches' in window)) return null;
+  try {
+    const cache = await caches.open(ATOMICBLAST_CACHE_NAME);
+    const cached = await cache.match(ATOMICBLAST_B2_CACHE_URL);
+    if (!cached) return null;
+    return cached.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeCachedB2Library(lib) {
+  if (!('caches' in window) || !lib?.artists) return;
+  try {
+    const cache = await caches.open(ATOMICBLAST_CACHE_NAME);
+    await cache.put(ATOMICBLAST_B2_CACHE_URL, new Response(JSON.stringify(lib), {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AtomicBlast-Saved-At': String(Date.now()),
+      },
+    }));
+  } catch (_) {}
+}
+
+async function fetchB2Library() {
+  const r = await fetch('/api/scan-b2-music');
+  if (!r.ok) throw new Error('scan-b2-music: HTTP ' + r.status);
+  const lib = await r.json();
+  writeCachedB2Library(lib);
+  return lib;
+}
+
+function atomicBlastStreamQuality() {
+  const conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+  if (conn?.saveData) return 'low';
+  return 'flac';
+}
+
 window.ipcRenderer = {
   invoke: async (channel, args) => {
     try {
       switch (channel) {
 
         case 'scan-b2-music': {
-          const r = await fetch('/api/scan-b2-music');
-          if (!r.ok) throw new Error('scan-b2-music: HTTP ' + r.status);
-          return r.json();
+          const cached = await readCachedB2Library();
+          if (cached?.artists?.length) {
+            fetchB2Library().catch(e => console.warn('[ipc-shim] background B2 refresh:', e.message));
+            return cached;
+          }
+          return fetchB2Library();
         }
 
         case 'get-collection-popularity': {
@@ -49,7 +94,7 @@ window.ipcRenderer = {
         case 'get-cloud-stream-url': {
           // Route through proxy stream endpoint
           const filePath = args.filePath || args.fileId || '';
-          return '/stream?file=' + encodeURIComponent(filePath) + '&quality=flac';
+          return '/stream?file=' + encodeURIComponent(filePath) + '&quality=' + atomicBlastStreamQuality();
         }
 
         case 'list-cloud-files': {
